@@ -11,4 +11,4 @@ where `<path-to-the-icon-data>` should point to a local copy of the icon data re
 
 `export ICON_DATA_LOCATION_GIT=/Users/pkovacs/tmp/ux/icon-repository/icons`.
 
-In case you specify a configuration file (using the `ICON_REPO_CONFIG_FILE` environment variable), you can achieve the same effect with the `icon_data_location_git` property there as with the ICON_DATA_LOCATION_GIT environment variable.
+In case you specify a configuration file (using the `ICON_REPO_CONFIG_FILE` environment variable), you can achieve the same effect with the `icon_data_location_git` property there &mdash; as with the ICON_DATA_LOCATION_GIT environment variable.
