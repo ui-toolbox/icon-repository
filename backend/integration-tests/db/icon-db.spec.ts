@@ -8,7 +8,7 @@ import { createTestPool,
     getCheckIconFile,
     assertIconCount
  } from "./db-test-utils";
-import { IIconFile } from "../../src/icon";
+import { IAddIconRequestData } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
@@ -17,14 +17,14 @@ import { addIconToDBProvider, getIconFileFromDBProvider } from "../../src/db/db"
 describe("addIconToDBProvider", () => {
     let pool: Pool;
 
-    beforeAll(done => createTestPool(p => pool = p, fail, done));
-    afterAll(done => terminateTestPool(pool, done));
-    beforeEach(done => createTestSchema(pool, fail, done));
+    beforeAll(createTestPool(p => pool = p, fail));
+    afterAll(terminateTestPool((pool)));
+    beforeEach(createTestSchema(() => pool, fail));
     afterEach(() => delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST);
 
     it("should be capable to add a first icon", done => {
         const user = "zazie";
-        const iconFileInfo: IIconFile = {
+        const iconFileInfo: IAddIconRequestData = {
             iconName: "metro-icon",
             format: "french",
             size: "great",
@@ -41,13 +41,13 @@ describe("addIconToDBProvider", () => {
 
     it("should be capable to add a second icon", done => {
         const user = "zazie";
-        const iconFileInfo1: IIconFile = {
+        const iconFileInfo1: IAddIconRequestData = {
             iconName: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: IIconFile = {
+        const iconFileInfo2: IAddIconRequestData = {
             iconName: "animal-icon",
             format: "french",
             size: "huge",
@@ -71,13 +71,13 @@ describe("addIconToDBProvider", () => {
 
     it("should rollback to last consistent state, in case an error occurs in sideEffect", done => {
         const user = "zazie";
-        const iconFileInfo1: IIconFile = {
+        const iconFileInfo1: IAddIconRequestData = {
             iconName: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: IIconFile = {
+        const iconFileInfo2: IAddIconRequestData = {
             iconName: "animal-icon",
             format: "french",
             size: "huge",

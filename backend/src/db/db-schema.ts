@@ -1,37 +1,81 @@
-export interface IColumnsDefinition {
-    readonly [key: string]: string;
+export interface IColumnSpec {
+    readonly name: string;
+    readonly definition: string;
 }
 
-export interface ITableDefinition {
+export interface IColumnsDefinition {
+    readonly [key: string]: IColumnSpec;
+}
+
+export interface ITableSpec {
     readonly tableName: string;
     readonly columns: IColumnsDefinition;
     readonly col_constraints?: string[];
 }
 
-export const iconTable: ITableDefinition = {
-    tableName: "icon",
-    columns: {
-        id: "serial primary key",
-        name: "text",
-        version: "int",
-        modified_by: "text",
-        modified_at: "timestamp DEFAULT now()"
+type ProjectColumn = (tableSpec: ITableSpec, columnSpec: IColumnSpec) => string;
+export const projectColumn: ProjectColumn = (tableSpec, columnSpec) => tableSpec.tableName + "." + columnSpec.name;
+
+const iconTableColumns = {
+    id: {
+        name: "id",
+        definition: "serial primary key"
     },
+    name: {
+        name: "name",
+        definition: "text"
+    },
+    version: {
+        name: "version",
+        definition: "int"
+    },
+    modifiedBy: {
+        name: "modified_by",
+        definition: "text"
+    },
+    modifiedAt: {
+        name: "modified_at",
+        definition: "timestamp DEFAULT now()"
+    }
+};
+export type IconTableColumnsDef = typeof iconTableColumns;
+
+export const iconTableSpec: ITableSpec = {
+    tableName: "icon",
+    columns: iconTableColumns,
     col_constraints: [
         "UNIQUE (name)",
         "UNIQUE (name, version)"
     ]
 };
 
-export const iconFileTable: ITableDefinition = {
-    tableName: "icon_file",
-    columns: {
-        id: "serial primary key",
-        icon_id: "int REFERENCES icon(id) ON DELETE CASCADE",
-        file_format: "text",
-        icon_size: "text",
-        content: "bytea"
+const iconFileTableColumns =  {
+    id: {
+        name: "id",
+        definition: "serial primary key"
     },
+    icondId: {
+        name: "icon_id",
+        definition: "int REFERENCES icon(id) ON DELETE CASCADE"
+    },
+    fileFormat: {
+        name: "file_format",
+        definition: "text"
+    },
+    iconSize: {
+        name: "icon_size",
+        definition: "text"
+    },
+    content: {
+        name: "content",
+        definition: "bytea"
+    }
+};
+export type IconFileTableColumnsDef = typeof iconFileTableColumns;
+
+export const iconFileTableSpec: ITableSpec = {
+    tableName: "icon_file",
+    columns: iconFileTableColumns,
     col_constraints: [
         "UNIQUE (icon_id, file_format, icon_size)"
     ]

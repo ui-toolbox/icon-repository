@@ -4,7 +4,7 @@ import * as express from "express";
 import { List, Map } from "immutable";
 import * as Rx from "rxjs/Rx";
 
-import { IIconFile } from "./icon";
+import { IAddIconRequestData } from "./icon";
 import { IIconDAFs } from "./db/db";
 import { IGitAccessFunctions } from "./git";
 import logger, { ContextAbleLogger } from "./utils/logger";
@@ -57,7 +57,7 @@ type GetIcons = () => Rx.Observable<IconInfo[]>;
 type GetIcon = (encodeIconPath: string) => Rx.Observable<IIconFileData>;
 type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Rx.Observable<Buffer>;
 type CreateIcon = (
-    initialIconFileInfo: IIconFile,
+    initialIconFileInfo: IAddIconRequestData,
     username: string) => Rx.Observable<number>;
 export interface IIconService {
     readonly getRepoConfiguration: GetIconRepoConfig;

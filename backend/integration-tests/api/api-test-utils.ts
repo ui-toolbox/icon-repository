@@ -2,7 +2,7 @@ import * as util from "util";
 import * as crypto from "crypto";
 import * as http from "http";
 import * as request from "request";
-import * as Rx from "rxjs";
+import { Observable, Observer, Subscription } from "rxjs";
 import { jar as cookieJar } from "request";
 import { boilerplateSubscribe } from "../testUtils";
 
@@ -15,15 +15,17 @@ import { getDefaultConfiguration } from "../../src/configuration";
 import iconDAFsProvider from "../../src/db/db";
 import gitProvider from "../../src/git";
 import serverProvider from "../../src/server";
-import { Server } from "https";
+import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { IIconFile } from "../../src/icon";
+import { IAddIconRequestData, IAddIconFileRequestData } from "../../src/icon";
 import logger from "../../src/utils/logger";
+import { getTestRepoDir } from "../git/git-test-utils";
+import { AsyncAction } from "rxjs/scheduler/AsyncAction";
 
 logger.setLevel("silly");
 
-type StartServer = (customServerConfig: any) => Rx.Observable<http.Server>;
+type StartServer = (customServerConfig: any) => Observable<Server>;
 
 export const defaultTestServerconfig = Object.freeze({
     authentication_type: "basic"
@@ -49,9 +51,24 @@ export const startServer: StartServer = customConfig => {
 export const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
+export const startServerWithBackdoorsProlog:
+    (fail: (error: any) => void, serverConsumer: (testServer: Server) => void) => (done: () => void) => Subscription
+= (fail, serverConsumer) => done => startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
+    .subscribe(
+        testServer => {
+            serverConsumer(testServer);
+        },
+        error => {
+            fail(error);
+            done();
+        },
+        done
+    );
+export const closeServerEpilog: (sp: () => Server) => () => void = sp => () => sp().close();
+
 export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;
 
-export interface IUploadRequestBuffer {
+interface IUploadRequestBuffer {
     readonly value: Buffer;
     readonly options: {
         readonly filename: string
@@ -71,7 +88,7 @@ interface IRequestResult {
 }
 type TestRequest = (
     options: any
-) => Rx.Observable<IRequestResult>;
+) => Observable<IRequestResult>;
 
 export const authUX = Object.freeze({
     auth: {
@@ -90,7 +107,7 @@ export const authDEV = Object.freeze({
 });
 
 export const testRequest: TestRequest = options =>
-    Rx.Observable.create((observer: Rx.Observer<IRequestResult>) => {
+    Observable.create((observer: Observer<IRequestResult>) => {
         req(Object.assign(options, authDEV),
             (error: any, response: request.Response, body: any) => {
                 logger.info("Reqest for %s is back: %o", options.url, {hasError: !!error});
@@ -127,44 +144,10 @@ export const setAuthentication = (
 )
 .catch(error => {
     fail(error);
-    return Rx.Observable.throw(server);
+    return Observable.throw(server);
 });
 
-export interface IHTTPStatusTestParams {
-    readonly serverOptions?: any;
-    readonly requestOptions: any;
-    readonly authentication: {
-        readonly username: string,
-        readonly privileges: string[]
-    };
-    readonly expectedStatusCode: number;
-    readonly fail: (error: any) => void;
-    readonly done: () => void;
-}
-
-type TestHTTPStatus = (params: IHTTPStatusTestParams) => void;
-export const testHTTPStatus: TestHTTPStatus = params => {
-    const jar = cookieJar();
-    startServerWithBackdoors(params.serverOptions || {})
-    .flatMap(server =>
-        setAuthentication(server, params.authentication.username, params.authentication.privileges, jar)
-        .flatMap(() => testRequest(Object.assign(params.requestOptions, {
-                url: getURL(server, params.requestOptions.url),
-                jar
-            })))
-            .map(result => {
-                expect(result.response.statusCode).toEqual(params.expectedStatusCode);
-                server.close();
-            })
-            .catch(error => {
-                server.close();
-                return Rx.Observable.throw(error);
-            })
-    )
-    .subscribe(boilerplateSubscribe(params.fail, params.done));
-};
-
-export interface IUploadFormData {
+export interface IAddIconFormData {
     readonly iconName: string;
     readonly modifiedBy: string;
     readonly fileFormat: string;
@@ -172,7 +155,16 @@ export interface IUploadFormData {
     readonly iconFile: IUploadRequestBuffer;
 }
 
-export const createUploadFormData: (iconName: string) => IUploadFormData = iconName => ({
+export interface IAddIconFileFormData {
+    readonly iconId: number;
+    readonly modifiedBy: string;
+    readonly fileFormat: string;
+    readonly iconSize: string;
+    readonly iconFile: IUploadRequestBuffer;
+}
+
+export const createAddIconFormData: (iconName: string, format: string, size: string) => IAddIconFormData
+= (iconName, format, size) => ({
     iconName,
     modifiedBy: "zazie",
     fileFormat: "french",
@@ -180,8 +172,24 @@ export const createUploadFormData: (iconName: string) => IUploadFormData = iconN
     iconFile: createUploadBuffer(4096)
 });
 
-export const convertToIconFileInfo: (formData: IUploadFormData) => IIconFile = formData => ({
+export const createAddIconFileFormData: (iconId: number, format: string, size: string) => IAddIconFileFormData
+= (iconId, format, size) => ({
+    iconId,
+    modifiedBy: "zazie",
+    fileFormat: format,
+    iconSize: size,
+    iconFile: createUploadBuffer(4096)
+});
+
+export const convertToAddIconRequest: (formData: IAddIconFormData) => IAddIconRequestData = formData => ({
     iconName: formData.iconName,
+    format: formData.fileFormat,
+    size: formData.iconSize,
+    content: formData.iconFile.value
+});
+
+export const convertToAddIconFileRequest: (formData: IAddIconFileFormData) => IAddIconFileRequestData = formData => ({
+    iconId: formData.iconId,
     format: formData.fileFormat,
     size: formData.iconSize,
     content: formData.iconFile.value

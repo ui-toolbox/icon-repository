@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IIconFile } from "./icon";
+import { IAddIconRequestData } from "./icon";
 import { IIconService } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IIconHanlders {
@@ -69,7 +69,7 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
     createIcon: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("createIcon");
         ctxLogger.info("START");
-        const iconData: IIconFile = {
+        const iconData: IAddIconRequestData = {
             iconName: req.body.iconName,
             format: req.body.fileFormat,
             size: req.body.iconSize,

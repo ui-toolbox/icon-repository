@@ -1,10 +1,19 @@
+import { List } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult, Query, PoolClient } from "pg";
 
-import { IIconFile } from "../icon";
+import { IAddIconRequestData, IIconInfo } from "../icon";
 import appConfigProvider, { ConfigurationDataProvider } from "../configuration";
 import logger from "../utils/logger";
-import { observeOn } from "rxjs/operator/observeOn";
+import {
+    IColumnsDefinition,
+    projectColumn,
+    IconFileTableColumnsDef,
+    IconTableColumnsDef,
+    iconTableSpec,
+    iconFileTableSpec,
+    IColumnSpec
+} from "./db-schema";
 
 const ctxLogger = logger.createChild("db");
 
@@ -105,12 +114,15 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
 type AddIconFileToTable = (
     conn: IConnection,
     iconId: number,
-    iconFileInfo: IIconFile,
+    iconFileInfo: IAddIconRequestData,
     modifiedBy: string
 ) => Observable<number>;
 const addIconFileToTable: AddIconFileToTable = (conn, iconId, iconFileInfo, modifiedBy) => {
-    const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
-                                "VALUES($1, $2, $3, $4) RETURNING id";
+    const columns: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
+    const addIconFile: string = `INSERT INTO ${iconFileTableSpec.tableName}(` +
+                                `${columns.id.name}, ${columns.fileFormat.name}, ` +
+                                `${columns.iconSize.name}, ${columns.content.name}) ` +
+                                `VALUES($1, $2, $3, $4) RETURNING id`;
     return execStatement(conn, addIconFile, [
         iconId,
         iconFileInfo.format,
@@ -121,14 +133,17 @@ const addIconFileToTable: AddIconFileToTable = (conn, iconId, iconFileInfo, modi
 };
 
 type AddIconToDB = (
-    iconFileInfo: IIconFile,
+    iconFileInfo: IAddIconRequestData,
     modifiedBy: string,
     createSideEffect?: () => Observable<void>
 ) => Observable<number>;
 type AddIconToDBProvider = (pool: Pool) => AddIconToDB;
 export const addIconToDBProvider: AddIconToDBProvider = pool => (iconFileInfo, modifiedBy, createSideEffect) => {
     const iconVersion = 1;
-    const addIconSQL: string = "INSERT INTO icon(name, version, modified_by) VALUES($1, $2, $3) RETURNING id";
+    const columns: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
+    const addIconSQL: string = `INSERT INTO ${iconTableSpec.tableName}(` +
+                                `${columns.name.name}, ${columns.version.name}, ${columns.modifiedBy.name}) ` +
+                                `VALUES($1, $2, $3) RETURNING id`;
     const addIconParams = [iconFileInfo.iconName, iconVersion, modifiedBy];
     return tx<number>(
         pool,
@@ -148,10 +163,11 @@ export type GetIconFileFromDB = (
     iconSize: string) => Observable<Buffer>;
 type GetIconFileFromDBProvider = (pool: Pool) => GetIconFileFromDB;
 export const getIconFileFromDBProvider: GetIconFileFromDBProvider = pool => (iconId, format, iconSize) => {
-    const getIconFileSQL = "SELECT content from icon_file " +
-                            "WHERE icon_file.icon_id = $1 AND " +
-                                "icon_file.file_format = $2 AND " +
-                                "icon_file.icon_size = $3";
+    const columns: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
+    const getIconFileSQL = `SELECT content FROM ${iconFileTableSpec.tableName} ` +
+                            `WHERE ${columns.icondId} = $1 AND ` +
+                                `${columns.fileFormat} = $2 AND ` +
+                                `${columns.iconSize} = $3`;
     return query(pool, getIconFileSQL, [iconId, format, iconSize])
     .map(result => result.rows[0].content);
 };
@@ -168,6 +184,28 @@ const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IIconDAFs
         addIconToDB: addIconToDBProvider(pool),
         getIconFileFromDB: getIconFileFromDBProvider(pool)
     };
+};
+
+const projectIconTableColumnWithAlias = (columnSpec: IColumnSpec, alias: string) =>
+    `${projectColumn(iconTableSpec, columnSpec)} as ${alias}`;
+
+type GetAllIconsFromDB = () => Observable<List<IIconInfo>>;
+export const getAllIconsFromDBProvider: (pool: Pool) => GetAllIconsFromDB
+= pool => () => {
+    const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
+    const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
+    const sql: string = `SELECT ${projectIconTableColumnWithAlias(iconTableCols.id, "icon_id")}, ` +
+                                `${projectIconTableColumnWithAlias(iconTableCols.name, "icon_name")}, ` +
+                                `${projectIconTableColumnWithAlias(iconTableCols.version, "icon_version")}, ` +
+                            `FROM ${iconTableSpec.tableName}, ${iconFileTableSpec.tableName} ` +
+                        `WHERE ${iconTableCols.id.name} = ${iconFileTableCols.icondId.name} ` +
+                        `ORDER BY icon_id, icon_file_format, icon_size`;
+    return query(pool, sql, [])
+    .map(result => {
+        result.rows.map(row => {
+            row[]
+        });
+    });
 };
 
 export default dbAccessProvider;
