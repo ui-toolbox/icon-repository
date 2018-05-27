@@ -1,6 +1,6 @@
 export interface IIconFile {
-    iconName: string;
-    format: string;
-    size: string;
-    content: Buffer;
+    readonly iconName: string;
+    readonly format: string;
+    readonly size: string;
+    readonly content: Buffer;
 }

@@ -19,12 +19,22 @@ import { Server } from "https";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
 import { IIconFile } from "../../src/icon";
+import logger from "../../src/utils/logger";
+
+logger.setLevel("silly");
 
 type StartServer = (customServerConfig: any) => Rx.Observable<http.Server>;
 
+export const defaultTestServerconfig = Object.freeze({
+    authentication_type: "basic"
+});
+
 export const startServer: StartServer = customConfig => {
     const configData = Object.assign(
-        getDefaultConfiguration(),
+        Object.assign(
+            getDefaultConfiguration(),
+            defaultTestServerconfig
+        ),
         Object.assign(customConfig, {server_port: 0})
     );
     const iconService = iconServiceProvider(
@@ -42,9 +52,9 @@ export const startServerWithBackdoors: StartServer = customConfig =>
 export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;
 
 export interface IUploadRequestBuffer {
-    value: Buffer;
-    options: {
-        filename: string
+    readonly value: Buffer;
+    readonly options: {
+        readonly filename: string
     };
 }
 export const createUploadBuffer: (size: number, filename?: string) => IUploadRequestBuffer
@@ -56,17 +66,34 @@ export const createUploadBuffer: (size: number, filename?: string) => IUploadReq
 });
 
 interface IRequestResult {
-    response: request.Response;
-    body: any;
+    readonly response: request.Response;
+    readonly body: any;
 }
 type TestRequest = (
     options: any
 ) => Rx.Observable<IRequestResult>;
 
+export const authUX = Object.freeze({
+    auth: {
+        user: "ux",
+        pass: "ux",
+        sendImmediately: true
+    }
+});
+
+export const authDEV = Object.freeze({
+    auth: {
+        user: "dev",
+        pass: "dev",
+        sendImmediately: true
+    }
+});
+
 export const testRequest: TestRequest = options =>
     Rx.Observable.create((observer: Rx.Observer<IRequestResult>) => {
-        req(options,
+        req(Object.assign(options, authDEV),
             (error: any, response: request.Response, body: any) => {
+                logger.info("Reqest for %s is back: %o", options.url, {hasError: !!error});
                 if (error) {
                     observer.error(util.format("error in request: %o", error));
                 } else {
@@ -104,12 +131,15 @@ export const setAuthentication = (
 });
 
 export interface IHTTPStatusTestParams {
-    serverOptions?: any;
-    requestOptions: any;
-    authentication: {username: string, privileges: string[]};
-    expectedStatusCode: number;
-    fail: (error: any) => void;
-    done: () => void;
+    readonly serverOptions?: any;
+    readonly requestOptions: any;
+    readonly authentication: {
+        readonly username: string,
+        readonly privileges: string[]
+    };
+    readonly expectedStatusCode: number;
+    readonly fail: (error: any) => void;
+    readonly done: () => void;
 }
 
 type TestHTTPStatus = (params: IHTTPStatusTestParams) => void;
@@ -135,11 +165,11 @@ export const testHTTPStatus: TestHTTPStatus = params => {
 };
 
 export interface IUploadFormData {
-    iconName: string;
-    modifiedBy: string;
-    fileFormat: string;
-    iconSize: string;
-    iconFile: IUploadRequestBuffer;
+    readonly iconName: string;
+    readonly modifiedBy: string;
+    readonly fileFormat: string;
+    readonly iconSize: string;
+    readonly iconFile: IUploadRequestBuffer;
 }
 
 export const createUploadFormData: (iconName: string) => IUploadFormData = iconName => ({

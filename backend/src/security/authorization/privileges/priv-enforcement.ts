@@ -2,15 +2,16 @@ import * as express from "express";
 import { Set } from "immutable";
 
 import { privilegeDictionary } from "./priv-config";
+import { getAuthentication } from "../../common";
 
 interface IEndPointPrivilegeDescriptor {
-    [endPointREString: string]: {
-        [requestMethod: string]: string[]
+    readonly [endPointREString: string]: {
+        readonly [requestMethod: string]: string[]
     };
 }
 
 interface IEndPoint2REMap {
-    [kendPointREStringey: string]: RegExp;
+    readonly [kendPointREStringey: string]: RegExp;
 }
 
 type RequiredPrivilegesGetter = (url: string, requestMethod: string) => Set<string>;
@@ -56,13 +57,13 @@ const createDefaultRequiredPrivilegesGetter
 
 const getRequiredPrivileges = createDefaultRequiredPrivilegesGetter();
 
-const hasPrivilege: (endPointPrivileges: Set<string>, userPrivileges: string[]) => boolean
+const hasPrivilege: (endPointPrivileges: Set<string>, userPrivileges: Set<string>) => boolean
 = (endPointPrivileges, userPrivileges) => endPointPrivileges.size === 0 ||
-                                          endPointPrivileges.intersect(Set(userPrivileges)).size > 0;
+                                          endPointPrivileges.intersect(userPrivileges).size > 0;
 
 export const hasRequiredPrivileges = (req: express.Request) => {
     const requiredPrivileges: Set<string> = getRequiredPrivileges(req.url, req.method);
     return requiredPrivileges.size === 0 ||
-            req.session.authentication &&
-                hasPrivilege(requiredPrivileges, req.session.authentication.privileges);
+            getAuthentication(req.session) &&
+                hasPrivilege(requiredPrivileges, getAuthentication(req.session).privileges);
 };

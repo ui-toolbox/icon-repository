@@ -123,12 +123,15 @@ type AddIconFile = (
 ) => Observable<void>;
 
 export interface IGitAccessFunctions {
-    addIconFile: AddIconFile;
+    readonly getRepoLocation: () => string;
+    readonly addIconFile: AddIconFile;
 }
 
 type GitAFsProvider = (localIconRepositoryLocation: string) => IGitAccessFunctions;
 
 const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => ({
+    getRepoLocation: () => localIconRepositoryLocation,
+
     addIconFile: (inconFileInfo, userName) => Observable.create((observer: Observer<string>) =>
     enqueueJob(
             createAddIconFileJob(

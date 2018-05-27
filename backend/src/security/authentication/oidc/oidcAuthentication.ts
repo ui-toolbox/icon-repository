@@ -6,26 +6,19 @@ import * as _ from "lodash";
 // @ts-ignore
 import jose = require("jsrsasign");
 
-import logger, { ContextAbleLogger } from "../../utils/logger";
-import * as errorHandling from "../../utils/error-handling";
-import doFetch from "../../utils/fetch";
-import { fromBase64 } from "../../utils/encodings";
+import logger, { ContextAbleLogger } from "../../../utils/logger";
+import * as errorHandling from "../../../utils/error-handling";
+import doFetch from "../../../utils/fetch";
+import { fromBase64 } from "../../../utils/encodings";
+import { Authentication } from "../../common";
 
 const sformat = util.format;
 
-export class Authentication {
-    public readonly userName: string;
-
-    constructor(userName: string) {
-        this.userName = userName;
-    }
-}
-
 export interface IAuthorizationToken {
-    scope: string;
-    access_token: string;
-    refresh_token: string;
-    id_token: string;
+    readonly scope: string;
+    readonly access_token: string;
+    readonly refresh_token: string;
+    readonly id_token: string;
 }
 
 export default (
@@ -106,8 +99,7 @@ export default (
                         if (payload.exp >= now) {
                             ctxLogger.verbose("Expiration OK");
                             ctxLogger.verbose("Token valid!");
-
-                            return payload.sub;
+                            return new Authentication(payload.sub, null);
                         } else {
                             tokenVerificationFailed(ctxLogger, "Invalid payload.exp", payload.exp);
                         }
@@ -122,6 +114,11 @@ export default (
             }
         }
         tokenVerificationFailed(ctxLogger, "Something went wrong during token parsing");
+    };
+
+    const tokenVerificationFailed = (ctxtLogger: ContextAbleLogger, message: string, ...args: any[]) => {
+        ctxtLogger.error(message, args);
+        errorHandling.throwErrorWOStackTrace("Authentication failed");
     };
 
     const authenticateByCode: (reqState: string, resState: string, code: string) => Rx.Observable<Authentication>
@@ -140,11 +137,6 @@ export default (
             requestAuthorizationToken(code),
             getIdProviderPublicKey()
         ).map(result => parseVerifyAuthorizationToken(result[0], result[1]));
-    };
-
-    const tokenVerificationFailed = (ctxtLogger: ContextAbleLogger, message: string, ...args: any[]) => {
-        ctxtLogger.error(message, args);
-        errorHandling.throwErrorWOStackTrace("Authentication failed");
     };
 
     return authenticateByCode;

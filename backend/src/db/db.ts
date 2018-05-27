@@ -46,8 +46,8 @@ export const query: (pool: Pool, statement: string, parameters: any[]) => Observ
 type ClientQuery = (queryText: string, values?: any[]) => Promise<QueryResult>;
 
 interface IConnection {
-    execute: ClientQuery;
-    release: () => void;
+    readonly execute: ClientQuery;
+    readonly release: () => void;
 }
 const createClient: (pool: Pool) => Observable<IConnection> = pool => Observable.create(
     (observer: Observer<IConnection>) => pool.connect((err, client, done) => {
@@ -157,8 +157,8 @@ export const getIconFileFromDBProvider: GetIconFileFromDBProvider = pool => (ico
 };
 
 export interface IIconDAFs {
-    addIconToDB: AddIconToDB;
-    getIconFileFromDB: GetIconFileFromDB;
+    readonly addIconToDB: AddIconToDB;
+    readonly getIconFileFromDB: GetIconFileFromDB;
 }
 
 const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IIconDAFs

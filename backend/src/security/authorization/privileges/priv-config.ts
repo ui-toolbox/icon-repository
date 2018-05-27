@@ -1,5 +1,6 @@
-import { Set } from "immutable";
+import { Set, Map } from "immutable";
 import * as Rx from "rxjs";
+import { GetAllPrivilegesForUser } from "../../common";
 
 export const privilegeDictionary = Object.freeze({
     CREATE_ICON: "CREATE_ICON",
@@ -8,25 +9,24 @@ export const privilegeDictionary = Object.freeze({
     REMOVE_ICON: "REMOVE_ICON"
 });
 
-const privilegesByRoles: {[key: string]: string[]} = {
-    ICON_EDITOR: [
+const privilegesByRoles: Map<string, Set<string>> = Map({
+    ICON_EDITOR: Set([
         privilegeDictionary.CREATE_ICON,
         privilegeDictionary.ADD_ICON_FILE,
         privilegeDictionary.REMOVE_ICON_FILE,
         privilegeDictionary.REMOVE_ICON
-    ]
-};
+    ])
+});
 
 export type PrivilegesForUserGetter = (userName: string) => Rx.Observable<Set<string>>;
 export type RolesForUserGetter = (userName: string) => Rx.Observable<Set<string>>;
 export type PrivilegesForRoleGetter = (role: string) => Rx.Observable<Set<string>>;
 export interface IPrivilegeResources {
-    privilegesForUserGetter: PrivilegesForUserGetter;
-    rolesForUserGetter: RolesForUserGetter;
-    privilegesForRoleGetter: PrivilegesForRoleGetter;
+    readonly privilegesForUserGetter: PrivilegesForUserGetter;
+    readonly rolesForUserGetter: RolesForUserGetter;
+    readonly privilegesForRoleGetter: PrivilegesForRoleGetter;
 }
-export type AllPrivilegesForUserGetter = (userName: string) => Rx.Observable<Set<string>>;
-type AllPrivilegesForUserGetterProvider = (resources: IPrivilegeResources) => AllPrivilegesForUserGetter;
+type AllPrivilegesForUserGetterProvider = (resources: IPrivilegeResources) => GetAllPrivilegesForUser;
 
 export const privilegesForUserGetterProvider: () => PrivilegesForUserGetter
 = () => userName => Rx.Observable.of(Set());
@@ -38,7 +38,7 @@ export const rolesForUserGetterProvider: (usersByRoles: {[key: string]: string[]
 ));
 
 export const privilegesForRoleGetterProvider: () => PrivilegesForRoleGetter
-= () => role => Rx.Observable.of(Set(privilegesByRoles[role]));
+= () => role => Rx.Observable.of(privilegesByRoles.get(role));
 
 export type PrivilegeResourcesProvider = (usersByRoles: {[key: string]: string[]}) => IPrivilegeResources;
 
@@ -64,4 +64,4 @@ export const allPrivilegesForUserGetterProvider: AllPrivilegesForUserGetterProvi
         resources.rolesForUserGetter(userName)
             .flatMap(roles => getPrivilegesForRoles(roles, resources.privilegesForRoleGetter))
     )
-        .map(privsForUserAndRoles => privsForUserAndRoles[0].concat(Set(privsForUserAndRoles[1]).flatten()).toSet());
+    .map(privsForUserAndRoles => privsForUserAndRoles[0].concat(Set(privsForUserAndRoles[1]).flatten()).toSet());

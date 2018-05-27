@@ -51,14 +51,9 @@ address=/.test/127.0.0.1
 npm run dev:authrzn
 ```
 
-### 4. Set the configuration profile
+### 5. Start the application in "oidc mode"
 ```
-export ICON_REPO_CONFIG_PROFILE=dev-oidc-wcontext
-```
-
-### 5. Start the application
-```
-npm run dev
+npm run dev:oidc
 ```
 
 ## Configuration for local dev testing with OIDC in the "/icons" context with Docker

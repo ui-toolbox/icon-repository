@@ -5,9 +5,9 @@ import {
     PrivilegesForUserGetter,
     RolesForUserGetter,
     PrivilegesForRoleGetter,
-    AllPrivilegesForUserGetter,
     rolesForUserGetterProvider,
     allPrivilegesForUserGetterProvider } from "./priv-config";
+import { GetAllPrivilegesForUser } from "../../common";
 
 describe("rolesForUserGetterProvider", () => {
     it("should return a function yielding the privileges granted to the given user", done => {
@@ -78,13 +78,13 @@ describe("allPrivilegesForUserGetterProvider", () => {
         const privilegesForUserGetter: PrivilegesForUserGetter = userName => Rx.Observable.of(Set(directPrivsOfUser));
         const rolesForUserGetter: RolesForUserGetter = userName => Rx.Observable.of(Set(rolesOfUser));
         const privilegesForRoleGetter: PrivilegesForRoleGetter = role => Rx.Observable.of(Set(privsByRoles[role]));
-        const allPrivilegesForUserGetter: AllPrivilegesForUserGetter = allPrivilegesForUserGetterProvider({
+        const getAllPrivilegesForUser: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider({
             privilegesForUserGetter,
             rolesForUserGetter,
             privilegesForRoleGetter
 
         });
-        allPrivilegesForUserGetter("any user")
+        getAllPrivilegesForUser("any user")
         .subscribe(
             privs => {
                 expect(privs.toArray()).toEqual(expectedPrivs);
@@ -111,7 +111,7 @@ describe("allPrivilegesForUserGetterProvider", () => {
         const privilegesForUserGetter: PrivilegesForUserGetter = userName => Rx.Observable.of(Set(directPrivsOfUser));
         const rolesForUserGetter: RolesForUserGetter = userName => Rx.Observable.of(Set(rolesOfUser));
         const privilegesForRoleGetter: PrivilegesForRoleGetter = role => Rx.Observable.of(Set(privsByRoles[role]));
-        const allPrivilegesForUserGetter: AllPrivilegesForUserGetter = allPrivilegesForUserGetterProvider({
+        const allPrivilegesForUserGetter: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider({
             privilegesForUserGetter,
             rolesForUserGetter,
             privilegesForRoleGetter
