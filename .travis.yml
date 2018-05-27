@@ -1,7 +1,5 @@
 language: node_js
 install:
-  - git rev-parse --verify HEAD
-  - ls -la
-  - cd backend && npm install
+  - cd backend && npm install && cd -
 script:
-  - cd backend && npm run dist:all
+  - cd backend && npm run dist:all && cd -
