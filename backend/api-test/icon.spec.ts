@@ -1,7 +1,4 @@
-
-import { of } from "rxjs/Observable/of";
-import "../src/security/privileges/priv-config";
-import { testHTTPStatus, getURL, setAuthentication, startServerWithBackdoors } from "./api-test-utils";
+import { testHTTPStatus } from "./api-test-utils";
 import { privilegeDictionary } from "../src/security/privileges/priv-config";
 
 const iconEndPoint = "/icon";
