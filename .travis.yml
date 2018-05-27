@@ -9,6 +9,5 @@ install:
   - cd ..
 script:
   - cd backend
-  - sha512sum node_modules/rxjs/Observable.js
   - npm run dist:all
   - cd ..
