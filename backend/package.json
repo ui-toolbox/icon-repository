@@ -4,7 +4,7 @@
   "description": "Serves icon information to, and accepts updates on icons from, the front-end",
   "main": "build/app.js",
   "dependencies": {
-    "base64url": "^2.0.0",
+    "base64url": "^3.0.0",
     "body-parser": "^1.18.2",
     "consolidate": "^0.13.1",
     "cookie-parser": "^1.4.3",
