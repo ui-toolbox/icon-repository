@@ -24,7 +24,7 @@
 
     <div class="action-bar">
       <div class="upload" v-if="hasAddIconPrivilege">
-        <img class="add-new" src="@/assets/plus.svg" height="34">
+        <img class="add-new" src="@/assets/Plus.svg" height="34">
         <span>ADD NEW</span>
       </div>
       <div class="switch-view">
