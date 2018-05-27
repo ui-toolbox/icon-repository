@@ -115,7 +115,11 @@ const loginSuccessHandlerProvider: (attachUserPrivileges: AttachUserPrivileges, 
 
 const userInfoHandler = (req: express.Request, res: express.Response) => {
     logger.createChild("user-info-handler").debug("returning: %o", getAuthentication(req.session));
-    res.send({username: getAuthentication(req.session).username});
+    const auth: Authentication = getAuthentication(req.session);
+    res.send({
+        username: auth.username,
+        privileges: auth.privileges
+    });
 };
 
 type LogoutSuccessHandler = (req: express.Request, res: express.Response) => void;
