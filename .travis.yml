@@ -1,7 +1,14 @@
 language: node_js
 node_js: lts/*
 install:
-  - cd backend && npm install && cd -
-  - cd client && npm install && cd -
+  - cd backend
+  - npm install
+  - cd ..
+  - cd client
+  - npm install
+  - cd ..
 script:
-  - cd backend && npm run dist:all && cd -
+  - cd backend
+  - sha512sum node_modules/rxjs/Observable.js
+  - npm run dist:all
+  - cd ..
