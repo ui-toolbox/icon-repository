@@ -14,6 +14,5 @@ before_script:
   - psql -c 'create database iconrepo with owner = iconrepo;' -U postgres
 script:
   - cd backend
-  - sha512sum node_modules/rxjs/Observable.js
   - npm run dist:all
   - cd ..
