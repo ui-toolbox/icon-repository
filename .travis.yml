@@ -1,3 +1,5 @@
+services:
+  - postgresql
 language: node_js
 node_js: lts/*
 install:
@@ -7,6 +9,10 @@ install:
   - cd client
   - npm install
   - cd ..
+before_script:
+  - psql -c 'create database iconrepo;' -U postgres
+  - psql -c 'create role iconrepo with login password \'iconrepo\';' -U postgres
+  - psql -c 'create database iconrepo with owner = iconrepo;' -U postgres
 script:
   - cd backend
   - sha512sum node_modules/rxjs/Observable.js
