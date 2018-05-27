@@ -1,0 +1,4 @@
+install:
+  - cd backend && npm install
+script:
+  - cd backend && npm run dist:all
