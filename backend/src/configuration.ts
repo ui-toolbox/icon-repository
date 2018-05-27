@@ -2,9 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as Process from "process";
 
-import logger from "./logger";
+import logger from "./utils/logger";
 import * as Rx from "rxjs";
-import * as appUtil from "./util";
+import { fileExists, readTextFile } from "./utils/rx";
 
 interface IServerConfiguration {
     hostname: string;
@@ -20,6 +20,7 @@ const configurationDataProto = Object.freeze({
     path_to_static_files: "",
     icon_data_location_git: "",
     icon_data_allowed_formats: "",
+    icon_data_allowed_sizes: "",
     authentication_type: "",
     oidc_client_id: "",
     oidc_client_secret: "",
@@ -31,6 +32,11 @@ const configurationDataProto = Object.freeze({
     oidc_ip_jwt_public_key_pem_base64: "",
     oidc_ip_logout_url: "",
     users_by_roles: {none: [""]},
+    conn_host: "",
+    conn_port: "",
+    conn_user: "",
+    conn_password: "",
+    conn_database: "",
     enable_backdoors: false,
     logger_level: ""
 });
@@ -45,7 +51,14 @@ const defaultSettings = {
     server_url_context: "/",
     app_description: "Collection of custom icons designed at Wombat Inc.",
     path_to_static_files: path.join(__dirname, "..", "..", "..", "client", "dist"),
-    icon_data_allowed_formats: "svg, 1x, 2x, 3x",
+    icon_data_location_git: "/212c81749476c2a7336ab71661f1f7a0d94c1486/c3c565cd9e055de5339489b3edb121ce9961c56c",
+    conn_host: "localhost",
+    conn_port: "5432",
+    conn_user: "iconrepo",
+    conn_password: "iconrepo",
+    conn_database: "iconrepo",
+    icon_data_allowed_formats: "svg, png",
+    icon_data_allowed_sizes: "1x, 2x, 3x",
     enable_backdoors: false
 };
 
@@ -96,9 +109,9 @@ export const updateConfigurationDataWithEnvVarValues = <T> (proto: T, conf: T) =
 
 export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) => Rx.Observable<T>
 = (filePath, proto, defaults) => {
-    return appUtil.fileExists(filePath)
+    return fileExists(filePath)
         .flatMap(exists => exists
-            ? appUtil.readTextFile(filePath)
+            ? readTextFile(filePath)
                 .map(fileContent => JSON.parse(fileContent))
                 .catch(error => ignoreJSONSyntaxError(error))
             : Rx.Observable.of({}))
@@ -129,7 +142,7 @@ const watchConfigFile = (filePathToWatch: string) => {
     watcher = fs.watch(filePathToWatch, (event, filename) => {
         switch (event) {
             case "rename": // Editing with vim results in this event
-                appUtil.fileExists(filePathToWatch)
+                fileExists(filePathToWatch)
                 .do(exists => {
                     logger.warn(
                         "Ooops! Configuration file was renamed?",
@@ -152,7 +165,7 @@ const watchConfigFile = (filePathToWatch: string) => {
 };
 
 Rx.Observable
-    .forkJoin(Rx.Observable.of(configFilePath), appUtil.fileExists(configFilePath))
+    .forkJoin(Rx.Observable.of(configFilePath), fileExists(configFilePath))
     .filter(value => value[1])
         .do(value => watchConfigFile(value[0]))
         .subscribe();

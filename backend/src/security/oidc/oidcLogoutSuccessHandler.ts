@@ -1,8 +1,7 @@
 import * as url from "url";
 import { Request, Response } from "express";
 import { ConfigurationDataProvider } from "../../configuration";
-import * as appUtil from "../../util";
-import logger from "../../logger";
+import logger from "../../utils/logger";
 
 const log = logger.createChild("oidcLogout");
 

@@ -2,8 +2,6 @@ import * as path from "path";
 import * as fs from "fs";
 import * as Rx from "rxjs";
 
-import * as appUtils from "./util";
-
 import configuration, {
     DEFAULT_CONFIG_FILE_PATH,
     getConfigFilePath,
@@ -11,7 +9,7 @@ import configuration, {
     readConfiguration
 } from "./configuration";
 
-const setEnvVar = (envVarName: string, envVarValue: string) => process.env[envVarName] = envVarValue;
+export const setEnvVar = (envVarName: string, envVarValue: string) => process.env[envVarName] = envVarValue;
 
 const getBuildDirectory = () => path.join(__dirname, "..", "src");
 

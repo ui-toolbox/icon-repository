@@ -41,6 +41,7 @@
 
 <script>
 import UserSettings from '@/components/UserSettings';
+import fetchIconRepoConfig from '@/services/fetch-iconrepo-config';
 import IconCell from '@/components/IconCell';
 import testIconData from '@/resources/test-icon-data';
 
@@ -64,7 +65,11 @@ export default {
     }
   },
   created () {
+
     const iconListUrl = this.$config.baseUrl + '/icons';
+
+    fetchIconRepoConfig(this.$config.baseUrl)
+    .then(config => this.iconRepoConfig = config);
 
     this.$http.get(this.$config.baseUrl + '/branding')
     .then(response => {
@@ -88,7 +93,8 @@ export default {
       logoutUrl: this.$config.baseUrl + '/logout',
       searchQuery: '',
       icons: [],
-      hasAddIconPrivilege: false,
+      iconRepoConfig: {},
+      hasAddIconPrivilege: false
     }
   }
 }

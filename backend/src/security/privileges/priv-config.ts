@@ -3,21 +3,19 @@ import * as Rx from "rxjs";
 
 export const privilegeDictionary = Object.freeze({
     CREATE_ICON: "CREATE_ICON",
-    ADD_ICON_FORMAT: "ADD_ICON_FORMAT",
-    REMOVE_ICON_FORMAT: "REMOVE_ICON_FORMAT",
+    ADD_ICON_FILE: "ADD_ICON_FILE",
+    REMOVE_ICON_FILE: "REMOVE_ICON_FILE",
     REMOVE_ICON: "REMOVE_ICON"
 });
 
 const privilegesByRoles: {[key: string]: string[]} = {
     ICON_EDITOR: [
         privilegeDictionary.CREATE_ICON,
-        privilegeDictionary.ADD_ICON_FORMAT,
-        privilegeDictionary.REMOVE_ICON_FORMAT,
+        privilegeDictionary.ADD_ICON_FILE,
+        privilegeDictionary.REMOVE_ICON_FILE,
         privilegeDictionary.REMOVE_ICON
     ]
 };
-
-const csvSplitter = (list: string) => list.split(/[\s]*,[\s]*/).map(format => format.trim());
 
 export type PrivilegesForUserGetter = (userName: string) => Rx.Observable<Set<string>>;
 export type RolesForUserGetter = (userName: string) => Rx.Observable<Set<string>>;

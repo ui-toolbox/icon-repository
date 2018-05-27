@@ -4,8 +4,13 @@ import * as express from "express";
 import { List, Map } from "immutable";
 import * as Rx from "rxjs/Rx";
 
-import * as appUtil from "./util";
-import logger, { ContextAbleLogger } from "./logger";
+import { IIconFile } from "./icon";
+import { IIconDAFs } from "./db/db";
+import { IGitAccessFunctions } from "./git";
+import logger, { ContextAbleLogger } from "./utils/logger";
+import { toBase64, fromBase64 } from "./utils/encodings";
+import csvSplitter from "./utils/csvSplitter";
+import { ConfigurationDataProvider } from "./configuration";
 
 const stripExtension = (fileName: string) => fileName.replace(/(.*)\.[^.]*$/, "$1");
 
@@ -16,6 +21,11 @@ const debugIconFileNames = (ctxLogger: ContextAbleLogger, filesOfSize: string[])
     .forEach(file => {
         ctxLogger.silly("file=", file);
     });
+
+interface IIconRepoConfig {
+    readonly allowedFileFormats: List<string>;
+    readonly allowedIconSizes: List<string>;
+}
 
 class IconInfo {
     public static create: (name: string, size: string, pathToFile: string) => IconInfo = (name, size, pathToFile) => {
@@ -37,34 +47,48 @@ class IconInfo {
     }
 }
 
-interface IIconData {
+interface IIconFileData {
     fileFormat: string;
     fileData: Buffer;
 }
 
-type GetAllowedIconFormats = () => Rx.Observable<string[]>;
+type GetIconRepoConfig = () => Rx.Observable<IIconRepoConfig>;
 type GetIcons = () => Rx.Observable<IconInfo[]>;
-type GetIcon = (encodeIconPath: string) => Rx.Observable<IIconData>;
+type GetIcon = (encodeIconPath: string) => Rx.Observable<IIconFileData>;
+type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Rx.Observable<Buffer>;
+type CreateIcon = (
+    initialIconFileInfo: IIconFile,
+    username: string) => Rx.Observable<number>;
 export interface IIconService {
-    getAllowedIconFormats: GetAllowedIconFormats;
+    getRepoConfiguration: GetIconRepoConfig;
     getIcons: GetIcons;
     getIcon: GetIcon;
+    getIconFile: GetIconFile;
+    createIcon: CreateIcon;
 }
 
-export const iconFormatListParser: (list: string) => string[]
-= list => list.split(/[\s]*,[\s]*/).map(format => format.trim());
+export const iconFormatListParser = csvSplitter;
 
-const iconServiceProvider: (allowedIconFormats: string, iconRepositoryLocation: string) => IIconService
-= (allowedIconFormats, iconRepositoryLocation) => {
+export const iconSizeListParser = csvSplitter;
 
-    const getAllowedIconFormats: GetAllowedIconFormats = () => {
-        return Rx.Observable.of(iconFormatListParser(allowedIconFormats));
+const iconServiceProvider: (
+    appConfig: ConfigurationDataProvider,
+    iconDAFs: IIconDAFs,
+    gitAFs: IGitAccessFunctions
+) => IIconService
+= (appConfig, iconDAFs, gitAFs) => {
+
+    const getRepoConfiguration: GetIconRepoConfig = () => {
+        return Rx.Observable.of({
+            allowedFileFormats: iconFormatListParser(appConfig().icon_data_allowed_formats),
+            allowedIconSizes: iconSizeListParser(appConfig().icon_data_allowed_sizes)
+        });
     };
 
     const getIcons: GetIcons = () => {
         const ctxLogger = logger.createChild("getAllIcons");
-        ctxLogger.debug("BEGIN");
-        const iconRepo = iconRepositoryLocation;
+        const iconRepo: string = appConfig().icon_data_location_git;
+        ctxLogger.debug(`Getting icons from file://${iconRepo}`);
         return readdir(iconRepo)
             .flatMap(directoriesBySize => directoriesBySize)
                 .filter(directoryForSize => directoryForSize.toUpperCase() === "SVG")
@@ -74,7 +98,7 @@ const iconServiceProvider: (allowedIconFormats: string, iconRepositoryLocation: 
                         .map(file => IconInfo.create(
                             stripExtension(file),
                             "SVG",
-                            "/icon/" + appUtil.toBase64(path.join(iconRepo, directoryForSize, file))
+                            "/icon/" + toBase64(path.join(iconRepo, directoryForSize, file))
                         ))
                     )
                 );
@@ -91,12 +115,23 @@ const iconServiceProvider: (allowedIconFormats: string, iconRepositoryLocation: 
             }));
     };
 
-    const decodeIconPath = (encodedIconPath: string) => appUtil.fromBase64(encodedIconPath);
+    const getIconFile: GetIconFile = (iconId, fileFormat, iconSize) =>
+        iconDAFs.getIconFileFromDB(iconId, fileFormat, iconSize);
+
+    const createIcon: CreateIcon = (iconfFileInfo, modifiedBy) =>
+        iconDAFs.addIconToDB(
+            iconfFileInfo,
+            modifiedBy,
+            () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
+
+    const decodeIconPath = (encodedIconPath: string) => fromBase64(encodedIconPath);
 
     return {
-        getAllowedIconFormats,
+        getRepoConfiguration,
         getIcons,
-        getIcon
+        getIcon,
+        getIconFile,
+        createIcon
     };
 };
 

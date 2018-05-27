@@ -3,9 +3,9 @@ import * as express from "express";
 
 import oidcCreateRequestTokenURL from "./oidcRequestTokenURLFactory";
 import authenticateByCode from "./oidcAuthentication";
-import * as appUtils from "../../util";
-import logger from "../../logger";
+import logger from "../../utils/logger";
 import { ConfigurationDataProvider } from "../../configuration";
+import { fromBase64 } from "../../utils/encodings";
 
 export default (
     appConfigProvider: ConfigurationDataProvider
@@ -40,7 +40,7 @@ export default (
             redirectURL,
             appConfigProvider().oidc_access_token_url,
             appConfigProvider().oidc_ip_jwt_public_key_url,
-            appUtils.fromBase64(appConfigProvider().oidc_ip_jwt_public_key_pem_base64),
+            fromBase64(appConfigProvider().oidc_ip_jwt_public_key_pem_base64),
             appConfigProvider().oidc_token_issuer)
                     (req.session.oidcTokenRequestState, req.query.state, req.query.code)
         .toPromise()

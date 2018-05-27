@@ -7,7 +7,7 @@ import {
     testRequest,
     setAuthentication,
     authenticationBackdoorPath } from "./api-test-utils";
-import serverProvider from "../src/server";
+import { boilerplateSubscribe } from "../testUtils";
 
 describe("backdoor to privileges", () => {
     it("mustn't be available by default", done => {
@@ -26,15 +26,7 @@ describe("backdoor to privileges", () => {
                 return Observable.throw(error);
             })
         )
-        .subscribe(
-            () => {
-                done();
-            },
-            error => {
-                fail(error);
-                done();
-            }
-        );
+        .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it("should be available when enabled", done => {
@@ -50,15 +42,7 @@ describe("backdoor to privileges", () => {
                 return Observable.throw(error);
             })
         )
-        .subscribe(
-            () => {
-                done();
-            },
-            error => {
-                fail(error);
-                done();
-            }
-        );
+        .subscribe(boilerplateSubscribe(fail, done));
     });
 
     describe(authenticationBackdoorPath, () => {
@@ -88,15 +72,7 @@ describe("backdoor to privileges", () => {
                         return Observable.throw(error);
                     })
             )
-            .subscribe(
-                () => {
-                    done();
-                },
-                error => {
-                    fail(error);
-                    done();
-                }
-            );
+            .subscribe(boilerplateSubscribe(fail, done));
         });
     });
 });
