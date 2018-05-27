@@ -1,4 +1,6 @@
 install:
+  - git rev-parse --verify HEAD
+  - ls -la
   - cd backend && npm install
 script:
   - cd backend && npm run dist:all
