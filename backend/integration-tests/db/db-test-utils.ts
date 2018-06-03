@@ -3,11 +3,11 @@ import { Pool } from "pg";
 import { Observable } from "rxjs";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
-import { iconTable } from "../../src/db/db-schema";
+import { iconTableSpec } from "../../src/db/db-schema";
 import { IAddIconRequestData } from "../../src/icon";
 
 export const assertIconCount = (pool: Pool, expectedCount: number) =>
-query(pool, `SELECT count(*) from ${iconTable.tableName}`, [])
+query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
     .map(countResult => expect(parseInt(countResult.rows[0].count, 10)).toEqual(expectedCount));
 
 export const getCheckIconFile: (

@@ -49,7 +49,7 @@ export const iconTableSpec: ITableSpec = {
     ]
 };
 
-const iconFileTableColumns =  {
+export const iconFileTableColumns =  {
     id: {
         name: "id",
         definition: "serial primary key"

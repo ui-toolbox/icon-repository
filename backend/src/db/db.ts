@@ -1,8 +1,8 @@
-import { List } from "immutable";
+import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult, Query, PoolClient } from "pg";
 
-import { IAddIconRequestData, IIconInfo } from "../icon";
+import { IAddIconRequestData, IconInfo, IconFileInfo } from "../icon";
 import appConfigProvider, { ConfigurationDataProvider } from "../configuration";
 import logger from "../utils/logger";
 import {
@@ -12,8 +12,10 @@ import {
     IconTableColumnsDef,
     iconTableSpec,
     iconFileTableSpec,
-    IColumnSpec
+    IColumnSpec,
+    iconFileTableColumns
 } from "./db-schema";
+import { last } from "rxjs/operator/last";
 
 const ctxLogger = logger.createChild("db");
 
@@ -120,7 +122,7 @@ type AddIconFileToTable = (
 const addIconFileToTable: AddIconFileToTable = (conn, iconId, iconFileInfo, modifiedBy) => {
     const columns: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
     const addIconFile: string = `INSERT INTO ${iconFileTableSpec.tableName}(` +
-                                `${columns.id.name}, ${columns.fileFormat.name}, ` +
+                                `${columns.icondId.name}, ${columns.fileFormat.name}, ` +
                                 `${columns.iconSize.name}, ${columns.content.name}) ` +
                                 `VALUES($1, $2, $3, $4) RETURNING id`;
     return execStatement(conn, addIconFile, [
@@ -163,13 +165,13 @@ export type GetIconFileFromDB = (
     iconSize: string) => Observable<Buffer>;
 type GetIconFileFromDBProvider = (pool: Pool) => GetIconFileFromDB;
 export const getIconFileFromDBProvider: GetIconFileFromDBProvider = pool => (iconId, format, iconSize) => {
-    const columns: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
+    const columns: IconFileTableColumnsDef = iconFileTableColumns;
     const getIconFileSQL = `SELECT content FROM ${iconFileTableSpec.tableName} ` +
-                            `WHERE ${columns.icondId} = $1 AND ` +
-                                `${columns.fileFormat} = $2 AND ` +
-                                `${columns.iconSize} = $3`;
+                            `WHERE ${columns.icondId.name} = $1 AND ` +
+                                `${columns.fileFormat.name} = $2 AND ` +
+                                `${columns.iconSize.name} = $3`;
     return query(pool, getIconFileSQL, [iconId, format, iconSize])
-    .map(result => result.rows[0].content);
+        .map(result => result.rows[0].content);
 };
 
 export interface IIconDAFs {
@@ -189,23 +191,38 @@ const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IIconDAFs
 const projectIconTableColumnWithAlias = (columnSpec: IColumnSpec, alias: string) =>
     `${projectColumn(iconTableSpec, columnSpec)} as ${alias}`;
 
-type GetAllIconsFromDB = () => Observable<List<IIconInfo>>;
+type GetAllIconsFromDB = () => Observable<List<IconInfo>>;
 export const getAllIconsFromDBProvider: (pool: Pool) => GetAllIconsFromDB
 = pool => () => {
     const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
     const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
-    const sql: string = `SELECT ${projectIconTableColumnWithAlias(iconTableCols.id, "icon_id")}, ` +
-                                `${projectIconTableColumnWithAlias(iconTableCols.name, "icon_name")}, ` +
-                                `${projectIconTableColumnWithAlias(iconTableCols.version, "icon_version")}, ` +
-                            `FROM ${iconTableSpec.tableName}, ${iconFileTableSpec.tableName} ` +
-                        `WHERE ${iconTableCols.id.name} = ${iconFileTableCols.icondId.name} ` +
-                        `ORDER BY icon_id, icon_file_format, icon_size`;
+    const sql: string =
+                `SELECT ${projectIconTableColumnWithAlias(iconTableCols.name, "icon_name")}, ` +
+                    `${projectIconTableColumnWithAlias(iconTableCols.id, "icon_id")}, ` +
+                    `${projectIconTableColumnWithAlias(iconTableCols.version, "icon_version")}, ` +
+                    `${projectIconTableColumnWithAlias(iconFileTableCols.fileFormat, "icon_file_format")}, ` +
+                    `${projectIconTableColumnWithAlias(iconFileTableCols.iconSize, "icon_size")}, ` +
+                `FROM ${iconTableSpec.tableName}, ${iconFileTableSpec.tableName} ` +
+                    `WHERE ${iconTableCols.id.name} = ${iconFileTableCols.icondId.name} ` +
+                    `ORDER BY icon_id, icon_file_format, icon_size`;
     return query(pool, sql, [])
-    .map(result => {
-        result.rows.map(row => {
-            row[]
-        });
-    });
+    .map(result => result.rows.reduce(
+        (iconInfoList: List<IconInfo>, row: any) => {
+            const iconFile: IconFileInfo = {
+                format: row.icon_file_format,
+                size: row.icon_size
+            };
+            let lastIconInfo: IconInfo = iconInfoList.last();
+            let lastIndex: number = iconInfoList.size - 1;
+            if (!lastIconInfo || row.icon_id !== lastIconInfo.id) {
+                lastIconInfo = new IconInfo(row.icon_id, row.icon_name, Set());
+                lastIndex++;
+            }
+            lastIconInfo.addIconFile(iconFile);
+            return iconInfoList.set(lastIndex, lastIconInfo);
+        },
+        List()
+    ));
 };
 
 export default dbAccessProvider;

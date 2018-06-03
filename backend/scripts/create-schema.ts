@@ -1,7 +1,7 @@
 import { Observable } from "rxjs";
 import { Pool } from "pg";
 
-import { IColumnsDefinition, ITableSpec, iconTable, iconFileTable, IColumnSpec } from "../src/db/db-schema";
+import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec, IColumnSpec } from "../src/db/db-schema";
 import { createPool, query } from "../src/db/db";
 import logger from "../src/utils/logger";
 
@@ -10,7 +10,7 @@ const ctxLogger = logger.createChild("db/create-schema");
 const colDefToSQL: (columnsDefinition: IColumnsDefinition, columnSpecKey: string) => string
 = (columnsDefinition, columnSpecKey) => {
     const columnSpec: IColumnSpec = columnsDefinition[columnSpecKey];
-    return `${columnSpec.name} ${columnsDefinition[columnSpec.definition]}`;
+    return `${columnSpec.name} ${columnSpec.definition}`;
 };
 
 const columnDefinitionToSQL = (columnsDefinition: IColumnsDefinition) => Object.keys(columnsDefinition).reduce(
@@ -42,8 +42,8 @@ const dropCreateTable = (pool: Pool, tableDefinition: ITableSpec) =>
     .flatMap(() => createTable(pool, tableDefinition));
 
 export const createSchema: (pool: Pool) => Observable<void>
-= pool => dropCreateTable(pool, iconTable)
-    .flatMap(() => dropCreateTable(pool, iconFileTable));
+= pool => dropCreateTable(pool, iconTableSpec)
+    .flatMap(() => dropCreateTable(pool, iconFileTableSpec));
 
 export default () => createPool()
     .flatMap(pool => createSchema(pool)
