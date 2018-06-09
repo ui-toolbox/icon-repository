@@ -147,28 +147,27 @@ export const setAuthentication = (
     return Observable.throw(server);
 });
 
-export interface IAddIconFormData {
-    readonly iconName: string;
+export interface IAddIconBaseData {
     readonly modifiedBy: string;
     readonly fileFormat: string;
     readonly iconSize: string;
     readonly iconFile: IUploadRequestBuffer;
 }
 
-export interface IAddIconFileFormData {
+export interface IAddIconFormData extends IAddIconBaseData {
+    readonly iconName: string;
+}
+
+export interface IAddIconFileFormData extends IAddIconBaseData {
     readonly iconId: number;
-    readonly modifiedBy: string;
-    readonly fileFormat: string;
-    readonly iconSize: string;
-    readonly iconFile: IUploadRequestBuffer;
 }
 
 export const createAddIconFormData: (iconName: string, format: string, size: string) => IAddIconFormData
 = (iconName, format, size) => ({
     iconName,
     modifiedBy: "zazie",
-    fileFormat: "french",
-    iconSize: "great",
+    fileFormat: format,
+    iconSize: size,
     iconFile: createUploadBuffer(4096)
 });
 
@@ -194,6 +193,16 @@ export const convertToAddIconFileRequest: (formData: IAddIconFileFormData) => IA
     size: formData.iconSize,
     content: formData.iconFile.value
 });
+
+interface ITestUploadRequestData {
+    url: string;
+    method: string;
+    formData: IAddIconBaseData;
+    jar: request.CookieJar;
+}
+type TestUploadRequest = (requestData: ITestUploadRequestData) => Observable<IRequestResult>;
+export const testUploadRequest: TestUploadRequest
+    = uploadRequestData => testRequest({...uploadRequestData, json: true});
 
 export const iconEndpointPath = "/icon";
 export const iconFileEndpointPath = "/icon/:id/format/:format/size/:size";

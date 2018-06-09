@@ -17,7 +17,8 @@ import {
     convertToAddIconRequest,
     iconEndpointPath,
     closeServerEpilog,
-    startServerWithBackdoorsProlog} from "./api-test-utils";
+    startServerWithBackdoorsProlog,
+    testUploadRequest} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
@@ -63,7 +64,7 @@ describe(iconEndpointPath, () => {
         const jar = request.jar();
         setAuthentication(server, "zazie", [], jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
@@ -78,15 +79,19 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
         const jar = request.jar();
+        const iconFormData = createAddIconFormData("cartouche", "french", "great");
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconEndpointPath),
                 method: "POST",
-                formData: createAddIconFormData("cartouche", "french", "great"),
+                formData: iconFormData,
                 jar
             })
-            .map(result => expect(result.response.statusCode).toEqual(201)))
+            .map(result => {
+                expect(result.response.statusCode).toEqual(201);
+                expect(result.body.iconId).toEqual(1);
+            }))
         .subscribe(boilerplateSubscribe(fail, done));
         });
 
@@ -102,23 +107,21 @@ describe(iconEndpointPath, () => {
 
         const jar = request.jar();
         setAuthentication(server, "zazie", privileges, jar)
-        .flatMap(() => testRequest({
+        .flatMap(() => testUploadRequest({
             url: getURL(server, iconEndpointPath),
             method: "POST",
             formData: formData1,
-            jar,
-            json: true
+            jar
         }))
         .flatMap(result1 => {
             expect(result1.response.statusCode).toEqual(201);
             return getCurrentGitCommit()
             .flatMap(gitSha1 =>
-                testRequest({
+                testUploadRequest({
                     url: getURL(server, iconEndpointPath),
                     method: "POST",
                     formData: formData2,
-                    jar,
-                    json: true
+                    jar
                 })
                 .flatMap(result2 => {
                     expect(result2.response.statusCode).toEqual(201);
@@ -155,19 +158,18 @@ describe(iconEndpointPath, () => {
 
         const jar = request.jar();
         setAuthentication(server, "zazie", privileges, jar)
-        .flatMap(() => testRequest({
+        .flatMap(() => testUploadRequest({
             url: getURL(server, iconEndpointPath),
             method: "POST",
             formData: formData1,
-            jar,
-            json: true
+            jar
         }))
         .flatMap(result1 => {
             expect(result1.response.statusCode).toEqual(201);
             return getCurrentGitCommit()
             .flatMap(gitSha1 => {
                 setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true");
-                return testRequest({
+                return testUploadRequest({
                     url: getURL(server, iconEndpointPath),
                     method: "POST",
                     formData: formData2,

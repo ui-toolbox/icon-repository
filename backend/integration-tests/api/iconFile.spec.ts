@@ -2,17 +2,17 @@ import { createTestGitRepo, deleteTestGitRepo, getTestRepoDir } from "../git/git
 import { boilerplateSubscribe } from "../testUtils";
 import { createTestPool, terminateTestPool, createTestSchema, getCheckIconFile } from "../db/db-test-utils";
 import {
-    createAddIconFormData,
-    startServerWithBackdoors,
-    setAuthentication,
-    testRequest,
-    getURL,
     iconEndpointPath,
     iconFileEndpointPath,
+    createAddIconFormData,
+    setAuthentication,
+    getURL,
     convertToAddIconRequest,
     startServerWithBackdoorsProlog,
     closeServerEpilog,
-    createAddIconFileFormData} from "./api-test-utils";
+    createAddIconFileFormData,
+    testRequest,
+    testUploadRequest } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { Pool } from "pg";
 import * as request from "request";
@@ -46,7 +46,7 @@ describe(iconFileEndpointPath, () => {
         const jar = request.jar();
         setAuthentication(server, "zazie", [], jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconFileEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
@@ -63,7 +63,7 @@ describe(iconFileEndpointPath, () => {
         const jar = request.jar();
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconFileEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
@@ -80,7 +80,7 @@ describe(iconFileEndpointPath, () => {
         const jar = request.jar();
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconFileEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
@@ -104,11 +104,10 @@ describe(iconFileEndpointPath, () => {
 
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconEndpointPath),
                 method: "POST",
-                iconFormData,
-                json: true,
+                formData: iconFormData,
                 jar
             })
             .flatMap(result1 => {
@@ -116,11 +115,10 @@ describe(iconFileEndpointPath, () => {
                 const format2 = "belgian";
                 const size2 = "great";
                 const iconFileFormData = createAddIconFileFormData(result1.body.iconId, format2, size2);
-                return testRequest({
+                return testUploadRequest({
                     url: getURL(server, iconFileEndpointPath),
                     method: "POST",
-                    iconFileFormData,
-                    json: true,
+                    formData: iconFileFormData,
                     jar
                 })
                 .flatMap(result2 => {
@@ -161,15 +159,15 @@ describe(iconFileEndpointPath, () => {
 
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
-            testRequest({
+            testUploadRequest({
                 url: getURL(server, iconEndpointPath),
                 method: "POST",
                 formData,
-                json: true,
                 jar
             })
             .flatMap(result => {
                 expect(result.response.statusCode).toEqual(201);
+                expect(result.body.iconId).toEqual(1);
                 return testRequest({
                     url: getURL(
                         server,
