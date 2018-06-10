@@ -35,7 +35,7 @@ import {
     createTestGitRepo,
     getCurrentCommit as getCurrentGitCommit,
     assertGitStatus } from "../git/git-test-utils";
-import { getIconFileFromDBProvider } from "../../src/db/db";
+import { getIconFileFromDBProvider, getAllIconsFromDBProvider } from "../../src/db/db";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 
@@ -87,13 +87,17 @@ describe(iconEndpointPath, () => {
                 method: "POST",
                 formData: iconFormData,
                 jar
-            })
-            .map(result => {
-                expect(result.response.statusCode).toEqual(201);
-                expect(result.body.iconId).toEqual(1);
             }))
+        .map(result => {
+            expect(result.response.statusCode).toEqual(201);
+            expect(result.body.iconId).toEqual(1);
+        })
+        .flatMap(() => getAllIconsFromDBProvider(pool)())
+        .map(iconInfoList => {
+            expect(iconInfoList.size).toEqual(1);
+        })
         .subscribe(boilerplateSubscribe(fail, done));
-        });
+    });
 
     it ("POST should be capable of creating multiple icons in a row", done => {
         const privileges = [

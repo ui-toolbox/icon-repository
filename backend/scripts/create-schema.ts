@@ -1,21 +1,20 @@
 import { Observable } from "rxjs";
 import { Pool } from "pg";
 
-import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec, IColumnSpec } from "../src/db/db-schema";
+import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "../src/db/db-schema";
 import { createPool, query } from "../src/db/db";
 import logger from "../src/utils/logger";
 
 const ctxLogger = logger.createChild("db/create-schema");
 
-const colDefToSQL: (columnsDefinition: IColumnsDefinition, columnSpecKey: string) => string
-= (columnsDefinition, columnSpecKey) => {
-    const columnSpec: IColumnSpec = columnsDefinition[columnSpecKey];
-    return `${columnSpec.name} ${columnSpec.definition}`;
+const colDefToSQL: (columnsDefinition: IColumnsDefinition, columnName: string) => string
+= (columnsDefinition, columnName) => {
+    return `${columnName} ${columnsDefinition[columnName]}`;
 };
 
 const columnDefinitionToSQL = (columnsDefinition: IColumnsDefinition) => Object.keys(columnsDefinition).reduce(
-        (resultColsDef, columnSpecKey) =>
-        (resultColsDef ? resultColsDef + ",\n    " : "") + colDefToSQL(columnsDefinition, columnSpecKey),
+        (resultColsDef, columnName) =>
+        (resultColsDef ? resultColsDef + ",\n    " : "") + colDefToSQL(columnsDefinition, columnName),
         null
     );
 

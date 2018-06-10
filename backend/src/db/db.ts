@@ -12,7 +12,6 @@ import {
     IconTableColumnsDef,
     iconTableSpec,
     iconFileTableSpec,
-    IColumnSpec,
     iconFileTableColumns
 } from "./db-schema";
 import { last } from "rxjs/operator/last";
@@ -120,11 +119,8 @@ type AddIconFileToTable = (
     modifiedBy: string
 ) => Observable<number>;
 const addIconFileToTable: AddIconFileToTable = (conn, iconId, iconFileInfo, modifiedBy) => {
-    const columns: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
-    const addIconFile: string = `INSERT INTO ${iconFileTableSpec.tableName}(` +
-                                `${columns.icondId.name}, ${columns.fileFormat.name}, ` +
-                                `${columns.iconSize.name}, ${columns.content.name}) ` +
-                                `VALUES($1, $2, $3, $4) RETURNING id`;
+    const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
+                                "VALUES($1, $2, $3, $4) RETURNING id";
     return execStatement(conn, addIconFile, [
         iconId,
         iconFileInfo.format,
@@ -142,10 +138,8 @@ type AddIconToDB = (
 type AddIconToDBProvider = (pool: Pool) => AddIconToDB;
 export const addIconToDBProvider: AddIconToDBProvider = pool => (iconFileInfo, modifiedBy, createSideEffect) => {
     const iconVersion = 1;
-    const columns: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
-    const addIconSQL: string = `INSERT INTO ${iconTableSpec.tableName}(` +
-                                `${columns.name.name}, ${columns.version.name}, ${columns.modifiedBy.name}) ` +
-                                `VALUES($1, $2, $3) RETURNING id`;
+    const addIconSQL: string = "INSERT INTO icon(name, version, modified_by) " +
+                                "VALUES($1, $2, $3) RETURNING id";
     const addIconParams = [iconFileInfo.iconName, iconVersion, modifiedBy];
     return tx<number>(
         pool,
@@ -166,10 +160,10 @@ export type GetIconFileFromDB = (
 type GetIconFileFromDBProvider = (pool: Pool) => GetIconFileFromDB;
 export const getIconFileFromDBProvider: GetIconFileFromDBProvider = pool => (iconId, format, iconSize) => {
     const columns: IconFileTableColumnsDef = iconFileTableColumns;
-    const getIconFileSQL = `SELECT content FROM ${iconFileTableSpec.tableName} ` +
-                            `WHERE ${columns.icondId.name} = $1 AND ` +
-                                `${columns.fileFormat.name} = $2 AND ` +
-                                `${columns.iconSize.name} = $3`;
+    const getIconFileSQL = "SELECT content FROM icon_file " +
+                            "WHERE icon_id = $1 AND " +
+                                "file_format = $2 AND " +
+                                "icon_size = $3";
     return query(pool, getIconFileSQL, [iconId, format, iconSize])
         .map(result => result.rows[0].content);
 };
@@ -188,23 +182,20 @@ const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IIconDAFs
     };
 };
 
-const projectIconTableColumnWithAlias = (columnSpec: IColumnSpec, alias: string) =>
-    `${projectColumn(iconTableSpec, columnSpec)} as ${alias}`;
-
 type GetAllIconsFromDB = () => Observable<List<IconInfo>>;
 export const getAllIconsFromDBProvider: (pool: Pool) => GetAllIconsFromDB
 = pool => () => {
     const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
     const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
     const sql: string =
-                `SELECT ${projectIconTableColumnWithAlias(iconTableCols.name, "icon_name")}, ` +
-                    `${projectIconTableColumnWithAlias(iconTableCols.id, "icon_id")}, ` +
-                    `${projectIconTableColumnWithAlias(iconTableCols.version, "icon_version")}, ` +
-                    `${projectIconTableColumnWithAlias(iconFileTableCols.fileFormat, "icon_file_format")}, ` +
-                    `${projectIconTableColumnWithAlias(iconFileTableCols.iconSize, "icon_size")}, ` +
-                `FROM ${iconTableSpec.tableName}, ${iconFileTableSpec.tableName} ` +
-                    `WHERE ${iconTableCols.id.name} = ${iconFileTableCols.icondId.name} ` +
-                    `ORDER BY icon_id, icon_file_format, icon_size`;
+                "SELECT icon.name as icon_name, " +
+                    "icon.id as icon_id, " +
+                    "icon.version as icon_version, " +
+                    "icon_file.file_format as icon_file_format, " +
+                    "icon_file.icon_size as icon_size " +
+                "FROM icon, icon_file " +
+                    "WHERE icon.id = icon_file.icon_id " +
+                    "ORDER BY icon_id, icon_file_format, icon_size";
     return query(pool, sql, [])
     .map(result => result.rows.reduce(
         (iconInfoList: List<IconInfo>, row: any) => {

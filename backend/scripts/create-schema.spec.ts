@@ -8,18 +8,9 @@ describe("makeCreateTableStatement", () => {
         const iconTable: ITableSpec = {
             tableName: "icons",
             columns: {
-                id: {
-                    name: "id",
-                    definition: "serial primary key"
-                },
-                name: {
-                    name: "name",
-                    definition: "text"
-                },
-                version: {
-                    name: "version",
-                    definition: "int"
-                }
+                id: "serial primary key",
+                name: "text",
+                version: "int"
             },
             col_constraints: [
                 "UNIQUE (name)",
