@@ -27,7 +27,7 @@ export class IconInfo {
     constructor(id: number, iconName: string, iconFiles: Set<IconFileInfo>) {
         this.id = id;
         this.iconName = iconName;
-        this.iconFiles = iconFiles;
+        this.iconFiles = iconFiles || Set();
     }
 
     public addIconFile(iconFile: IconFileInfo): IconInfo {

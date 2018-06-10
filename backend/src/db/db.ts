@@ -6,8 +6,6 @@ import { IAddIconRequestData, IconInfo, IconFileInfo } from "../icon";
 import appConfigProvider, { ConfigurationDataProvider } from "../configuration";
 import logger from "../utils/logger";
 import {
-    IColumnsDefinition,
-    projectColumn,
     IconFileTableColumnsDef,
     IconTableColumnsDef,
     iconTableSpec,
@@ -209,8 +207,7 @@ export const getAllIconsFromDBProvider: (pool: Pool) => GetAllIconsFromDB
                 lastIconInfo = new IconInfo(row.icon_id, row.icon_name, Set());
                 lastIndex++;
             }
-            lastIconInfo.addIconFile(iconFile);
-            return iconInfoList.set(lastIndex, lastIconInfo);
+            return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));
         },
         List()
     ));

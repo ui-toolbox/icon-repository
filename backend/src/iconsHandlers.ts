@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IAddIconRequestData } from "./icon";
+import { IAddIconRequestData, IAddIconFileRequestData } from "./icon";
 import { IIconService } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IIconHanlders {
@@ -89,7 +89,20 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
     },
 
     addIconFile: (req: Request, res: Response) => {
-        res.status(201).end();
+        const iconData: IAddIconFileRequestData = {
+            iconId: req.params.id,
+            format: req.params.format,
+            size: req.params.size,
+            content: (req.files as any)[0].buffer
+        };
+        if (!iconData.iconId ||
+                !iconData.format || iconData.format === ":format" ||
+                !iconData.size || iconData.size === ":size" ||
+                !iconData.content) {
+            res.status(400).end();
+        } else {
+            res.status(201).end();
+        }
     }
 });
 

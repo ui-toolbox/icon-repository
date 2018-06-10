@@ -1,24 +1,19 @@
-import * as fs from "fs";
-import * as crypto from "crypto";
 import { Server } from "http";
 import { Pool } from "pg";
-import { Observable } from "rxjs";
 import * as request from "request";
 import { boilerplateSubscribe } from "../testUtils";
 
 import {
-    testRequest,
     getURL,
     setAuthentication,
-    createUploadBuffer,
-    startServerWithBackdoors,
     createAddIconFormData,
     IAddIconFormData,
     convertToAddIconRequest,
     iconEndpointPath,
     closeServerEpilog,
     startServerWithBackdoorsProlog,
-    testUploadRequest} from "./api-test-utils";
+    testUploadRequest,
+    convertToIconInfo} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
@@ -30,7 +25,6 @@ import {
  } from "../db/db-test-utils";
 import { start } from "repl";
 import {
-    getTestRepoDir,
     deleteTestGitRepo,
     createTestGitRepo,
     getCurrentCommit as getCurrentGitCommit,
@@ -38,6 +32,8 @@ import {
 import { getIconFileFromDBProvider, getAllIconsFromDBProvider } from "../../src/db/db";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
+import { IconInfo } from "../../src/icon";
+import { List } from "immutable";
 
 describe(iconEndpointPath, () => {
     let pool: Pool;
@@ -79,7 +75,9 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
         const jar = request.jar();
-        const iconFormData = createAddIconFormData("cartouche", "french", "great");
+        const iconFormData: IAddIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const expectedIconInfo: IconInfo = convertToIconInfo(iconFormData, 1);
+
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
             testUploadRequest({
@@ -95,6 +93,7 @@ describe(iconEndpointPath, () => {
         .flatMap(() => getAllIconsFromDBProvider(pool)())
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
+            expect(iconInfoList.get(0)).toEqual(expectedIconInfo);
         })
         .subscribe(boilerplateSubscribe(fail, done));
     });
@@ -106,6 +105,10 @@ describe(iconEndpointPath, () => {
 
         const formData1: IAddIconFormData = createAddIconFormData("cartouche", "french", "great");
         const formData2: IAddIconFormData = createAddIconFormData("cartouche1", "french", "great");
+
+        const expectedIconInfoList: List<IconInfo> = List<IconInfo>()
+            .push(convertToIconInfo(formData1, 1))
+            .push(convertToIconInfo(formData2, 2));
 
         const getIconFileFromDB = getIconFileFromDBProvider(pool);
 
@@ -147,6 +150,11 @@ describe(iconEndpointPath, () => {
         })
         .flatMap(() => assertIconCount(pool, 2))
         .flatMap(() => assertGitStatus())
+        .flatMap(() => getAllIconsFromDBProvider(pool)())
+        .map(iconInfoList => {
+            expect(iconInfoList.size).toEqual(2);
+            expect(iconInfoList).toEqual(expectedIconInfoList);
+        })
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -157,6 +165,8 @@ describe(iconEndpointPath, () => {
 
         const formData1: IAddIconFormData = createAddIconFormData("cartouche", "french", "great");
         const formData2: IAddIconFormData = createAddIconFormData("cartouche1", "french", "great");
+
+        const expectedIconInfoList = List<IconInfo>().push(convertToIconInfo(formData1, 1));
 
         const getIconFileFromDB = getIconFileFromDBProvider(pool);
 
@@ -191,6 +201,11 @@ describe(iconEndpointPath, () => {
         })
         .flatMap(() => assertIconCount(pool, 1))
         .flatMap(() => assertGitStatus())
+        .flatMap(() => getAllIconsFromDBProvider(pool)())
+        .map(iconInfoList => {
+            expect(iconInfoList.size).toEqual(1);
+            expect(iconInfoList).toEqual(expectedIconInfoList);
+        })
         .subscribe(boilerplateSubscribe(fail, done));
     });
 });

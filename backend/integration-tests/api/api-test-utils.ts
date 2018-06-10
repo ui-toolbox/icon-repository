@@ -3,8 +3,6 @@ import * as crypto from "crypto";
 import * as http from "http";
 import * as request from "request";
 import { Observable, Observer, Subscription } from "rxjs";
-import { jar as cookieJar } from "request";
-import { boilerplateSubscribe } from "../testUtils";
 
 const req = request.defaults({
     timeout: 4000
@@ -18,10 +16,9 @@ import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { IAddIconRequestData, IAddIconFileRequestData } from "../../src/icon";
+import { IAddIconRequestData, IAddIconFileRequestData, IconInfo } from "../../src/icon";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir } from "../git/git-test-utils";
-import { AsyncAction } from "rxjs/scheduler/AsyncAction";
 
 logger.setLevel("silly");
 
@@ -147,34 +144,19 @@ export const setAuthentication = (
     return Observable.throw(server);
 });
 
-export interface IAddIconBaseData {
-    readonly modifiedBy: string;
-    readonly fileFormat: string;
-    readonly iconSize: string;
+export interface IUploadFormData {
     readonly iconFile: IUploadRequestBuffer;
 }
 
-export interface IAddIconFormData extends IAddIconBaseData {
+export interface IAddIconFormData extends IUploadFormData {
     readonly iconName: string;
-}
-
-export interface IAddIconFileFormData extends IAddIconBaseData {
-    readonly iconId: number;
+    readonly fileFormat: string;
+    readonly iconSize: string;
 }
 
 export const createAddIconFormData: (iconName: string, format: string, size: string) => IAddIconFormData
 = (iconName, format, size) => ({
     iconName,
-    modifiedBy: "zazie",
-    fileFormat: format,
-    iconSize: size,
-    iconFile: createUploadBuffer(4096)
-});
-
-export const createAddIconFileFormData: (iconId: number, format: string, size: string) => IAddIconFileFormData
-= (iconId, format, size) => ({
-    iconId,
-    modifiedBy: "zazie",
     fileFormat: format,
     iconSize: size,
     iconFile: createUploadBuffer(4096)
@@ -187,17 +169,23 @@ export const convertToAddIconRequest: (formData: IAddIconFormData) => IAddIconRe
     content: formData.iconFile.value
 });
 
-export const convertToAddIconFileRequest: (formData: IAddIconFileFormData) => IAddIconFileRequestData = formData => ({
-    iconId: formData.iconId,
-    format: formData.fileFormat,
-    size: formData.iconSize,
-    content: formData.iconFile.value
+export const convertToIconInfo: (iconFormData: IAddIconFormData, id: number) => IconInfo
+= (iconFormData, id) => new IconInfo(
+    id,
+    iconFormData.iconName,
+    null).addIconFile({
+        format: iconFormData.fileFormat,
+        size: iconFormData.iconSize
+    });
+
+export const createAddIconFileFormData: () => IUploadFormData = () => ({
+    iconFile: createUploadBuffer(4096)
 });
 
 interface ITestUploadRequestData {
     url: string;
     method: string;
-    formData: IAddIconBaseData;
+    formData: IUploadFormData;
     jar: request.CookieJar;
 }
 type TestUploadRequest = (requestData: ITestUploadRequestData) => Observable<IRequestResult>;
