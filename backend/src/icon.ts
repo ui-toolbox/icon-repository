@@ -1,6 +1,11 @@
 import { Set } from "immutable";
+export interface IconFileInfo {
+    readonly format: string;
+    readonly size: string;
+}
 
 export interface IAddIconRequestData {
+    readonly iconId: number;
     readonly iconName: string;
     readonly format: string;
     readonly size: string;
@@ -12,11 +17,6 @@ export interface IAddIconFileRequestData {
     readonly format: string;
     readonly size: string;
     readonly content: Buffer;
-}
-
-export interface IconFileInfo {
-    readonly format: string;
-    readonly size: string;
 }
 
 export class IconInfo {

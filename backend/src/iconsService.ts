@@ -2,9 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as express from "express";
 import { List, Map } from "immutable";
-import * as Rx from "rxjs/Rx";
+import { Observable } from "rxjs/Rx";
 
-import { IAddIconRequestData } from "./icon";
+import { IAddIconRequestData, IAddIconFileRequestData } from "./icon";
 import { IIconDAFs } from "./db/db";
 import { IGitAccessFunctions } from "./git";
 import logger, { ContextAbleLogger } from "./utils/logger";
@@ -14,8 +14,8 @@ import { ConfigurationDataProvider } from "./configuration";
 
 const stripExtension = (fileName: string) => fileName.replace(/(.*)\.[^.]*$/, "$1");
 
-const readdir: (path: string) => Rx.Observable<string[]> = Rx.Observable.bindNodeCallback(fs.readdir);
-const readFile: (path: string) => Rx.Observable<Buffer> = Rx.Observable.bindNodeCallback(fs.readFile);
+const readdir: (path: string) => Observable<string[]> = Observable.bindNodeCallback(fs.readdir);
+const readFile: (path: string) => Observable<Buffer> = Observable.bindNodeCallback(fs.readFile);
 
 const debugIconFileNames = (ctxLogger: ContextAbleLogger, filesOfSize: string[]) => filesOfSize
     .forEach(file => {
@@ -52,19 +52,23 @@ interface IIconFileData {
     readonly fileData: Buffer;
 }
 
-type GetIconRepoConfig = () => Rx.Observable<IIconRepoConfig>;
-type GetIcons = () => Rx.Observable<IconInfo[]>;
-type GetIcon = (encodeIconPath: string) => Rx.Observable<IIconFileData>;
-type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Rx.Observable<Buffer>;
+type GetIconRepoConfig = () => Observable<IIconRepoConfig>;
+type GetIcons = () => Observable<IconInfo[]>;
+type GetIcon = (encodeIconPath: string) => Observable<IIconFileData>;
+type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
     initialIconFileInfo: IAddIconRequestData,
-    username: string) => Rx.Observable<number>;
+    modifiedBy: string) => Observable<number>;
+type AddIconFile = (
+    addIconFileRequestData: IAddIconFileRequestData,
+    modifiedBy: string) => Observable<number>;
 export interface IIconService {
     readonly getRepoConfiguration: GetIconRepoConfig;
     readonly getIcons: GetIcons;
     readonly getIcon: GetIcon;
     readonly getIconFile: GetIconFile;
     readonly createIcon: CreateIcon;
+    readonly addIconFile: AddIconFile;
 }
 
 export const iconFormatListParser = csvSplitter;
@@ -79,7 +83,7 @@ const iconServiceProvider: (
 = (appConfig, iconDAFs, gitAFs) => {
 
     const getRepoConfiguration: GetIconRepoConfig = () => {
-        return Rx.Observable.of({
+        return Observable.of({
             allowedFileFormats: iconFormatListParser(appConfig().icon_data_allowed_formats),
             allowedIconSizes: iconSizeListParser(appConfig().icon_data_allowed_sizes)
         });
@@ -124,6 +128,9 @@ const iconServiceProvider: (
             modifiedBy,
             () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
 
+    const addIconFile: AddIconFile = (addIconFileRequestData, modifiedBy) =>
+        iconDAFs.addIconFileToDB(addIconFileRequestData, modifiedBy);
+
     const decodeIconPath = (encodedIconPath: string) => fromBase64(encodedIconPath);
 
     return {
@@ -131,7 +138,8 @@ const iconServiceProvider: (
         getIcons,
         getIcon,
         getIconFile,
-        createIcon
+        createIcon,
+        addIconFile
     };
 };
 

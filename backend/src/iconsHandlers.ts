@@ -101,6 +101,7 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
                 !iconData.content) {
             res.status(400).end();
         } else {
+            iconService.addIconFile(iconData, getAuthentication(req.session).username);
             res.status(201).end();
         }
     }
