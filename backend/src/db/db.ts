@@ -154,11 +154,11 @@ export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, cr
     );
 };
 
-export type GetIconFileFrom = (
+export type GetIconFile = (
     iconId: number,
     format: string,
     iconSize: string) => Observable<Buffer>;
-export const getIconFile: (pool: Pool) => GetIconFileFrom = pool => (iconId, format, iconSize) => {
+export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconId, format, iconSize) => {
     const getIconFileSQL = "SELECT content FROM icon_file " +
                             "WHERE icon_id = $1 AND " +
                                 "file_format = $2 AND " +
@@ -187,7 +187,7 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifi
 
 export interface IIconDAFs {
     readonly createIcon: AddIconToDB;
-    readonly getIconFile: GetIconFileFrom;
+    readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
 }
 

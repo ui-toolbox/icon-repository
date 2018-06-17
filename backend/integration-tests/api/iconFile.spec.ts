@@ -17,7 +17,10 @@ import { privilegeDictionary } from "../../src/security/authorization/privileges
 import { Pool } from "pg";
 import * as request from "request";
 import { Observable } from "rxjs";
-import { getIconFile, getAllIcons, GetIconFileFrom } from "../../src/db/db";
+import {
+    getIconFile as getIconFileFromDBProvider,
+    getAllIcons as getAllIconsFromDB,
+    GetIconFile } from "../../src/db/db";
 import { Server } from "http";
 import { IconDescriptor } from "../../src/icon";
 
@@ -115,7 +118,7 @@ describe(iconFileEndpointPath, () => {
     };
 
     const createIconThenAddIconFileWithPrivileges = (privileges: string[]) => {
-        const getIconFileFromDB: GetIconFileFrom = getIconFile(pool);
+        const getIconFileFromDB: GetIconFile = getIconFileFromDBProvider(pool);
 
         const jar = request.jar();
         const format = "french";
@@ -134,7 +137,7 @@ describe(iconFileEndpointPath, () => {
                     jar
                 }))
             .map(result => expect(result.response.statusCode).toEqual(201))
-            .flatMap(getAllIcons(pool))
+            .flatMap(getAllIconsFromDB(pool))
             .flatMap(iconInfoList => {
                 expect(iconInfoList.size).toEqual(1);
                 expect(iconInfoList.get(0).id).toEqual(iconId);
@@ -172,7 +175,6 @@ describe(iconFileEndpointPath, () => {
 
         const jar = request.jar();
         const formData = createAddIconFormData("cartouche", "french", "great");
-        const getIconFileFromDB = getIconFile(pool);
 
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
