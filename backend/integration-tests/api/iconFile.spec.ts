@@ -1,4 +1,3 @@
-import { createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { createTestPool, terminateTestPool, createTestSchema } from "../db/db-test-utils";
 import {
@@ -7,12 +6,13 @@ import {
     createAddIconFormData,
     setAuthentication,
     getURL,
-    startServerWithBackdoorsProlog,
-    closeServerEpilog,
     testRequest,
     testUploadRequest,
     createAddIconFileFormData,
-    IAddIconFormData} from "./api-test-utils";
+    ICreateIconFormData,
+    IUploadFormData,
+    setUpGitRepoAndDbSchemaAndServer,
+    tearDownGitRepoAndServer} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { Pool } from "pg";
 import * as request from "request";
@@ -22,9 +22,11 @@ import {
     getAllIcons as getAllIconsFromDB,
     GetIconFile } from "../../src/db/db";
 import { Server } from "http";
-import { IconDescriptor } from "../../src/icon";
 
-const createInitialIcon: (server: Server, createIconFormData: IAddIconFormData) => Observable<number>
+export const createInitialIcon: (
+    server: Server,
+    createIconFormData: ICreateIconFormData
+) => Observable<number>
 = (server, createIconFormData) => {
     const privileges = [
         privilegeDictionary.CREATE_ICON
@@ -42,6 +44,26 @@ const createInitialIcon: (server: Server, createIconFormData: IAddIconFormData) 
     .map(result => (result.body.iconId as number));
 };
 
+export const addIconFile = (
+    server: Server,
+    privileges: string[],
+    iconId: number,
+    format: string,
+    size: string,
+    formData: IUploadFormData
+) => {
+    const jar = request.jar();
+
+    return setAuthentication(server, "zazie", privileges, jar)
+    .flatMap(() =>
+        testUploadRequest({
+            url: getURL(server, createIconFileURL(iconId, format, size)),
+            method: "POST",
+            formData,
+            jar
+        }));
+};
+
 const createIconFileURL: (iconId: number, format: string, size: string) => string
     = (iconId, format, size) => `/icon/${iconId}/format/${format}/size/${size}`;
 
@@ -49,23 +71,10 @@ describe(iconFileEndpointPath, () => {
     let pool: Pool;
     let server: Server;
 
-    beforeEach(done => {
-        createTestGitRepo()
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-
-    afterEach(done => {
-        delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
-        deleteTestGitRepo()
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-
     beforeAll(createTestPool(p => pool = p, fail));
     afterAll(terminateTestPool(pool));
-    beforeEach(createTestSchema(() => pool, fail));
-
-    beforeEach(startServerWithBackdoorsProlog(fail, testServer => server = testServer));
-    afterEach(closeServerEpilog((() => server)));
+    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
+    afterEach(done => tearDownGitRepoAndServer(server, done));
 
     it ("POST should fail with 403 without either of CREATE_ICON or ADD_ICON_FILE privilege", done => {
         const jar = request.jar();
@@ -118,7 +127,6 @@ describe(iconFileEndpointPath, () => {
     const createIconThenAddIconFileWithPrivileges = (privileges: string[]) => {
         const getIconFileFromDB: GetIconFile = getIconFileFromDBProvider(pool);
 
-        const jar = request.jar();
         const format = "french";
         const size1 = "great";
         const upForm1 = createAddIconFormData("cartouche", format, size1);
@@ -126,14 +134,7 @@ describe(iconFileEndpointPath, () => {
         const size2 = "large";
         return createInitialIcon(server, upForm1)
         .flatMap(iconId =>
-            setAuthentication(server, "zazie", privileges, jar)
-            .flatMap(() =>
-                testUploadRequest({
-                    url: getURL(server, createIconFileURL(iconId, format, size2)),
-                    method: "POST",
-                    formData: upForm2,
-                    jar
-                }))
+            addIconFile(server, privileges, iconId, format, size2, upForm2)
             .map(result => expect(result.response.statusCode).toEqual(201))
             .flatMap(getAllIconsFromDB(pool))
             .flatMap(iconInfoList => {

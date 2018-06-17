@@ -7,26 +7,22 @@ import {
     getURL,
     setAuthentication,
     createAddIconFormData,
-    IAddIconFormData,
+    ICreateIconFormData,
     convertToAddIconRequest,
     iconEndpointPath,
-    closeServerEpilog,
-    startServerWithBackdoorsProlog,
     testUploadRequest,
-    convertToIconInfo} from "./api-test-utils";
+    convertToIconInfo,
+    setUpGitRepoAndDbSchemaAndServer,
+    tearDownGitRepoAndServer} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
     createTestPool,
     terminateTestPool,
-    createTestSchema,
     assertIconCount,
     getCheckIconFile
  } from "../db/db-test-utils";
-import { start } from "repl";
 import {
-    deleteTestGitRepo,
-    createTestGitRepo,
     getCurrentCommit as getCurrentGitCommit,
     assertGitStatus } from "../git/git-test-utils";
 import { getIconFile, getAllIcons } from "../../src/db/db";
@@ -39,22 +35,10 @@ describe(iconEndpointPath, () => {
     let pool: Pool;
     let server: Server;
 
-    beforeEach(done => {
-        createTestGitRepo()
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-    afterEach(done => {
-        delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
-        deleteTestGitRepo()
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-
     beforeAll(createTestPool(p => pool = p, fail));
     afterAll(terminateTestPool(pool));
-    beforeEach(createTestSchema(() => pool, fail));
-
-    beforeEach(startServerWithBackdoorsProlog(fail, testServer => server = testServer));
-    afterEach(closeServerEpilog(() => server));
+    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
+    afterEach(done => tearDownGitRepoAndServer(server, done));
 
     it ("POST should fail with 403 without CREATE_ICON privilege", done => {
         const jar = request.jar();
@@ -75,7 +59,7 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
         const jar = request.jar();
-        const iconFormData: IAddIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const iconFormData: ICreateIconFormData = createAddIconFormData("cartouche", "french", "great");
         const expectedIconInfo: IconDescriptor = convertToIconInfo(iconFormData, 1);
 
         setAuthentication(server, "zazie", privileges, jar)
@@ -103,8 +87,8 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
 
-        const formData1: IAddIconFormData = createAddIconFormData("cartouche", "french", "great");
-        const formData2: IAddIconFormData = createAddIconFormData("cartouche1", "french", "great");
+        const formData1: ICreateIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const formData2: ICreateIconFormData = createAddIconFormData("cartouche1", "french", "great");
 
         const expectedIconInfoList: List<IconDescriptor> = List<IconDescriptor>()
             .push(convertToIconInfo(formData1, 1))
@@ -163,8 +147,8 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
 
-        const formData1: IAddIconFormData = createAddIconFormData("cartouche", "french", "great");
-        const formData2: IAddIconFormData = createAddIconFormData("cartouche1", "french", "great");
+        const formData1: ICreateIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const formData2: ICreateIconFormData = createAddIconFormData("cartouche1", "french", "great");
 
         const expectedIconInfoList = List<IconDescriptor>().push(convertToIconInfo(formData1, 1));
 
