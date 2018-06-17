@@ -99,16 +99,14 @@ describe(iconFileEndpointPath, () => {
     });
 
     const checkIconFileContent = (
-        iconId: number, format: string, size: string, jar: request.CookieJar,
-        expectedContent: Buffer
+        iconId: number, format: string, size: string, expectedContent: Buffer
     ) => {
         return testRequest({
             url: getURL(
                 server,
                 createIconFileURL(iconId, format, size)
             ),
-            method: "GET",
-            jar
+            method: "GET"
         })
         .map(getResult => {
             const actualContent = Buffer.from(getResult.body, "binary");
@@ -148,8 +146,8 @@ describe(iconFileEndpointPath, () => {
                     return getIconFileFromDB(iconId, format, size2);
                 });
             })
-            .flatMap(() => checkIconFileContent(iconId, format, size1, jar, upForm1.iconFile.value))
-            .flatMap(() => checkIconFileContent(iconId, format, size2, jar, upForm2.iconFile.value)));
+            .flatMap(() => checkIconFileContent(iconId, format, size1, upForm1.iconFile.value))
+            .flatMap(() => checkIconFileContent(iconId, format, size2, upForm2.iconFile.value)));
     };
 
     it ("POST should complete with CREATE_ICON privilege", done => {
@@ -188,8 +186,7 @@ describe(iconFileEndpointPath, () => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
                 return checkIconFileContent(
-                    result.body.iconId, formData.fileFormat, formData.iconSize, jar,
-                    formData.iconFile.value
+                    result.body.iconId, formData.fileFormat, formData.iconSize, formData.iconFile.value
                 );
             })
         )
