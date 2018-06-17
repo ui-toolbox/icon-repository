@@ -17,9 +17,9 @@ import { privilegeDictionary } from "../../src/security/authorization/privileges
 import { Pool } from "pg";
 import * as request from "request";
 import { Observable } from "rxjs";
-import { getIconFileFromDBProvider, getAllIconsFromDBProvider, GetIconFileFromDB } from "../../src/db/db";
+import { getIconFile, getAllIcons, GetIconFileFrom } from "../../src/db/db";
 import { Server } from "http";
-import { IconInfo } from "../../src/icon";
+import { IconDescriptor } from "../../src/icon";
 
 const createInitialIcon: (server: Server, createIconFormData: IAddIconFormData) => Observable<number>
 = (server, createIconFormData) => {
@@ -95,19 +95,35 @@ describe(iconFileEndpointPath, () => {
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
-    fit ("POST should complete with CREATE_ICON privilege", done => {
-        const getIconFileFromDB: GetIconFileFromDB = getIconFileFromDBProvider(pool);
+    const checkIconFileContent = (
+        iconId: number, format: string, size: string, jar: request.CookieJar,
+        expectedContent: Buffer
+    ) => {
+        return testRequest({
+            url: getURL(
+                server,
+                createIconFileURL(iconId, format, size)
+            ),
+            method: "GET",
+            jar
+        })
+        .map(getResult => {
+            const actualContent = Buffer.from(getResult.body, "binary");
+            expect(getResult.response.statusCode).toEqual(200);
+            expect(Buffer.compare(actualContent, expectedContent)).toEqual(0);
+        });
+    };
 
-        const privileges = [
-            privilegeDictionary.CREATE_ICON
-        ];
+    const createIconThenAddIconFileWithPrivileges = (privileges: string[]) => {
+        const getIconFileFromDB: GetIconFileFrom = getIconFile(pool);
+
         const jar = request.jar();
         const format = "french";
         const size1 = "great";
         const upForm1 = createAddIconFormData("cartouche", format, size1);
         const upForm2 = createAddIconFileFormData();
         const size2 = "large";
-        createInitialIcon(server, upForm1)
+        return createInitialIcon(server, upForm1)
         .flatMap(iconId =>
             setAuthentication(server, "zazie", privileges, jar)
             .flatMap(() =>
@@ -118,7 +134,7 @@ describe(iconFileEndpointPath, () => {
                     jar
                 }))
             .map(result => expect(result.response.statusCode).toEqual(201))
-            .flatMap(getAllIconsFromDBProvider(pool))
+            .flatMap(getAllIcons(pool))
             .flatMap(iconInfoList => {
                 expect(iconInfoList.size).toEqual(1);
                 expect(iconInfoList.get(0).id).toEqual(iconId);
@@ -126,9 +142,18 @@ describe(iconFileEndpointPath, () => {
                 return getIconFileFromDB(iconId, format, size1)
                 .map(buffer => {
                     expect(Buffer.compare(buffer, upForm1.iconFile.value)).toEqual(0);
-                    return getIconFileFromDB(iconId, format, size2)
+                    return getIconFileFromDB(iconId, format, size2);
                 });
-            }))
+            })
+            .flatMap(() => checkIconFileContent(iconId, format, size1, jar, upForm1.iconFile.value))
+            .flatMap(() => checkIconFileContent(iconId, format, size2, jar, upForm2.iconFile.value)));
+    };
+
+    it ("POST should complete with CREATE_ICON privilege", done => {
+        const privileges = [
+            privilegeDictionary.CREATE_ICON
+        ];
+        createIconThenAddIconFileWithPrivileges(privileges)
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -136,75 +161,8 @@ describe(iconFileEndpointPath, () => {
         const privileges = [
             privilegeDictionary.ADD_ICON_FILE
         ];
-        const jar = request.jar();
-        setAuthentication(server, "zazie", privileges, jar)
-        .flatMap(() =>
-            testUploadRequest({
-                url: getURL(server, iconFileEndpointPath),
-                method: "POST",
-                formData: createAddIconFormData("cartouche", "french", "great"),
-                jar
-            })
-            .map(result => expect(result.response.statusCode).toEqual(201)))
+        createIconThenAddIconFileWithPrivileges(privileges)
         .subscribe(boilerplateSubscribe(fail, done));
-    });
-
-    it ("POST should add an icon file with the specified format and size to an existing icon", done => {
-        const privileges = [
-            privilegeDictionary.CREATE_ICON
-        ];
-
-        const jar = request.jar();
-
-        const format1 = "french";
-        const size1 = "great";
-        const iconFormData = createAddIconFormData("cartouche", format1, size1);
-        const getIconFileFromDB = getIconFileFromDBProvider(pool);
-
-        setAuthentication(server, "zazie", privileges, jar)
-        .flatMap(() =>
-            testUploadRequest({
-                url: getURL(server, iconEndpointPath),
-                method: "POST",
-                formData: iconFormData,
-                jar
-            })
-            .flatMap(result1 => {
-                expect(result1.response.statusCode).toEqual(201);
-                const format2 = "belgian";
-                const size2 = "great";
-                const iconFileFormData = createAddIconFileFormData();
-                return testUploadRequest({
-                    url: getURL(server, createIconFileURL(result1.body.iconId, format2, size2)),
-                    method: "POST",
-                    formData: iconFileFormData,
-                    jar
-                })
-                .flatMap(result2 => {
-                    expect(result2.response.statusCode).toEqual(201);
-                    // 1. Check icon table
-                    // 2. check icon-file table
-                    // 3. Check intial file with GET /iconFile
-                    return testRequest({
-                        url: getURL(
-                            server,
-                            `/icon/${result2.body.iconId}/format/${format2}/size/${size2}`
-                        ),
-                        method: "GET",
-                        jar
-                    });
-                })
-                .map(getResult => {
-                    const actualContent = Buffer.from(getResult.body, "binary");
-                    expect(getResult.response.statusCode).toEqual(200);
-                    // expect(Buffer.compare(actualContent, formData.iconFile.value)).toEqual(0);
-                    // 4. Check added icon file with GET /iconFile
-                    // 5. Check all with GET /icons
-                });
-            })
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-
     });
 
     it ("GET should return the requested icon file as specified by format and size", done => {
@@ -214,7 +172,7 @@ describe(iconFileEndpointPath, () => {
 
         const jar = request.jar();
         const formData = createAddIconFormData("cartouche", "french", "great");
-        const getIconFileFromDB = getIconFileFromDBProvider(pool);
+        const getIconFileFromDB = getIconFile(pool);
 
         setAuthentication(server, "zazie", privileges, jar)
         .flatMap(() =>
@@ -227,22 +185,12 @@ describe(iconFileEndpointPath, () => {
             .flatMap(result => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
-                return testRequest({
-                    url: getURL(
-                        server,
-                        `/icon/${result.body.iconId}/format/${formData.fileFormat}/size/${formData.iconSize}`
-                    ),
-                    method: "GET",
-                    jar
-                })
-                .map(getResult => {
-                    const actualContent = Buffer.from(getResult.body, "binary");
-                    expect(getResult.response.statusCode).toEqual(200);
-                    expect(Buffer.compare(actualContent, formData.iconFile.value)).toEqual(0);
-                });
+                return checkIconFileContent(
+                    result.body.iconId, formData.fileFormat, formData.iconSize, jar,
+                    formData.iconFile.value
+                );
             })
         )
         .subscribe(boilerplateSubscribe(fail, done));
-
     });
 });

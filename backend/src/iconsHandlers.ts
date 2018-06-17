@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IAddIconRequestData, IAddIconFileRequestData } from "./icon";
+import { CreateIconInfo, IconFile } from "./icon";
 import { IIconService } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IIconHanlders {
@@ -69,7 +69,7 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
     createIcon: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("createIcon");
         ctxLogger.info("START");
-        const iconData: IAddIconRequestData = {
+        const iconData: CreateIconInfo = {
             iconName: req.body.iconName,
             format: req.body.fileFormat,
             size: req.body.iconSize,
@@ -89,7 +89,8 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
     },
 
     addIconFile: (req: Request, res: Response) => {
-        const iconData: IAddIconFileRequestData = {
+        const ctxLogger = logger.createChild("addIconFile");
+        const iconData: IconFile = {
             iconId: req.params.id,
             format: req.params.format,
             size: req.params.size,
@@ -101,8 +102,15 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
                 !iconData.content) {
             res.status(400).end();
         } else {
-            iconService.addIconFile(iconData, getAuthentication(req.session).username);
-            res.status(201).end();
+            iconService.addIconFile(iconData, getAuthentication(req.session).username)
+            .subscribe(
+                void 0,
+                error => {
+                    ctxLogger.error(error);
+                    res.status(500).end();
+                },
+                () => res.status(201).end()
+            );
         }
     }
 });

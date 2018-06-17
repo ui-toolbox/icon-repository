@@ -2,7 +2,7 @@ import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult, Query, PoolClient } from "pg";
 
-import { IAddIconRequestData, IconInfo, IconFileInfo, IAddIconFileRequestData } from "../icon";
+import { CreateIconInfo, IconDescriptor, IconFileData, IconFile, IconFileDescriptor } from "../icon";
 import appConfigProvider, { ConfigurationDataProvider } from "../configuration";
 import logger from "../utils/logger";
 import {
@@ -43,11 +43,15 @@ export const query: (pool: Pool, statement: string, parameters: any[]) => Observ
         (observer: Observer<QueryResult>) => pool.query(
             statement,
             parameters
-        ).then(result => {
-            observer.next(result);
-            observer.complete();
-        }, error => observer.error(error))
-        .catch(error => Observable.throw(error))
+        )
+        .then(
+            result => {
+                observer.next(result);
+                observer.complete();
+            },
+            error => observer.error(error)
+        )
+        .catch(error => observer.error(error))
     );
 };
 
@@ -110,7 +114,7 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
 
 type AddIconFileToTable = (
     executeQuery: ExecuteQuery,
-    iconFileInfo: IAddIconFileRequestData,
+    iconFile: IconFile,
     modifiedBy: string
 ) => Observable<number>;
 const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modifiedBy) => {
@@ -126,12 +130,12 @@ const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modi
 };
 
 type AddIconToDB = (
-    iconInfo: IAddIconRequestData,
+    iconInfo: CreateIconInfo,
     modifiedBy: string,
     createSideEffect?: () => Observable<void>
 ) => Observable<number>;
 type AddIconToDBProvider = (pool: Pool) => AddIconToDB;
-export const addIconToDBProvider: AddIconToDBProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
+export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
     const iconVersion = 1;
     const addIconSQL: string = "INSERT INTO icon(name, version, modified_by) " +
                                 "VALUES($1, $2, $3) RETURNING id";
@@ -141,19 +145,20 @@ export const addIconToDBProvider: AddIconToDBProvider = pool => (iconInfo, modif
         executeQuery => executeQuery(addIconSQL, addIconParams)
                 .flatMap(addIconResult => {
                     const iconId = addIconResult.rows[0].id;
-                    return addIconFileToTable(executeQuery, {...iconInfo, iconId }, modifiedBy)
+                    return addIconFileToTable(executeQuery, {
+                        iconId, format: iconInfo.format, size: iconInfo.size, content: iconInfo.content
+                    }, modifiedBy)
                     .flatMap(() => createSideEffect ? createSideEffect() : Observable.of(void 0))
                     .mapTo(iconId);
                 })
     );
 };
 
-export type GetIconFileFromDB = (
+export type GetIconFileFrom = (
     iconId: number,
     format: string,
     iconSize: string) => Observable<Buffer>;
-type GetIconFileFromDBProvider = (pool: Pool) => GetIconFileFromDB;
-export const getIconFileFromDBProvider: GetIconFileFromDBProvider = pool => (iconId, format, iconSize) => {
+export const getIconFile: (pool: Pool) => GetIconFileFrom = pool => (iconId, format, iconSize) => {
     const getIconFileSQL = "SELECT content FROM icon_file " +
                             "WHERE icon_id = $1 AND " +
                                 "file_format = $2 AND " +
@@ -162,42 +167,42 @@ export const getIconFileFromDBProvider: GetIconFileFromDBProvider = pool => (ico
         .map(result => result.rows[0].content);
 };
 
-type AddIconFileToDB = (addIconFileRequestData: IAddIconFileRequestData, modifiedBy: string) => Observable<number>;
+type AddIconFile = (iconFile: IconFile, modifiedBy: string) => Observable<number>;
 
-const addIconFileToDBProvider: (pool: Pool) => AddIconFileToDB = pool => (addIconFileInput, modifiedBy) => {
-    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE id = ? FOR UPDATE";
-    const updateIconVersionSQL = "UPDATE icon SET version = ? WHERE id = ?";
+const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifiedBy) => {
+    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE id = $1 FOR UPDATE";
+    const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE id = $2";
     return tx(pool, (executeQuery: ExecuteQuery) => {
-        return executeQuery(selectIconVersionForUpdateSQL, [addIconFileInput.iconId])
+        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.iconId])
         .flatMap(queryResult =>
-            addIconFileToTable(executeQuery, addIconFileInput, modifiedBy)
-            .map(iconFileId => {
+            addIconFileToTable(executeQuery, iconFile, modifiedBy)
+            .flatMap(iconFileId => {
                 const version = queryResult.rows[0].version;
-                executeQuery(updateIconVersionSQL, [version + 1, addIconFileInput.iconId]);
-                return iconFileId;
+                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.iconId])
+                .map(() => iconFileId);
             })
         );
     });
 };
 
 export interface IIconDAFs {
-    readonly addIconToDB: AddIconToDB;
-    readonly getIconFileFromDB: GetIconFileFromDB;
-    readonly addIconFileToDB: AddIconFileToDB;
+    readonly createIcon: AddIconToDB;
+    readonly getIconFile: GetIconFileFrom;
+    readonly addIconFileToIcon: AddIconFile;
 }
 
 const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IIconDAFs
 = configProvider => {
     const pool = createPoolUsing(configProvider);
     return {
-        addIconToDB: addIconToDBProvider(pool),
-        getIconFileFromDB: getIconFileFromDBProvider(pool),
-        addIconFileToDB: addIconFileToDBProvider(pool)
+        createIcon: createIcon(pool),
+        getIconFile: getIconFile(pool),
+        addIconFileToIcon: addIconFileToIcon(pool)
     };
 };
 
-type GetAllIconsFromDB = () => Observable<List<IconInfo>>;
-export const getAllIconsFromDBProvider: (pool: Pool) => GetAllIconsFromDB
+type GetAllIcons = () => Observable<List<IconDescriptor>>;
+export const getAllIcons: (pool: Pool) => GetAllIcons
 = pool => () => {
     const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
     const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
@@ -212,15 +217,15 @@ export const getAllIconsFromDBProvider: (pool: Pool) => GetAllIconsFromDB
                     "ORDER BY icon_id, icon_file_format, icon_size";
     return query(pool, sql, [])
     .map(result => result.rows.reduce(
-        (iconInfoList: List<IconInfo>, row: any) => {
-            const iconFile: IconFileInfo = {
+        (iconInfoList: List<IconDescriptor>, row: any) => {
+            const iconFile: IconFileDescriptor = {
                 format: row.icon_file_format,
                 size: row.icon_size
             };
-            let lastIconInfo: IconInfo = iconInfoList.last();
+            let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
             if (!lastIconInfo || row.icon_id !== lastIconInfo.id) {
-                lastIconInfo = new IconInfo(row.icon_id, row.icon_name, Set());
+                lastIconInfo = new IconDescriptor(row.icon_id, row.icon_name, Set());
                 lastIndex++;
             }
             return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));

@@ -2,7 +2,7 @@ import * as path from "path";
 import { Observable } from "rxjs";
 import { stat, rmdirMaybe, mkdirMaybe, mkdir, rmdir } from "../../src/utils/rx";
 import { createGitCommandExecutor } from "../../src/git";
-import { IAddIconRequestData } from "../../src/icon";
+import { CreateIconInfo } from "../../src/icon";
 
 const SECONDS_IN_MILLIES = 1000;
 
@@ -34,7 +34,7 @@ export const assertGitStatus = () => getGitStatus()
 .map(status => expect(status.substr(status.length - statusMessageTail.length))
                 .toEqual(statusMessageTail));
 
-export const assertAddedFile: (iconFileInfo: IAddIconRequestData, user: string) => Observable<void>
+export const assertAddedFile: (iconFileInfo: CreateIconInfo, user: string) => Observable<void>
 = (iconFileInfo, user) => {
     const filePath = path.join(
         repoDir,

@@ -16,7 +16,7 @@ import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { IAddIconRequestData, IAddIconFileRequestData, IconInfo } from "../../src/icon";
+import { CreateIconInfo, IconDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir } from "../git/git-test-utils";
 
@@ -141,7 +141,7 @@ export const setAuthentication = (
 )
 .catch(error => {
     fail(error);
-    return Observable.throw(server);
+    return Observable.throw(error);
 });
 
 export interface IUploadFormData {
@@ -162,15 +162,15 @@ export const createAddIconFormData: (iconName: string, format: string, size: str
     iconFile: createUploadBuffer(4096)
 });
 
-export const convertToAddIconRequest: (formData: IAddIconFormData) => IAddIconRequestData = formData => ({
+export const convertToAddIconRequest: (formData: IAddIconFormData) => CreateIconInfo = formData => ({
     iconName: formData.iconName,
     format: formData.fileFormat,
     size: formData.iconSize,
     content: formData.iconFile.value
 });
 
-export const convertToIconInfo: (iconFormData: IAddIconFormData, id: number) => IconInfo
-= (iconFormData, id) => new IconInfo(
+export const convertToIconInfo: (iconFormData: IAddIconFormData, id: number) => IconDescriptor
+= (iconFormData, id) => new IconDescriptor(
     id,
     iconFormData.iconName,
     null).addIconFile({

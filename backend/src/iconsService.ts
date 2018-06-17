@@ -4,7 +4,7 @@ import * as express from "express";
 import { List, Map } from "immutable";
 import { Observable } from "rxjs/Rx";
 
-import { IAddIconRequestData, IAddIconFileRequestData } from "./icon";
+import { CreateIconInfo, IconFile } from "./icon";
 import { IIconDAFs } from "./db/db";
 import { IGitAccessFunctions } from "./git";
 import logger, { ContextAbleLogger } from "./utils/logger";
@@ -57,10 +57,10 @@ type GetIcons = () => Observable<IconInfo[]>;
 type GetIcon = (encodeIconPath: string) => Observable<IIconFileData>;
 type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
-    initialIconFileInfo: IAddIconRequestData,
+    initialIconFileInfo: CreateIconInfo,
     modifiedBy: string) => Observable<number>;
 type AddIconFile = (
-    addIconFileRequestData: IAddIconFileRequestData,
+    addIconFileRequestData: IconFile,
     modifiedBy: string) => Observable<number>;
 export interface IIconService {
     readonly getRepoConfiguration: GetIconRepoConfig;
@@ -120,16 +120,16 @@ const iconServiceProvider: (
     };
 
     const getIconFile: GetIconFile = (iconId, fileFormat, iconSize) =>
-        iconDAFs.getIconFileFromDB(iconId, fileFormat, iconSize);
+        iconDAFs.getIconFile(iconId, fileFormat, iconSize);
 
     const createIcon: CreateIcon = (iconfFileInfo, modifiedBy) =>
-        iconDAFs.addIconToDB(
+        iconDAFs.createIcon(
             iconfFileInfo,
             modifiedBy,
             () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
 
     const addIconFile: AddIconFile = (addIconFileRequestData, modifiedBy) =>
-        iconDAFs.addIconFileToDB(addIconFileRequestData, modifiedBy);
+        iconDAFs.addIconFileToIcon(addIconFileRequestData, modifiedBy);
 
     const decodeIconPath = (encodedIconPath: string) => fromBase64(encodedIconPath);
 

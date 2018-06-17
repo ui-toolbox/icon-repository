@@ -9,6 +9,7 @@
         "ordered-imports": [false],
         "object-literal-sort-keys": [false],
         "trailing-comma": [true, {"multiline": "never", "singleline": "never"}],
+        "interface-name": false,
         "arrow-parens": [true, "ban-single-arg-parens"],
         "ban": [
             true,

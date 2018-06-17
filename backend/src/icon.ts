@@ -1,40 +1,40 @@
 import { Set } from "immutable";
-export interface IconFileInfo {
+
+export interface IconFileDescriptor {
     readonly format: string;
     readonly size: string;
 }
 
-export interface IAddIconRequestData {
+export interface IconFileData extends IconFileDescriptor {
+    readonly content: Buffer;
+}
+
+export interface IconFile extends IconFileData {
     readonly iconId: number;
+}
+export interface CreateIconInfo extends IconFileData {
     readonly iconName: string;
-    readonly format: string;
-    readonly size: string;
-    readonly content: Buffer;
+    // public readonly format: string;
+    // public readonly size: string;
+    // public readonly content: Buffer;
 }
 
-export interface IAddIconFileRequestData {
-    readonly iconId: number;
-    readonly format: string;
-    readonly size: string;
-    readonly content: Buffer;
-}
-
-export class IconInfo {
+export class IconDescriptor {
     public readonly id: number;
     public readonly iconName: string;
-    public readonly iconFiles: Set<IconFileInfo>;
+    public readonly iconFiles: Set<IconFileDescriptor>;
 
-    constructor(id: number, iconName: string, iconFiles: Set<IconFileInfo>) {
+    constructor(id: number, iconName: string, iconFiles: Set<IconFileDescriptor>) {
         this.id = id;
         this.iconName = iconName;
         this.iconFiles = iconFiles || Set();
     }
 
-    public addIconFile(iconFile: IconFileInfo): IconInfo {
-        return new IconInfo(this.id, this.iconName, this.iconFiles.add(iconFile));
+    public addIconFile(iconFile: IconFileDescriptor): IconDescriptor {
+        return new IconDescriptor(this.id, this.iconName, this.iconFiles.add(iconFile));
     }
 
-    public removeIconFile(iconFile: IconFileInfo): IconInfo {
-        return new IconInfo(this.id, this.iconName, this.iconFiles.remove(iconFile));
+    public removeIconFile(iconFile: IconFileDescriptor): IconDescriptor {
+        return new IconDescriptor(this.id, this.iconName, this.iconFiles.remove(iconFile));
     }
 }

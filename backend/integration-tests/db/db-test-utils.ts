@@ -1,19 +1,19 @@
-import { createPool, query, getIconFileFromDBProvider, GetIconFileFromDB } from "../../src/db/db";
+import { createPool, query, getIconFile, GetIconFileFrom } from "../../src/db/db";
 import { Pool } from "pg";
 import { Observable } from "rxjs";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { iconTableSpec } from "../../src/db/db-schema";
-import { IAddIconRequestData } from "../../src/icon";
+import { CreateIconInfo } from "../../src/icon";
 
 export const assertIconCount = (pool: Pool, expectedCount: number) =>
 query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
     .map(countResult => expect(parseInt(countResult.rows[0].count, 10)).toEqual(expectedCount));
 
 export const getCheckIconFile: (
-    getIconFileFromDB: GetIconFileFromDB,
+    getIconFileFromDB: GetIconFileFrom,
     iconID: number,
-    iconFileInfo: IAddIconRequestData
+    iconFileInfo: CreateIconInfo
 ) => Observable<boolean>
 = (getIconFileFromDB, iconID, iconFileInfo) => {
     return getIconFileFromDB(iconID, iconFileInfo.format, iconFileInfo.size)
