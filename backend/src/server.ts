@@ -8,7 +8,7 @@ import * as helmet from "helmet";
 import * as multer from "multer";
 import * as Rx from "rxjs";
 
-import { IIconHanlders } from "./iconsHandlers";
+import { IconHanlders } from "./iconsHandlers";
 
 import { ConfigurationDataProvider } from "./configuration";
 import logger from "./utils/logger";
@@ -19,7 +19,7 @@ import brandingHandlerProvider from "./brandingHandler";
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IIconHanlders) => Rx.Observable<http.Server>
+const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconHanlders) => Rx.Observable<http.Server>
 = (appConfig, iconHandlers) => {
 
     const app = express();

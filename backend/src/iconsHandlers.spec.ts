@@ -1,15 +1,13 @@
 import "jasmine";
 import { Mock } from "ts-mocks";
 import { Request, Response } from "express";
-import * as http from "http";
-import * as fs from "fs";
 import * as Rx from "rxjs";
 
-import * as server from "./server";
-
 import iconServiceProvider from "./iconsService";
-import iconsHandlersProvider from "./iconsHandlers";
+import iconsHandlersProvider, { createPaths } from "./iconsHandlers";
 import { getDefaultConfiguration } from "./configuration";
+import { Set } from "immutable";
+import { IconFileDescriptor } from "./icon";
 
 describe("icon endpoint", () => {
     it("should return 404 status when icon not found on :path", done => {
@@ -22,5 +20,32 @@ describe("icon endpoint", () => {
             expect(res.status).toHaveBeenCalledWith(404);
             done();
         });
+    });
+});
+
+describe("/icons/getAllIcons", () => {
+    fit("should return the list of icons with proper paths", () => {
+        // TODO: Implement the verification of the actual requirement,
+        //       not just a part of it. Then stop exporting "createPaths"
+        //       in the tested module
+        const iconFiles: Set<IconFileDescriptor> = Set([
+            {format: "french", size: "great"},
+            {format: "french", size: "huge"},
+            {format: "english", size: "OK"},
+            {format: "english", size: "nice"}
+        ]);
+
+        const expectedDTO = {
+            french: {
+                great: "/format/french/size/great",
+                huge: "/format/french/size/huge"
+            },
+            english: {
+                OK: "/format/english/size/OK",
+                nice: "/format/english/size/nice"
+            }
+        };
+
+        expect(createPaths(iconFiles)).toEqual(expectedDTO);
     });
 });

@@ -12,7 +12,7 @@ import {
 } from "./api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { createInitialIcon, addIconFile } from "./iconFile.spec";
-import { CreateIconInfo, IconFileDescriptor } from "../../src/icon";
+import { IconFileDescriptor } from "../../src/icon";
 import { Pool } from "pg";
 import { Server } from "http";
 import { createTestPool, terminateTestPool } from "../db/db-test-utils";
@@ -85,6 +85,9 @@ describe(getAllIconsPath, () => {
             size: "great"
         };
 
+        const expectedReply = [
+        ];
+
         const createIcon1Form = createAddIconFormData(icon1.iconName, icon1.fileFormat, icon1.iconSize);
         const icon1File2FormData = createAddIconFileFormData();
         const createIcon2Form = createAddIconFormData(icon2.iconName, icon2.fileFormat, icon2.iconSize);
@@ -104,4 +107,5 @@ describe(getAllIconsPath, () => {
             ],
             iconId, icon2File2.format, icon2File2.size, icon2File2FormData));
     });
+
 });

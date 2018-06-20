@@ -62,7 +62,7 @@ type CreateIcon = (
 type AddIconFile = (
     addIconFileRequestData: IconFile,
     modifiedBy: string) => Observable<number>;
-export interface IIconService {
+export interface IconService {
     readonly getRepoConfiguration: GetIconRepoConfig;
     readonly getIcons: GetIcons;
     readonly getIcon: GetIcon;
@@ -79,7 +79,7 @@ const iconServiceProvider: (
     appConfig: ConfigurationDataProvider,
     iconDAFs: IIconDAFs,
     gitAFs: IGitAccessFunctions
-) => IIconService
+) => IconService
 = (appConfig, iconDAFs, gitAFs) => {
 
     const getRepoConfiguration: GetIconRepoConfig = () => {

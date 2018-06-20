@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { CreateIconInfo, IconFile } from "./icon";
-import { IIconService } from "./iconsService";
+import { CreateIconInfo, IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconService } from "./iconsService";
 import { getAuthentication } from "./security/common";
-export interface IIconHanlders {
+import { Set, Map } from "immutable";
+export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
     readonly icons: (req: Request, res: Response) => void;
     readonly getIcon: (req: Request, res: Response) => Promise<void>;
@@ -13,7 +14,42 @@ export interface IIconHanlders {
     readonly addIconFile: (req: Request, res: Response) => void;
 }
 
-const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
+export interface IconPathDTO {
+    [format: string]: {
+        [size: string]: string
+    };
+}
+
+export class IconDTO {
+    public readonly id: number;
+    public readonly iconName: string;
+    public readonly iconFiles: IconPathDTO[];
+
+    constructor(iconDesc: IconDescriptor) {
+        this.id = iconDesc.id;
+        this.iconName = iconDesc.iconName;
+        this.iconFiles = null;
+    }
+}
+
+export const createPaths: (iconFiles: Set<IconFileDescriptor>) => IconPathDTO
+= iconFiles => iconFiles
+.groupBy(ifDesc => ifDesc.format)
+.reduce(
+    (paths, fileDescCollection, format) => ({
+        ...paths,
+        [format]: fileDescCollection.reduce(
+            (sizeToPath, fdescItem) => ({
+                ...sizeToPath,
+                [fdescItem.size]: `/format/${format}/size/${fdescItem.size}`
+            }),
+            {}
+        )
+    }),
+    {}
+);
+
+const iconHandlersProvider: (iconService: IconService) => IconHanlders
 = iconService => ({
     getIconRepoConfig: (req: Request, res: Response) => iconService.getRepoConfiguration().toPromise()
     .then(
