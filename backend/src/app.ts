@@ -19,8 +19,11 @@ const logServerStart = (server: http.Server) => {
 configuration.subscribe(
     configProvider => {
         const iconService = iconServiceProvider(
-            configProvider,
-            iconDAFsProvider(configProvider),
+            {
+                allowedFormats: configProvider().icon_data_allowed_formats,
+                allowedSizes: configProvider().icon_data_allowed_sizes
+            },
+            iconDAFsProvider(configProvider()),
             gitAFsProvider(configProvider().icon_data_location_git)
         );
         const iconHandlers = iconHandlersProvider(iconService);

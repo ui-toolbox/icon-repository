@@ -55,17 +55,21 @@ export const iconFormatListParser = csvSplitter;
 
 export const iconSizeListParser = csvSplitter;
 
+export interface IconRepoSettings {
+    allowedFormats: string;
+    allowedSizes: string;
+}
+
 const iconServiceProvider: (
-    appConfig: ConfigurationDataProvider,
+    iconRepoSettings: IconRepoSettings,
     iconDAFs: IconDAFs,
     gitAFs: GitAccessFunctions
 ) => IconService
-= (appConfig, iconDAFs, gitAFs) => {
-
+= (iconRepoConfig, iconDAFs, gitAFs) => {
     const getRepoConfiguration: GetIconRepoConfig = () => {
         return Observable.of({
-            allowedFileFormats: iconFormatListParser(appConfig().icon_data_allowed_formats),
-            allowedIconSizes: iconSizeListParser(appConfig().icon_data_allowed_sizes)
+            allowedFileFormats: iconFormatListParser(iconRepoConfig.allowedFormats),
+            allowedIconSizes: iconSizeListParser(iconRepoConfig.allowedSizes)
         });
     };
 

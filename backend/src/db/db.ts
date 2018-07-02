@@ -16,14 +16,14 @@ import { last } from "rxjs/operator/last";
 
 const ctxLogger = logger.createChild("db");
 
-const createPoolUsing: (configProvider: ConfigurationDataProvider) => Pool
-= config => {
+const createPoolUsing: (connectionProperties: ConnectionProperties) => Pool
+= connectionProperties => {
         const connOptions = {
-            user: config().conn_user,
-            host: config().conn_host,
-            database: config().conn_database,
-            password: config().conn_password,
-            port: parseInt(config().conn_port, 10)
+            user: connectionProperties.conn_user,
+            host: connectionProperties.conn_host,
+            database: connectionProperties.conn_database,
+            password: connectionProperties.conn_password,
+            port: parseInt(connectionProperties.conn_port, 10)
         };
         const pool = new Pool(connOptions);
         pool.on("error", (err, client) => {
@@ -33,8 +33,8 @@ const createPoolUsing: (configProvider: ConfigurationDataProvider) => Pool
         return pool;
     };
 
-export const createPool: () => Observable<Pool>
-= () => appConfigProvider.map(config => createPoolUsing(config));
+export const createPool: (connectionProperties: ConnectionProperties) => Observable<Pool>
+= connectionProperties => Observable.of(createPoolUsing(connectionProperties));
 
 export const query: (pool: Pool, statement: string, parameters: any[]) => Observable<QueryResult>
 = (pool, statement, parameters) => {
@@ -192,9 +192,17 @@ export interface IconDAFs {
     readonly getAllIcons: GetAllIcons;
 }
 
-const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IconDAFs
-= configProvider => {
-    const pool = createPoolUsing(configProvider);
+export interface ConnectionProperties {
+    conn_user: string;
+    conn_host: string;
+    conn_database: string;
+    conn_password: string;
+    conn_port: string;
+}
+
+const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
+= connectionProperties => {
+    const pool = createPoolUsing(connectionProperties);
     return {
         createIcon: createIcon(pool),
         getIconFile: getIconFile(pool),

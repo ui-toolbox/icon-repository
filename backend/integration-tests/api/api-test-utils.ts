@@ -40,8 +40,11 @@ export const startServer: StartServer = customConfig => {
         Object.assign(customConfig, {server_port: 0})
     );
     const iconService = iconServiceProvider(
-        getDefaultConfiguration,
-        iconDAFsProvider(() => configData),
+        {
+            allowedFormats: configData.icon_data_allowed_formats,
+            allowedSizes: configData.icon_data_allowed_sizes
+        },
+        iconDAFsProvider(configData),
         gitProvider(configData.icon_data_location_git)
     );
     const iconHandlers = iconHandlersProvider(iconService);

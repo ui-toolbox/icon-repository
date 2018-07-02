@@ -5,6 +5,7 @@ import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { iconTableSpec } from "../../src/db/db-schema";
 import { CreateIconInfo } from "../../src/icon";
+import { getDefaultConfiguration } from "../../src/configuration";
 
 export const assertIconCount = (pool: Pool, expectedCount: number) =>
 query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
@@ -21,7 +22,7 @@ export const getCheckIconFile: (
 };
 
 export const createTestPool = (setPool: (p: Pool) => void, fail: (err: any) => void) => (done: () => void) =>
-    createPool()
+    createPool(getDefaultConfiguration())
     .subscribe(
         p => {
             setPool(p);
