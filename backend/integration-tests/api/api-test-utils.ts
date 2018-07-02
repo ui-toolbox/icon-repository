@@ -199,5 +199,5 @@ type TestUploadRequest = (requestData: ITestUploadRequestData) => Observable<IRe
 export const testUploadRequest: TestUploadRequest
     = uploadRequestData => testRequest({...uploadRequestData, json: true});
 
-export const iconEndpointPath = "/icon";
-export const iconFileEndpointPath = "/icon/:id/format/:format/size/:size";
+export const iconEndpointPath = "/icons";
+export const iconFileEndpointPath = "/icons/:id/formats/:format/sizes/:size";

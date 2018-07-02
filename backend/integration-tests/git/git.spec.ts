@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 
 import gitAccessFunctionsProvider, {
     createGitCommandExecutor,
-    IGitAccessFunctions,
+    GitAccessFunctions,
     GIT_COMMIT_FAIL_INTRUSIVE_TEST
 } from "../../src/git";
 import { CreateIconInfo } from "../../src/icon";
@@ -18,7 +18,7 @@ import {
 
 describe("git access functions", () => {
 
-    let gitAFs: IGitAccessFunctions;
+    let gitAFs: GitAccessFunctions;
 
     beforeAll(() => {
         gitAFs = gitAccessFunctionsProvider(getTestRepoDir());

@@ -185,19 +185,21 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifi
     });
 };
 
-export interface IIconDAFs {
+export interface IconDAFs {
     readonly createIcon: AddIconToDB;
     readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
+    readonly getAllIcons: GetAllIcons;
 }
 
-const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IIconDAFs
+const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IconDAFs
 = configProvider => {
     const pool = createPoolUsing(configProvider);
     return {
         createIcon: createIcon(pool),
         getIconFile: getIconFile(pool),
-        addIconFileToIcon: addIconFileToIcon(pool)
+        addIconFileToIcon: addIconFileToIcon(pool),
+        getAllIcons: getAllIcons(pool)
     };
 };
 

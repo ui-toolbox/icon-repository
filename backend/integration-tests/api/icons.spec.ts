@@ -86,6 +86,28 @@ describe(getAllIconsPath, () => {
         };
 
         const expectedReply = [
+            {
+                id: 1,
+                iconName: icon1.iconName,
+                iconFiles: {
+                    [icon1.fileFormat]: {
+                        [icon1.iconSize]: `/icons/formats/${icon1.fileFormat}/sizes/${icon1.iconSize}`,
+                        [icon1File2.size]: `/icons/formats/${icon1.fileFormat}/sizes/${icon1File2.size}`
+                    }
+                }
+            },
+            {
+                id: 2,
+                iconName: icon2.iconName,
+                iconFiles: {
+                    [icon2.fileFormat]: {
+                        [icon2.iconSize]: `/icons/formats/${icon2.fileFormat}/sizes/${icon2.iconSize}`
+                    },
+                    [icon2File2.format]: {
+                        [icon2File2.size]: `/icons/formats/${icon2File2.format}/sizes/${icon2File2.size}`
+                    }
+                }
+            }
         ];
 
         const createIcon1Form = createAddIconFormData(icon1.iconName, icon1.fileFormat, icon1.iconSize);
@@ -105,7 +127,12 @@ describe(getAllIconsPath, () => {
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
-            iconId, icon2File2.format, icon2File2.size, icon2File2FormData));
+            iconId, icon2File2.format, icon2File2.size, icon2File2FormData))
+        .flatMap(() => testRequest({
+            url: getURL(server, "/icons")
+        }))
+        .map(actualReply => expect(JSON.parse(actualReply.body)).toEqual(expectedReply))
+        .subscribe(boilerplateSubscribe(fail, done));
     });
 
 });

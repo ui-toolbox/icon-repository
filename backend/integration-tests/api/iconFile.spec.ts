@@ -65,7 +65,7 @@ export const addIconFile = (
 };
 
 const createIconFileURL: (iconId: number, format: string, size: string) => string
-    = (iconId, format, size) => `/icon/${iconId}/format/${format}/size/${size}`;
+    = (iconId, format, size) => `/icons/${iconId}/formats/${format}/sizes/${size}`;
 
 describe(iconFileEndpointPath, () => {
     let pool: Pool;
