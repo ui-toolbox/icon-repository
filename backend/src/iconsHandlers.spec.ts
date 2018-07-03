@@ -33,7 +33,6 @@ describe("getAllIcons", () => {
         //       in the tested module
         const iconPathRoot: string = "/icon";
 
-        const iconId: number = 1;
         const iconName: string = "cartouche";
         const iconFiles: Set<IconFileDescriptor> = Set([
             {format: "french", size: "great"},
@@ -41,10 +40,9 @@ describe("getAllIcons", () => {
             {format: "english", size: "OK"},
             {format: "english", size: "nice"}
         ]);
-        const iconDesc: IconDescriptor = new IconDescriptor(iconId, iconName, iconFiles);
+        const iconDesc: IconDescriptor = new IconDescriptor(iconName, iconFiles);
 
         const expectedDTO: IconDTO = {
-            id: iconId,
             iconName,
             iconFiles: {
                 french: {

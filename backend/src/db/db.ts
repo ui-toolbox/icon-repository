@@ -119,9 +119,9 @@ type AddIconFileToTable = (
 ) => Observable<number>;
 const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modifiedBy) => {
     const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
-                                "VALUES($1, $2, $3, $4) RETURNING id";
+                                "SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
     return executeQuery(addIconFile, [
-        iconFileInfo.iconId,
+        iconFileInfo.iconName,
         iconFileInfo.format,
         iconFileInfo.size,
         iconFileInfo.content
@@ -146,7 +146,10 @@ export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, cr
                 .flatMap(addIconResult => {
                     const iconId = addIconResult.rows[0].id;
                     return addIconFileToTable(executeQuery, {
-                        iconId, format: iconInfo.format, size: iconInfo.size, content: iconInfo.content
+                        iconName: iconInfo.iconName,
+                        format: iconInfo.format,
+                        size: iconInfo.size,
+                        content: iconInfo.content
                     }, modifiedBy)
                     .flatMap(() => createSideEffect ? createSideEffect() : Observable.of(void 0))
                     .mapTo(iconId);
@@ -155,30 +158,31 @@ export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, cr
 };
 
 export type GetIconFile = (
-    iconId: number,
+    iconName: string,
     format: string,
     iconSize: string) => Observable<Buffer>;
-export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconId, format, iconSize) => {
-    const getIconFileSQL = "SELECT content FROM icon_file " +
-                            "WHERE icon_id = $1 AND " +
+export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconName, format, iconSize) => {
+    const getIconFileSQL = "SELECT content FROM icon, icon_file " +
+                            "WHERE icon_id = icon.id AND " +
                                 "file_format = $2 AND " +
-                                "icon_size = $3";
-    return query(pool, getIconFileSQL, [iconId, format, iconSize])
+                                "icon_size = $3 AND " +
+                                "icon.name = $1";
+    return query(pool, getIconFileSQL, [iconName, format, iconSize])
         .map(result => result.rows[0].content);
 };
 
 type AddIconFile = (iconFile: IconFile, modifiedBy: string) => Observable<number>;
 
 const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifiedBy) => {
-    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE id = $1 FOR UPDATE";
-    const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE id = $2";
+    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE name = $1 FOR UPDATE";
+    const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE name = $2";
     return tx(pool, (executeQuery: ExecuteQuery) => {
-        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.iconId])
+        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.iconName])
         .flatMap(queryResult =>
             addIconFileToTable(executeQuery, iconFile, modifiedBy)
             .flatMap(iconFileId => {
                 const version = queryResult.rows[0].version;
-                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.iconId])
+                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.iconName])
                 .map(() => iconFileId);
             })
         );
@@ -234,8 +238,8 @@ export const getAllIcons: (pool: Pool) => GetAllIcons
             };
             let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
-            if (!lastIconInfo || row.icon_id !== lastIconInfo.id) {
-                lastIconInfo = new IconDescriptor(row.icon_id, row.icon_name, Set());
+            if (!lastIconInfo || row.icon_name !== lastIconInfo.iconName) {
+                lastIconInfo = new IconDescriptor(row.icon_name, Set());
                 lastIndex++;
             }
             return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));

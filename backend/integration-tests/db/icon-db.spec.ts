@@ -34,7 +34,7 @@ describe("addIconToDBProvider", () => {
         .flatMap(result => {
             const expectedId = 1;
             expect(result).toEqual(expectedId);
-            return getCheckIconFile(getIconFile(pool), expectedId, iconFileInfo);
+            return getCheckIconFile(getIconFile(pool), iconFileInfo);
         })
         .subscribe(boilerplateSubscribe(fail, done));
     });
@@ -61,8 +61,8 @@ describe("addIconToDBProvider", () => {
                 expect(result1).toEqual(expectedId1);
                 expect(result2).toEqual(expectedId2);
                 const getIconFileFromDB = getIconFile(pool);
-                return getCheckIconFile(getIconFileFromDB, expectedId1, iconFileInfo1)
-                    .flatMap(() => getCheckIconFile(getIconFileFromDB, expectedId2, iconFileInfo2));
+                return getCheckIconFile(getIconFileFromDB, iconFileInfo1)
+                    .flatMap(() => getCheckIconFile(getIconFileFromDB, iconFileInfo2));
             })
         )
         .flatMap(() => assertIconCount(pool, 2))
@@ -98,7 +98,7 @@ describe("addIconToDBProvider", () => {
                 const expectedId1 = 1;
                 expect(result1).toEqual(expectedId1);
                 const getIconFileFromDB = getIconFile(pool);
-                return getCheckIconFile(getIconFileFromDB, expectedId1, iconFileInfo1)
+                return getCheckIconFile(getIconFileFromDB, iconFileInfo1)
                     .flatMap(() => assertIconCount(pool, 1));
             })
         )

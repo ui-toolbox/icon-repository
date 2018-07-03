@@ -35,8 +35,8 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconH
     router.get("/icons/config", iconHandlers.getIconRepoConfig);
     router.get("/icons", iconHandlers.getAllIcons("/icons"));
     router.post("/icons", upload.any(), iconHandlers.createIcon);
-    router.post("/icons/:id/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);
-    router.get("/icons/:id/formats/:format/sizes/:size", iconHandlers.getIconFile);
+    router.post("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);
+    router.get("/icons/:name/formats/:format/sizes/:size", iconHandlers.getIconFile);
     router.get("/branding", brandingHandlerProvider(appConfig().app_description));
 
     return Rx.Observable.create((observer: Rx.Observer<http.Server>) => {

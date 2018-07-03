@@ -7,7 +7,6 @@ import { getAuthentication } from "./security/common";
 import { Set } from "immutable";
 export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
-    readonly getAllIconsFromGit: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getIcon: (req: Request, res: Response) => Promise<void>;
     readonly getIconFile: (req: Request, res: Response) => void;
@@ -40,12 +39,10 @@ const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFil
     );
 
 export class IconDTO {
-    public readonly id: number;
     public readonly iconName: string;
     public readonly iconFiles: IconPathsDTO;
 
     constructor(iconPathRoot: string, iconDesc: IconDescriptor) {
-        this.id = iconDesc.id;
         this.iconName = iconDesc.iconName;
         this.iconFiles = createIconFilePaths(iconPathRoot, iconDesc.iconFiles);
     }
@@ -77,8 +74,6 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             res.status(500).send(err.message);
         }
     ),
-    getAllIconsFromGit:  (iconPathRoot: string) =>  (req: Request, res: Response) =>
-        getAllIcons(iconService.getAllIconsFromGit, iconPathRoot)(req, res),
 
     getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
         getAllIcons(iconService.getAllIcons, iconPathRoot)(req, res),
@@ -101,7 +96,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             }),
     getIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("getIconFile");
-        iconService.getIconFile(req.params.id, req.params.format, req.params.size)
+        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
         .toPromise()
         .then(
             result => {
@@ -140,12 +135,12 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     addIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("addIconFile");
         const iconData: IconFile = {
-            iconId: req.params.id,
+            iconName: req.params.name,
             format: req.params.format,
             size: req.params.size,
             content: (req.files as any)[0].buffer
         };
-        if (!iconData.iconId ||
+        if (!iconData.iconName ||
                 !iconData.format || iconData.format === ":format" ||
                 !iconData.size || iconData.size === ":size" ||
                 !iconData.content) {

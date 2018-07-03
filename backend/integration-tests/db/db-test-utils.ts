@@ -13,11 +13,10 @@ query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
 
 export const getCheckIconFile: (
     getIconFileFromDB: GetIconFile,
-    iconID: number,
     iconFileInfo: CreateIconInfo
 ) => Observable<boolean>
-= (getIconFileFromDB, iconID, iconFileInfo) => {
-    return getIconFileFromDB(iconID, iconFileInfo.format, iconFileInfo.size)
+= (getIconFileFromDB, iconFileInfo) => {
+    return getIconFileFromDB(iconFileInfo.iconName, iconFileInfo.format, iconFileInfo.size)
         .map(content1 => expect(Buffer.compare(content1, iconFileInfo.content)).toEqual(0));
 };
 

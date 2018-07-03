@@ -181,7 +181,6 @@ export const convertToAddIconRequest: (formData: ICreateIconFormData) => CreateI
 
 export const convertToIconInfo: (iconFormData: ICreateIconFormData, id: number) => IconDescriptor
 = (iconFormData, id) => new IconDescriptor(
-    id,
     iconFormData.iconName,
     null).addIconFile({
         format: iconFormData.fileFormat,

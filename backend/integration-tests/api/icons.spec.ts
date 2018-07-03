@@ -87,7 +87,6 @@ describe(getAllIconsPath, () => {
 
         const expectedReply = [
             {
-                id: 1,
                 iconName: icon1.iconName,
                 iconFiles: {
                     [icon1.fileFormat]: {
@@ -97,7 +96,6 @@ describe(getAllIconsPath, () => {
                 }
             },
             {
-                id: 2,
                 iconName: icon2.iconName,
                 iconFiles: {
                     [icon2.fileFormat]: {
@@ -120,14 +118,14 @@ describe(getAllIconsPath, () => {
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
-            iconId, icon1File2.format, icon1File2.size, icon1File2FormData))
+            icon1.iconName, icon1File2.format, icon1File2.size, icon1File2FormData))
         .flatMap(() => createInitialIcon(server, createIcon2Form))
         .flatMap(iconId => addIconFile(
             server,
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
-            iconId, icon2File2.format, icon2File2.size, icon2File2FormData))
+            icon2.iconName, icon2File2.format, icon2File2.size, icon2File2FormData))
         .flatMap(() => testRequest({
             url: getURL(server, "/icons")
         }))

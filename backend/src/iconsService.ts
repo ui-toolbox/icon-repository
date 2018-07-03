@@ -34,16 +34,16 @@ interface IconFileData {
 type GetIconRepoConfig = () => Observable<IconRepoConfig>;
 export type GetAllIcons = () => Observable<List<IconDescriptor>>;
 type GetIcon = (encodeIconPath: string) => Observable<IconFileData>;
-type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Observable<Buffer>;
+type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
     initialIconFileInfo: CreateIconInfo,
     modifiedBy: string) => Observable<number>;
 type AddIconFile = (
     addIconFileRequestData: IconFile,
     modifiedBy: string) => Observable<number>;
+
 export interface IconService {
     readonly getRepoConfiguration: GetIconRepoConfig;
-    readonly getAllIconsFromGit: GetAllIcons;
     readonly getAllIcons: GetAllIcons;
     readonly getIcon: GetIcon;
     readonly getIconFile: GetIconFile;
@@ -73,30 +73,6 @@ const iconServiceProvider: (
         });
     };
 
-    const getAllIconsFromGit: GetAllIcons = () => {
-        const ctxLogger = logger.createChild("getAllIcons");
-        const iconRepo: string = gitAFs.getRepoLocation(); // TODO: retrieve icons from the db instead of from git
-        ctxLogger.debug(`Getting icons from file://${iconRepo}`);
-        return readdir(iconRepo)
-            .flatMap(directoriesBySize => directoriesBySize)
-            .filter(directoryForSize => directoryForSize.toUpperCase() === "SVG")
-            .flatMap(directoryForSize => readdir(path.join(iconRepo, directoryForSize)))
-            .do(filesOfSize => debugIconFileNames(ctxLogger, filesOfSize))
-            .flatMap(filesOfSize => filesOfSize
-                .map(file => new IconDescriptor(
-                        1,
-                        stripExtension(file),
-                        Set.of({
-                            format: "svg",
-                            size: "1x",
-                            file
-                        })
-                    )
-                )
-                .map(iconDescriptorArray => List(iconDescriptorArray))
-            );
-    };
-
     const getAllIcons: GetAllIcons = () => iconDAFs.getAllIcons();
 
     const getIcon: GetIcon = encodeIconPath => {
@@ -110,8 +86,8 @@ const iconServiceProvider: (
             }));
     };
 
-    const getIconFile: GetIconFile = (iconId, fileFormat, iconSize) =>
-        iconDAFs.getIconFile(iconId, fileFormat, iconSize);
+    const getIconFile: GetIconFile = (iconName, fileFormat, iconSize) =>
+        iconDAFs.getIconFile(iconName, fileFormat, iconSize);
 
     const createIcon: CreateIcon = (iconfFileInfo, modifiedBy) =>
         iconDAFs.createIcon(
@@ -127,7 +103,6 @@ const iconServiceProvider: (
     return {
         getRepoConfiguration,
         getAllIcons,
-        getAllIconsFromGit,
         getIcon,
         getIconFile,
         createIcon,

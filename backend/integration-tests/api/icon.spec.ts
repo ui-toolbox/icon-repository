@@ -121,12 +121,10 @@ describe(iconEndpointPath, () => {
                     .flatMap(() =>
                         getCheckIconFile(
                             getIconFileFromDB,
-                            result1.body.iconId,
                             convertToAddIconRequest(formData1)))
                     .flatMap(() =>
                         getCheckIconFile(
                             getIconFileFromDB,
-                            result2.body.iconId,
                             convertToAddIconRequest(formData2)
                         ));
                 })
@@ -179,7 +177,6 @@ describe(iconEndpointPath, () => {
                 .flatMap(() =>
                     getCheckIconFile(
                         getIconFileFromDB,
-                        result1.body.iconId,
                         convertToAddIconRequest(formData1)));
             });
         })
