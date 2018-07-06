@@ -33,7 +33,8 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconH
     app.use(appConfig().server_url_context, express.static(appConfig().path_to_static_files));
 
     router.get("/icons/config", iconHandlers.getIconRepoConfig);
-    router.get("/icons", iconHandlers.getAllIcons("/icons"));
+    router.get("/icons", iconHandlers.describeAllIcons("/icons"));
+    router.get("/icons/:name", iconHandlers.describeIcon("/icons"));
     router.post("/icons", upload.any(), iconHandlers.createIcon);
     router.post("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);
     router.get("/icons/:name/formats/:format/sizes/:size", iconHandlers.getIconFile);

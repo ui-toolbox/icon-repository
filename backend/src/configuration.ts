@@ -6,6 +6,8 @@ import logger from "./utils/logger";
 import * as Rx from "rxjs";
 import { fileExists, readTextFile } from "./utils/rx";
 
+const ICON_REPO_HOME = path.resolve(Process.env.HOME, ".ui-toolbox/icon-repo");
+
 interface IServerConfiguration {
     readonly hostname: string;
     readonly port: number;
@@ -41,7 +43,7 @@ const configurationDataProto = Object.freeze({
     logger_level: ""
 });
 
-type IConfigurationData = typeof configurationDataProto;
+export type ConfigurationData = typeof configurationDataProto;
 
 const clone = (obj: any) => JSON.parse(JSON.stringify(obj));
 
@@ -52,25 +54,25 @@ const defaultSettings = {
     authentication_type: "oidc",
     app_description: "Collection of custom icons designed at Wombat Inc.",
     path_to_static_files: path.join(__dirname, "..", "..", "..", "client", "dist"),
-    icon_data_location_git: "/212c81749476c2a7336ab71661f1f7a0d94c1486/c3c565cd9e055de5339489b3edb121ce9961c56c",
+    icon_data_location_git: path.resolve(ICON_REPO_HOME, "git-repo"),
     conn_host: "localhost",
     conn_port: "5432",
     conn_user: "iconrepo",
     conn_password: "iconrepo",
     conn_database: "iconrepo",
     icon_data_allowed_formats: "svg, png",
-    icon_data_allowed_sizes: "1x, 2x, 3x",
+    icon_data_allowed_sizes: "18px, 24px, 48px, 18dp, 24dp, 36dp, 48dp, 144dp",
     enable_backdoors: false
 };
 
-export const getDefaultConfiguration = () => Object.assign(
+export const getDefaultConfiguration: () => ConfigurationData = () => Object.assign(
     clone(configurationDataProto),
     clone(defaultSettings)
 );
 
 const ctxLogger = logger.createChild("appConfig");
 
-export const DEFAULT_CONFIG_FILE_PATH = path.resolve(Process.env.HOME, ".ui-toolbox/icon-repo/config.json");
+export const DEFAULT_CONFIG_FILE_PATH = path.join(ICON_REPO_HOME, "config.json");
 
 const getConfigFilePathByProfile: (configProfile: string) => string = configProfile => {
     return path.join(__dirname, "configurations", `${configProfile}.json`);
@@ -126,9 +128,9 @@ export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) 
         .do(conf => updateConfigurationDataWithEnvVarValues(proto, conf));
 };
 
-let configurationData: IConfigurationData;
+let configurationData: ConfigurationData;
 
-export type ConfigurationDataProvider = () => IConfigurationData;
+export type ConfigurationDataProvider = () => ConfigurationData;
 
 const updateState: () => Rx.Observable<ConfigurationDataProvider> = () => {
     return readConfiguration(configFilePath, configurationDataProto, defaultSettings)

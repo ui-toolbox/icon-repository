@@ -4,6 +4,7 @@
   "description": "Serves icon information to, and accepts updates on icons from, the front-end",
   "main": "build/app.js",
   "dependencies": {
+    "@types/superagent": "^3.8.1",
     "base64url": "^3.0.0",
     "body-parser": "^1.18.2",
     "consolidate": "^0.13.1",
@@ -24,6 +25,7 @@
     "rxjs": "^5.5.6",
     "session-memory-store": "git://github.com/pdkovacs/session-memory-store.git#09a1651d0c5d0a69252a265a7e7449f805764b01",
     "source-map-support": "^0.5.4",
+    "superagent": "^3.8.3",
     "underscore.string": "^3.3.4",
     "winston": "^2.4.1"
   },
@@ -59,6 +61,8 @@
     "lint": "tslint -c tslint.json '{src,integration-tests,scripts}/**/*.ts'",
     "compile": "rm -rf build && tsc && cp -r src/configurations build/src/",
     "watch:tests": "npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build run-tests.js\"",
+    "import": "npm run compile && node build/scripts/import.js",
+    "dev:import": "export ICON_REPO_CONFIG_PROFILE=dev; npm run import",
     "dev": "export ICON_REPO_CONFIG_PROFILE=dev npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build build/src/app.js\"",
     "dev:oidc": "export ICON_REPO_CONFIG_PROFILE=dev-oidc-wcontext npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build build/src/app.js\"",
     "clean:dist": "rm -rf docker/dist && mkdir -p docker/dist/backend && mkdir -p docker/dist/frontend",

@@ -38,7 +38,7 @@ describe("git access functions", () => {
     describe("should include addIconFile which", () => {
         it("should add an icon file", done => {
             const iconInfo: CreateIconInfo = {
-                iconName: "pizza",
+                name: "pizza",
                 format: "thin-crust",
                 size: "32cm",
                 content: crypto.randomBytes(1024)
@@ -56,13 +56,13 @@ describe("git access functions", () => {
                 "in case adding an icon file failse", done => {
             const statusMessageTail = "nothing to commit, working tree clean";
             const iconInfo: CreateIconInfo = {
-                iconName: "pizza",
+                name: "pizza",
                 format: "thin-crust",
                 size: "32cm",
                 content: crypto.randomBytes(1024)
             };
             const iconInfo1: CreateIconInfo = {
-                iconName: "pizza1",
+                name: "pizza1",
                 format: "thin-crust1",
                 size: "32cm1",
                 content: crypto.randomBytes(1024)

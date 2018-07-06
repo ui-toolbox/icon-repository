@@ -67,9 +67,7 @@ const privilegeCheckInterceptor = (
         next();
     } else {
         const auth: Authentication = getAuthentication(req.session);
-        ctxLogger.debug("Missing privilege(s): possessed %o", auth
-                            ? auth.privileges
-                            : []);
+        ctxLogger.debug("Missing privilege(s): %o", getAuthentication(req.session));
         res.status(403).end();
     }
 };

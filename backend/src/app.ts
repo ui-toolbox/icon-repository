@@ -2,7 +2,7 @@ import * as http from "http";
 
 import logger from "./utils/logger";
 import configuration from "./configuration";
-import iconDAFsProvider from "./db/db";
+import iconDAFsProvider, { createConnectionProperties } from "./db/db";
 import gitAFsProvider from "./git";
 import serverProvider from "./server";
 
@@ -23,7 +23,7 @@ configuration.subscribe(
                 allowedFormats: configProvider().icon_data_allowed_formats,
                 allowedSizes: configProvider().icon_data_allowed_sizes
             },
-            iconDAFsProvider(configProvider()),
+            iconDAFsProvider(createConnectionProperties(configProvider())),
             gitAFsProvider(configProvider().icon_data_location_git)
         );
         const iconHandlers = iconHandlersProvider(iconService);

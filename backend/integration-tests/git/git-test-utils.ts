@@ -40,7 +40,7 @@ export const assertAddedFile: (iconFileInfo: CreateIconInfo, user: string) => Ob
         repoDir,
         iconFileInfo.format,
         iconFileInfo.size,
-        `${iconFileInfo.iconName}@${iconFileInfo.size}.${iconFileInfo.format}`);
+        `${iconFileInfo.name}@${iconFileInfo.size}.${iconFileInfo.format}`);
     return stat(filePath)
     .map(stats => {
         if (stats) {

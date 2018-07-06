@@ -19,7 +19,7 @@ import * as request from "request";
 import { Observable } from "rxjs";
 import {
     getIconFile as getIconFileFromDBProvider,
-    getAllIcons as getAllIconsFromDB,
+    describeAllIcons as getAllIconsFromDB,
     GetIconFile } from "../../src/db/db";
 import { Server } from "http";
 
@@ -187,7 +187,7 @@ describe(iconFileEndpointPath, () => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
                 return checkIconFileContent(
-                    formData.iconName, formData.fileFormat, formData.iconSize, formData.iconFile.value
+                    formData.name, formData.format, formData.size, formData.iconFile.value
                 );
             })
         )

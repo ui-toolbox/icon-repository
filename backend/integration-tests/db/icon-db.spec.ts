@@ -25,7 +25,7 @@ describe("addIconToDBProvider", () => {
     it("should be capable to add a first icon", done => {
         const user = "zazie";
         const iconFileInfo: CreateIconInfo = {
-            iconName: "metro-icon",
+            name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
@@ -42,13 +42,13 @@ describe("addIconToDBProvider", () => {
     it("should be capable to add a second icon", done => {
         const user = "zazie";
         const iconFileInfo1: CreateIconInfo = {
-            iconName: "metro-icon",
+            name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
         const iconFileInfo2: CreateIconInfo = {
-            iconName: "animal-icon",
+            name: "animal-icon",
             format: "french",
             size: "huge",
             content: crypto.randomBytes(4096)
@@ -72,13 +72,13 @@ describe("addIconToDBProvider", () => {
     it("should rollback to last consistent state, in case an error occurs in sideEffect", done => {
         const user = "zazie";
         const iconFileInfo1: CreateIconInfo = {
-            iconName: "metro-icon",
+            name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
         const iconFileInfo2: CreateIconInfo = {
-            iconName: "animal-icon",
+            name: "animal-icon",
             format: "french",
             size: "huge",
             content: crypto.randomBytes(4096)

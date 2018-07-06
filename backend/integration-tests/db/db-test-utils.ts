@@ -1,4 +1,4 @@
-import { createPool, query, getIconFile, GetIconFile } from "../../src/db/db";
+import { createPool, query, getIconFile, GetIconFile, createConnectionProperties } from "../../src/db/db";
 import { Pool } from "pg";
 import { Observable } from "rxjs";
 import { createSchema } from "../../scripts/create-schema";
@@ -16,12 +16,12 @@ export const getCheckIconFile: (
     iconFileInfo: CreateIconInfo
 ) => Observable<boolean>
 = (getIconFileFromDB, iconFileInfo) => {
-    return getIconFileFromDB(iconFileInfo.iconName, iconFileInfo.format, iconFileInfo.size)
+    return getIconFileFromDB(iconFileInfo.name, iconFileInfo.format, iconFileInfo.size)
         .map(content1 => expect(Buffer.compare(content1, iconFileInfo.content)).toEqual(0));
 };
 
 export const createTestPool = (setPool: (p: Pool) => void, fail: (err: any) => void) => (done: () => void) =>
-    createPool(getDefaultConfiguration())
+    createPool(createConnectionProperties(getDefaultConfiguration()))
     .subscribe(
         p => {
             setPool(p);

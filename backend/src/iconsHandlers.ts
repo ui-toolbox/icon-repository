@@ -2,13 +2,13 @@ import { Request, Response } from "express";
 import logger from "./utils/logger";
 
 import { CreateIconInfo, IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
-import { IconService, GetAllIcons } from "./iconsService";
+import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 import { Set } from "immutable";
 export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
-    readonly getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
-    readonly getIcon: (req: Request, res: Response) => Promise<void>;
+    readonly describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
+    readonly describeIcon: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
@@ -48,16 +48,30 @@ export class IconDTO {
     }
 }
 
-const getAllIcons: (getter: GetAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
+const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
 = (getter, iconPathRoot) => (req, res) => {
     const log = logger.createChild(`${req.url} request handler`);
     getter()
+    .map(iconList => iconList.map(iconDescriptor => new IconDTO(iconPathRoot, iconDescriptor)).toArray())
     .subscribe(
-        iconList => {
-            res.send(iconList.map(iconDescriptor => new IconDTO(iconPathRoot, iconDescriptor)).toArray());
-        },
+        iconDTOArray => res.send(iconDTOArray),
         error => {
             log.error("Failed to retrieve icons", error);
+            res.status(500).send(error.message);
+        },
+        void 0
+    );
+};
+
+const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Request, res: Response) => void
+= (getter, iconPathRoot) => (req, res) => {
+    const log = logger.createChild(`${req.url} request handler`);
+    getter(req.params.name)
+    .map(iconDescriptor => iconDescriptor ? new IconDTO(iconPathRoot, iconDescriptor) : void 0)
+    .subscribe(
+        iconDTO => iconDTO ? res.send(iconDTO) : res.status(404).end(),
+        error => {
+            log.error("Failed to retrieve icon description", error);
             res.status(500).send(error.message);
         },
         void 0
@@ -75,25 +89,12 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
         }
     ),
 
-    getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
-        getAllIcons(iconService.getAllIcons, iconPathRoot)(req, res),
+    describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
+        describeAllIcons(iconService.describeAllIcons, iconPathRoot)(req, res),
 
-    getIcon: (req: Request, res: Response) =>
-        iconService.getIcon(req.params.path)
-            .toPromise()
-            .then(
-                icon => {
-                    res.contentType(icon.fileFormat);
-                    res.end(icon.fileData);
-                }
-            )
-            .catch(error => {
-                if (error.code === "ENOENT") {
-                    res.status(404).send(`Icon not found on path: ${req.params.path}`);
-                } else {
-                    res.status(500).send(`Error while retrieving icon on path: ${req.params.path}`);
-                }
-            }),
+    describeIcon: (iconPathRoot: string) => (req: Request, res: Response) =>
+        describeIcon(iconService.describeIcon, iconPathRoot)(req, res),
+
     getIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("getIconFile");
         iconService.getIconFile(req.params.name, req.params.format, req.params.size)
@@ -114,9 +115,9 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
         const ctxLogger = logger.createChild("createIcon");
         ctxLogger.info("START");
         const iconData: CreateIconInfo = {
-            iconName: req.body.iconName,
-            format: req.body.fileFormat,
-            size: req.body.iconSize,
+            name: req.body.name,
+            format: req.body.format,
+            size: req.body.size,
             content: (req.files as any)[0].buffer
         };
         iconService.createIcon(iconData, getAuthentication(req.session).username)

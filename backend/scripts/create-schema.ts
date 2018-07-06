@@ -3,7 +3,7 @@ import { Pool } from "pg";
 
 import configuration from "../src/configuration";
 import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "../src/db/db-schema";
-import { createPool, query } from "../src/db/db";
+import { createPool, query, createConnectionProperties } from "../src/db/db";
 import logger from "../src/utils/logger";
 
 const ctxLogger = logger.createChild("db/create-schema");
@@ -41,12 +41,15 @@ const dropCreateTable = (pool: Pool, tableDefinition: ITableSpec) =>
     dropTableIfExists(pool, tableDefinition.tableName)
     .flatMap(() => createTable(pool, tableDefinition));
 
-export const createSchema: (pool: Pool) => Observable<void>
+export const createSchema: (pool: Pool) => Observable<Pool>
 = pool => dropCreateTable(pool, iconTableSpec)
-    .flatMap(() => dropCreateTable(pool, iconFileTableSpec));
+    .flatMap(() => dropCreateTable(pool, iconFileTableSpec))
+    .map(() => pool);
 
 export default () => configuration
-    .flatMap(configProvider => createPool(configProvider()))
+    .flatMap(configProvider => {
+        return createPool(createConnectionProperties(configProvider()));
+    })
     .flatMap(pool => createSchema(pool)
         .map(() => pool.end())
         .catch(error => {

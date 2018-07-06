@@ -13,7 +13,7 @@ export interface IconFile extends IconFileData {
     readonly iconName: string;
 }
 export interface CreateIconInfo extends IconFileData {
-    readonly iconName: string;
+    readonly name: string;
 }
 
 export class IconDescriptor {

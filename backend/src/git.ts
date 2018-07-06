@@ -1,5 +1,5 @@
 import * as path from "path";
-import { spawn, exec } from "child_process";
+import { spawn, exec, SpawnOptions } from "child_process";
 import { Observable, Observer } from "rxjs";
 import { mkdirMaybe, appendFile } from "./utils/rx";
 import {
@@ -8,8 +8,9 @@ import {
     JobResult,
     create as createSerializer
 } from "./utils/serializer";
-import logger from "./utils/logger";
+import logger, { ContextAbleLogger } from "./utils/logger";
 import { CreateIconInfo } from "./icon";
+import { commandExecutor } from "./utils/command-executor";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -18,31 +19,13 @@ export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 export const createGitCommandExecutor: (iconRepository: string) => GitCommandExecutor
 = iconRepository => spawnArgs => {
     const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${iconRepository}`);
-    ctxLogger.debug("BEGIN");
-    let stdoutData: string = "";
-    const proc = spawn("git", spawnArgs, { cwd: iconRepository });
-    proc.stderr.on("data", data => ctxLogger.info(`stderr: ${data}`));
-    proc.stdout.on("data", data => {
-        ctxLogger.info(`stdout: ${data}`);
-        stdoutData += data;
-    });
-    return Observable.create((observer: Observer<string>) => {
-        proc.on("error", err => observer.error(err));
-        proc.on("close", code => {
-            if (code === 0) {
-                observer.next(stdoutData);
-                observer.complete();
-            } else {
-                observer.error(new Error(`Git command ${spawnArgs} failed with exit code ${code}`));
-            }
-        });
-    });
+    return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: iconRepository });
 };
 
 const enqueueJob = createSerializer("GIT");
 
 const getFileName: (inconFileInfo: CreateIconInfo) => string
-    = inconFileInfo => `${inconFileInfo.iconName}@${inconFileInfo.size}.${inconFileInfo.format}`;
+    = inconFileInfo => `${inconFileInfo.name}@${inconFileInfo.size}.${inconFileInfo.format}`;
 
 /*
  * @return an Observable for the path to the icon file relative to the local GIT repository's root.
