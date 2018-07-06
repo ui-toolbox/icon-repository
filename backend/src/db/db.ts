@@ -131,12 +131,11 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
         )
         .catch(error =>
             conn.executeQuery("ROLLBACK", [])
-            .mapTo(conn.release())
             .catch(rollbakcError => {
-                conn.release();
                 ctxLogger.error("Error while rolling back: %o", rollbakcError);
                 return Observable.throw(error);
             })
+            .finally(() => conn.release())
             .map(() => { throw error; })
         )
     );

@@ -19,12 +19,8 @@ describe("backdoor to privileges", () => {
             })
             .map(result => {
                 expect(result.response.statusCode).toEqual(404);
-                server.close();
             })
-            .catch(error => {
-                server.close();
-                return Observable.throw(error);
-            })
+            .finally(() => server.close())
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });
@@ -35,12 +31,8 @@ describe("backdoor to privileges", () => {
             testRequest({url: getURL(server, "/backdoor/authentication")})
             .map(result => {
                 expect(result.response.statusCode).toEqual(200);
-                server.close();
             })
-            .catch(error => {
-                server.close();
-                return Observable.throw(error);
-            })
+            .finally(() => server.close())
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });
@@ -61,16 +53,8 @@ describe("backdoor to privileges", () => {
                         json: true,
                         jar: cookieJar
                     })
-                    .map(
-                        result => {
-                            expect(result.body).toEqual(testPrivileges);
-                            server.close();
-                        }
-                    )
-                    .catch(error => {
-                        server.close();
-                        return Observable.throw(error);
-                    })
+                    .map(result => expect(result.body).toEqual(testPrivileges))
+                    .finally(() => server.close())
             )
             .subscribe(boilerplateSubscribe(fail, done));
         });

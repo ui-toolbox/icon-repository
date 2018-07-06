@@ -40,10 +40,7 @@ describe(iconRepoConfigPath, () => {
                                 ]
                             });
                         })
-                        .catch(error => {
-                            server.close();
-                            return Rx.Observable.throw(error);
-                        })
+                        .finally(() => server.close())
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });

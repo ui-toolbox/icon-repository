@@ -6,30 +6,19 @@ import { List } from "immutable";
 import logger from "../utils/logger";
 
 export type JobResult = any;
-export type JobDoneCallback = (error: Error, result: JobResult) => void;
+export type JobDoneCallback = () => void;
 export type SerializableJobImpl = (done: JobDoneCallback) => void;
-export type EnqueueJob = (job: SerializableJobImpl, callback: JobDoneCallback) => void;
-
-interface IJobItem {
-    readonly job: SerializableJobImpl;
-    readonly callback: JobDoneCallback;
-}
+export type EnqueueJob = (job: SerializableJobImpl) => void;
 
 export const create: (jobType: string) => EnqueueJob = jobType => {
     const ctxLogger = logger.createChild("asynch-jobs-serializer: " + jobType);
 
-    let queue: List<IJobItem> = List([]);
+    let queue: List<SerializableJobImpl> = List([]);
 
     const hasPending: () => boolean = () => queue.size > 0;
 
-    const executeItem: (item: IJobItem) => void = item => {
-        item.job((error: Error, result: any) => {
-            if (item.callback) {
-                item.callback(error, result);
-            }
-            setImmediate(next);
-        });
-    };
+    const executeItem: (job: SerializableJobImpl) => void
+    = job => job(() => setImmediate(next));
 
     const executeNextItem = () => {
         executeItem(queue.first());
@@ -42,15 +31,10 @@ export const create: (jobType: string) => EnqueueJob = jobType => {
         }
     };
 
-    const enqueue: (job: SerializableJobImpl, callback: JobDoneCallback) => void
-    = (job, callback) => {
-        const newItem: IJobItem = {
-            job,
-            callback
-        };
-
+    const enqueue: (job: SerializableJobImpl) => void
+    = job => {
         const hadPending = hasPending();
-        queue = queue.push(newItem);
+        queue = queue.push(job);
         if (hadPending) {
             ctxLogger.verbose("Jobs in the queue already, one of them must be running");
         } else {

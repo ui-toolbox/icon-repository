@@ -12,11 +12,14 @@ import logger, { ContextAbleLogger } from "./utils/logger";
 import { CreateIconInfo } from "./icon";
 import { commandExecutor } from "./utils/command-executor";
 
+type GitOperationCallback = (error: Error) => void;
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
 export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 
-export const createGitCommandExecutor: (iconRepository: string) => GitCommandExecutor
+export const createGitCommandExecutor: (
+    iconRepository: string
+) => GitCommandExecutor
 = iconRepository => spawnArgs => {
     const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${iconRepository}`);
     return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: iconRepository });
@@ -68,9 +71,10 @@ const createAddIconFileJob: (
     inconFileInfo: CreateIconInfo,
     userName: string,
     gitExec: GitCommandExecutor,
-    iconRepository: string
+    iconRepository: string,
+    callback: GitOperationCallback
 ) => SerializableJobImpl
-= (inconFileInfo, userName, gitExec, iconRepository) => {
+= (inconFileInfo, userName, gitExec, iconRepository, callback) => {
     const ctxLogger = logger.createChild("add icon file");
     ctxLogger.debug("BEGIN");
     return (done: JobDoneCallback) =>
@@ -81,7 +85,10 @@ const createAddIconFileJob: (
                     gitExec(commit(pathInRepo, userName)))
                 .mapTo(pathInRepo))
             .subscribe(
-                pathInRepo => done(void 0, pathInRepo),
+                pathInRepo => {
+                    callback(void 0);
+                    done();
+                },
                 error => {
                     ctxLogger.error(`Adding file failed with ${error}`);
                     gitExec(rollback()[0])
@@ -92,8 +99,14 @@ const createAddIconFileJob: (
                     })
                     .subscribe(
                         void 0,
-                        e => done(error, void 0),
-                        () => done(error, void 0)
+                        e => {
+                            callback(e);
+                            done();
+                        },
+                        () => {
+                            callback(error);
+                            done();
+                        }
                     );
                 },
                 void 0
@@ -121,16 +134,16 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
                 inconFileInfo,
                 userName,
                 createGitCommandExecutor(localIconRepositoryLocation),
-                localIconRepositoryLocation
-            ),
-            (error: Error, result: JobResult) => {
-                if (error) {
-                    observer.error(error);
-                } else {
-                    observer.next(result);
-                    observer.complete();
+                localIconRepositoryLocation,
+                (error: Error) => {
+                    if (error) {
+                        observer.error(error);
+                    } else {
+                        observer.next(void 0);
+                        observer.complete();
+                    }
                 }
-            }
+            )
         )
     )
 });

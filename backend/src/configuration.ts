@@ -75,7 +75,7 @@ const ctxLogger = logger.createChild("appConfig");
 export const DEFAULT_CONFIG_FILE_PATH = path.join(ICON_REPO_HOME, "config.json");
 
 const getConfigFilePathByProfile: (configProfile: string) => string = configProfile => {
-    return path.join(__dirname, "configurations", `${configProfile}.json`);
+    return path.resolve(__dirname, "..", "configurations", `${configProfile}.json`);
 };
 
 export const getConfigFilePath: () => string = () => {

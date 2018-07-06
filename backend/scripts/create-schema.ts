@@ -52,10 +52,7 @@ export default () => configuration
     })
     .flatMap(pool => createSchema(pool)
         .map(() => pool.end())
-        .catch(error => {
-            pool.end();
-            return Observable.throw(error);
-        })
+        .finally(() => pool.end())
     )
     .subscribe(
         () => ctxLogger.info("script OK"),

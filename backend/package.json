@@ -59,7 +59,7 @@
   },
   "scripts": {
     "lint": "tslint -c tslint.json '{src,integration-tests,scripts}/**/*.ts'",
-    "compile": "rm -rf build && tsc && cp -r src/configurations build/src/",
+    "compile": "rm -rf build && tsc && cp -r configurations build/",
     "watch:tests": "npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build run-tests.js\"",
     "import": "npm run compile && node build/scripts/import.js",
     "dev:import": "export ICON_REPO_CONFIG_PROFILE=dev; npm run import",
