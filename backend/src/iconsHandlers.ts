@@ -20,9 +20,9 @@ export interface IconPathsDTO {
     };
 }
 
-type CreateIconFilePaths = (baseUrl: string, iconFiles: Set<IconFileDescriptor>) => IconPathsDTO;
+type CreateIconFilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPathsDTO;
 
-const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFiles
+const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconDesc) => iconDesc.iconFiles
     .groupBy(ifDesc => ifDesc.format)
     .reduce(
         (paths, fileDescCollection, format) => ({
@@ -30,7 +30,7 @@ const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFil
             [format]: fileDescCollection.reduce(
                 (sizeToPath, fdescItem) => ({
                     ...sizeToPath,
-                    [fdescItem.size]: `${baseUrl}/formats/${format}/sizes/${fdescItem.size}`
+                    [fdescItem.size]: `${baseUrl}/${iconDesc.iconName}/formats/${format}/sizes/${fdescItem.size}`
                 }),
                 {}
             )
@@ -39,12 +39,12 @@ const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFil
     );
 
 export class IconDTO {
-    public readonly iconName: string;
-    public readonly iconFiles: IconPathsDTO;
+    public readonly name: string;
+    public readonly paths: IconPathsDTO;
 
     constructor(iconPathRoot: string, iconDesc: IconDescriptor) {
-        this.iconName = iconDesc.iconName;
-        this.iconFiles = createIconFilePaths(iconPathRoot, iconDesc.iconFiles);
+        this.name = iconDesc.iconName;
+        this.paths = createIconFilePaths(iconPathRoot, iconDesc);
     }
 }
 
@@ -101,7 +101,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
         .toPromise()
         .then(
             result => {
-                res.send(result.toString("binary"));
+                res.type(req.params.format).send(result.toString("binary"));
             },
             error => {
                 ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",

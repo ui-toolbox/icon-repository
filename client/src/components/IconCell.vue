@@ -1,7 +1,7 @@
 <template>
   <div class="icon-cell animated fadeIn zoomIn">
     <div class="icon-preview">
-      <img v-bind:src="baseUrl + icon.paths.SVG" height="30">
+      <img v-bind:src="baseUrl + firstPath" height="30">
     </div>
     <div class="icon-name">{{icon.name}}</div>
   </div>
@@ -14,6 +14,11 @@ export default {
   data () {
     return {
         baseUrl: this.$config.baseUrl
+    }
+  },
+  computed: {
+    firstPath: function () {
+        return this.icon.paths.svg[Object.keys(this.icon.paths.svg)[0]];
     }
   }
 }

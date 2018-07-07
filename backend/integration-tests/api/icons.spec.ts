@@ -83,22 +83,22 @@ describe(allIconsPath, () => {
 
         const expectedReply = [
             {
-                iconName: icon1.name,
-                iconFiles: {
+                name: icon1.name,
+                paths: {
                     [icon1.format]: {
-                        [icon1.size]: `/icons/formats/${icon1.format}/sizes/${icon1.size}`,
-                        [icon1File2.size]: `/icons/formats/${icon1.format}/sizes/${icon1File2.size}`
+                        [icon1.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1.size}`,
+                        [icon1File2.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1File2.size}`
                     }
                 }
             },
             {
-                iconName: icon2.name,
-                iconFiles: {
+                name: icon2.name,
+                paths: {
                     [icon2.format]: {
-                        [icon2.size]: `/icons/formats/${icon2.format}/sizes/${icon2.size}`
+                        [icon2.size]: `/icons/${icon2.name}/formats/${icon2.format}/sizes/${icon2.size}`
                     },
                     [icon2File2.format]: {
-                        [icon2File2.size]: `/icons/formats/${icon2File2.format}/sizes/${icon2File2.size}`
+                        [icon2File2.size]: `/icons/${icon2.name}/formats/${icon2File2.format}/sizes/${icon2File2.size}`
                     }
                 }
             }
@@ -154,11 +154,11 @@ describe(singleIconPath, () => {
         };
 
         const expectedReply = {
-            iconName: icon1.name,
-            iconFiles: {
+            name: icon1.name,
+            paths: {
                 [icon1.format]: {
-                    [icon1.size]: `/icons/formats/${icon1.format}/sizes/${icon1.size}`,
-                    [icon1File2.size]: `/icons/formats/${icon1.format}/sizes/${icon1File2.size}`
+                    [icon1.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1.size}`,
+                    [icon1File2.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1File2.size}`
                 }
             }
         };

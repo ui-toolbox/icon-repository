@@ -60,7 +60,6 @@ export const create: (jobType: string) => EnqueueJob = jobType => {
             job,
             callbacks: {
                 next: nextValue => {
-                    ctxLogger.debug("N E X T called");
                     observer.next(nextValue);
                 },
                 error: error => {

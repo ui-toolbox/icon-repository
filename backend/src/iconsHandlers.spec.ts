@@ -11,25 +11,25 @@ describe("getAllIcons", () => {
         //       in the tested module
         const iconPathRoot: string = "/icon";
 
-        const iconName: string = "cartouche";
+        const name: string = "cartouche";
         const iconFiles: Set<IconFileDescriptor> = Set([
             {format: "french", size: "great"},
             {format: "french", size: "huge"},
             {format: "english", size: "OK"},
             {format: "english", size: "nice"}
         ]);
-        const iconDesc: IconDescriptor = new IconDescriptor(iconName, iconFiles);
+        const iconDesc: IconDescriptor = new IconDescriptor(name, iconFiles);
 
         const expectedDTO: IconDTO = {
-            iconName,
-            iconFiles: {
+            name,
+            paths: {
                 french: {
-                    great: iconPathRoot + "/formats/french/sizes/great",
-                    huge: iconPathRoot + "/formats/french/sizes/huge"
+                    great: iconPathRoot + "/cartouche/formats/french/sizes/great",
+                    huge: iconPathRoot + "/cartouche/formats/french/sizes/huge"
                 },
                 english: {
-                    OK: iconPathRoot + "/formats/english/sizes/OK",
-                    nice: iconPathRoot + "/formats/english/sizes/nice"
+                    OK: iconPathRoot + "/cartouche/formats/english/sizes/OK",
+                    nice: iconPathRoot + "/cartouche/formats/english/sizes/nice"
                 }
             }
         };
