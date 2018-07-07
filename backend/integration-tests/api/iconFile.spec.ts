@@ -115,10 +115,12 @@ describe(iconFileEndpointPath, () => {
                 server,
                 createIconFileURL(iconName, format, size)
             ),
-            method: "GET"
+            method: "GET",
+            json: false,
+            encoding: null
         })
         .map(getResult => {
-            const actualContent = Buffer.from(getResult.body, "binary");
+            const actualContent: Buffer = getResult.body;
             expect(getResult.response.statusCode).toEqual(200);
             expect(Buffer.compare(actualContent, expectedContent)).toEqual(0);
         });

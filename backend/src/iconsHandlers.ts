@@ -101,7 +101,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
         .toPromise()
         .then(
             result => {
-                res.type(req.params.format).send(result.toString("binary"));
+                res.type(req.params.format).send(result);
             },
             error => {
                 ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
