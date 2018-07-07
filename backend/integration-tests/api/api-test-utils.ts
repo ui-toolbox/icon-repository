@@ -17,7 +17,7 @@ import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { CreateIconInfo, IconDescriptor } from "../../src/icon";
+import { IconFile, IconDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
@@ -171,7 +171,7 @@ export interface ICreateIconFormData extends IUploadFormData {
 export const createAddIconFormData: (name: string, format: string, size: string) => ICreateIconFormData
 = (name, format, size) => ({ name, format, size, iconFile: createUploadBuffer(4096) });
 
-export const convertToAddIconRequest: (formData: ICreateIconFormData) => CreateIconInfo = formData => ({
+export const convertToAddIconRequest: (formData: ICreateIconFormData) => IconFile = formData => ({
     name: formData.name,
     format: formData.format,
     size: formData.size,

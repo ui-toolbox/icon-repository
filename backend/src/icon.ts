@@ -10,9 +10,6 @@ export interface IconFileData extends IconFileDescriptor {
 }
 
 export interface IconFile extends IconFileData {
-    readonly iconName: string;
-}
-export interface CreateIconInfo extends IconFileData {
     readonly name: string;
 }
 

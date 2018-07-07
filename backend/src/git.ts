@@ -4,36 +4,31 @@ import { Observable, Observer } from "rxjs";
 import { mkdirMaybe, appendFile } from "./utils/rx";
 import {
     SerializableJobImpl,
-    JobDoneCallback,
-    JobResult,
     create as createSerializer
 } from "./utils/serializer";
 import logger, { ContextAbleLogger } from "./utils/logger";
-import { CreateIconInfo } from "./icon";
+import { IconFile } from "./icon";
 import { commandExecutor } from "./utils/command-executor";
 
-type GitOperationCallback = (error: Error) => void;
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
 export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 
-export const createGitCommandExecutor: (
-    iconRepository: string
-) => GitCommandExecutor
+export const createGitCommandExecutor: (iconRepository: string) => GitCommandExecutor
 = iconRepository => spawnArgs => {
     const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${iconRepository}`);
     return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: iconRepository });
 };
 
-const enqueueJob = createSerializer("GIT");
+const enqueueJob = createSerializer("G I T");
 
-const getFileName: (inconFileInfo: CreateIconInfo) => string
+const getFileName: (inconFileInfo: IconFile) => string
     = inconFileInfo => `${inconFileInfo.name}@${inconFileInfo.size}.${inconFileInfo.format}`;
 
 /*
  * @return an Observable for the path to the icon file relative to the local GIT repository's root.
  */
-const createIconFile: (inconFileInfo: CreateIconInfo, iconRepository: string) => Observable<string>
+const createIconFile: (inconFileInfo: IconFile, iconRepository: string) => Observable<string>
 = (inconFileInfo, iconRepository) =>
     mkdirMaybe(path.join(iconRepository, inconFileInfo.format))
     .flatMap(pathToFormatDir =>
@@ -68,53 +63,36 @@ const rollback: () => string[][] = () => [
 ];
 
 const createAddIconFileJob: (
-    inconFileInfo: CreateIconInfo,
+    inconFileInfo: IconFile,
     userName: string,
     gitExec: GitCommandExecutor,
-    iconRepository: string,
-    callback: GitOperationCallback
+    iconRepository: string
 ) => SerializableJobImpl
-= (inconFileInfo, userName, gitExec, iconRepository, callback) => {
-    const ctxLogger = logger.createChild("add icon file");
+= (inconFileInfo, userName, gitExec, iconRepository) => {
+    const ctxLogger = logger.createChild("git: add icon file");
     ctxLogger.debug("BEGIN");
-    return (done: JobDoneCallback) =>
+    return () =>
             createIconFile(inconFileInfo, iconRepository)
             .flatMap(pathInRepo =>
                 gitExec(addToIndex(pathInRepo))
                 .flatMap(() =>
                     gitExec(commit(pathInRepo, userName)))
-                .mapTo(pathInRepo))
-            .subscribe(
-                pathInRepo => {
-                    callback(void 0);
-                    done();
-                },
-                error => {
+                .map(() => ctxLogger.debug("icon file added"))
+                .catch(error => {
                     ctxLogger.error(`Adding file failed with ${error}`);
                     gitExec(rollback()[0])
                     .flatMap(() => gitExec(rollback()[1]))
                     .catch(errorInRollback => {
                         ctxLogger.error(errorInRollback);
                         return "dummy return value";
-                    })
-                    .subscribe(
-                        void 0,
-                        e => {
-                            callback(e);
-                            done();
-                        },
-                        () => {
-                            callback(error);
-                            done();
-                        }
-                    );
-                },
-                void 0
-            );
+                    });
+                    return Observable.throw(error);
+                })
+                .mapTo(pathInRepo));
 };
 
 type AddIconFile = (
-    inconFileInfo: CreateIconInfo,
+    inconFileInfo: IconFile,
     userName: string
 ) => Observable<void>;
 
@@ -128,24 +106,13 @@ type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunction
 const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => ({
     getRepoLocation: () => localIconRepositoryLocation,
 
-    addIconFile: (inconFileInfo, userName) => Observable.create((observer: Observer<string>) =>
-    enqueueJob(
+    addIconFile: (inconFileInfo, userName) => enqueueJob(
             createAddIconFileJob(
                 inconFileInfo,
                 userName,
                 createGitCommandExecutor(localIconRepositoryLocation),
-                localIconRepositoryLocation,
-                (error: Error) => {
-                    if (error) {
-                        observer.error(error);
-                    } else {
-                        observer.next(void 0);
-                        observer.complete();
-                    }
-                }
-            )
-        )
-    )
+                localIconRepositoryLocation
+            ))
 });
 
 export default gitAccessFunctionsProvider;

@@ -8,7 +8,7 @@ import { createTestPool,
     getCheckIconFile,
     assertIconCount
  } from "./db-test-utils";
-import { CreateIconInfo } from "../../src/icon";
+import { IconFile } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
@@ -24,7 +24,7 @@ describe("addIconToDBProvider", () => {
 
     it("should be capable to add a first icon", done => {
         const user = "zazie";
-        const iconFileInfo: CreateIconInfo = {
+        const iconFileInfo: IconFile = {
             name: "metro-icon",
             format: "french",
             size: "great",
@@ -41,13 +41,13 @@ describe("addIconToDBProvider", () => {
 
     it("should be capable to add a second icon", done => {
         const user = "zazie";
-        const iconFileInfo1: CreateIconInfo = {
+        const iconFileInfo1: IconFile = {
             name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: CreateIconInfo = {
+        const iconFileInfo2: IconFile = {
             name: "animal-icon",
             format: "french",
             size: "huge",
@@ -71,13 +71,13 @@ describe("addIconToDBProvider", () => {
 
     it("should rollback to last consistent state, in case an error occurs in sideEffect", done => {
         const user = "zazie";
-        const iconFileInfo1: CreateIconInfo = {
+        const iconFileInfo1: IconFile = {
             name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: CreateIconInfo = {
+        const iconFileInfo2: IconFile = {
             name: "animal-icon",
             format: "french",
             size: "huge",

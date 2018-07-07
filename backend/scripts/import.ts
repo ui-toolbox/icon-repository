@@ -15,6 +15,7 @@ import { createConnectionProperties, createPool } from "../src/db/db";
 import { createSchema } from "./create-schema";
 import { commandExecutor } from "../src/utils/command-executor";
 import { create as createSerializer } from "../src/utils/serializer";
+import { Set } from "immutable";
 
 const defaultSourceDir = path.resolve(
     __dirname,
@@ -28,7 +29,7 @@ delete process.env.ICON_DATA_LOCATION_GIT;
 
 const ctxLogger = logger.createChild("importer");
 
-interface IconFileData {
+interface SourceFileDescriptor {
     name: string;
     format: string;
     size: string;
@@ -37,7 +38,7 @@ interface IconFileData {
 
 const stripExtension = (fileName: string) => fileName.replace(/(.*)\.[^.]*$/, "$1");
 
-const iconFileCollector: () => Observable<IconFileData>
+const iconFileCollector: () => Observable<SourceFileDescriptor>
 = () => {
     return readdir(sourceDir)
     .flatMap(directoriesForFormats => directoriesForFormats)
@@ -115,43 +116,32 @@ const addIconFile: (
 });
 
 const enqueueJob = createSerializer("I M P O R T");
+let existingIcons: Set<string> = Set();
 
-const readAndUploadIconFile: (server: Server, data: IconFileData) => Observable<void>
-= (server, iconFileData) => {
-    ctxLogger.info("Processing icon file: %o", iconFileData);
-    return readFile(path.join(sourceDir, iconFileData.format, iconFileData.size, iconFileData.filePath))
+const readAndUploadIconFile: (server: Server, descriptor: SourceFileDescriptor) => Observable<void>
+= (server, descriptor) => {
+    ctxLogger.info("Processing icon file: %o", descriptor);
+    return readFile(path.join(sourceDir, descriptor.format, descriptor.size, descriptor.filePath))
     .flatMap(content =>
-        doesIconExist(server, iconFileData.name)
+        (existingIcons.contains(descriptor.name)
+            ? Observable.of(true)
+            : doesIconExist(server, descriptor.name))
         .flatMap(iconExists => {
+            existingIcons = existingIcons.add(descriptor.name);
             return addIconFile(
                 server,
-                iconFileData.name,
-                iconFileData.format,
-                iconFileData.size,
+                descriptor.name,
+                descriptor.format,
+                descriptor.size,
                 content,
                 !iconExists);
     }));
 };
 
-const processIconFile: (server: Server, data: IconFileData) => Observable<void>
-= (server, iconFileData) => Observable.create((observer: Observer<void>) => {
-    enqueueJob(done =>
-        readAndUploadIconFile(server, iconFileData)
-        .subscribe(
-            void 0,
-            error => observer.error(error),
-            () => {
-                observer.complete();
-                done();
-            }
-        )
-    );
-});
-
 const importIcons: (server: Server) => Observable<any> = server => {
     ctxLogger.info("Start importing from %s", sourceDir);
     return iconFileCollector()
-    .flatMap(iconFileData => processIconFile(server, iconFileData));
+    .flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(server, iconFileData)));
 };
 
 // @WindowsUnfriendly

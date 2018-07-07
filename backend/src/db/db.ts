@@ -2,7 +2,7 @@ import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult, Query, PoolClient } from "pg";
 
-import { CreateIconInfo, IconDescriptor, IconFileData, IconFile, IconFileDescriptor } from "../icon";
+import { IconDescriptor, IconFileData, IconFile, IconFileDescriptor } from "../icon";
 import logger from "../utils/logger";
 import {
     IconFileTableColumnsDef,
@@ -150,7 +150,7 @@ const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modi
     const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
                                 "SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
     return executeQuery(addIconFile, [
-        iconFileInfo.iconName,
+        iconFileInfo.name,
         iconFileInfo.format,
         iconFileInfo.size,
         iconFileInfo.content
@@ -158,13 +158,13 @@ const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modi
     .map(result => result.rows[0].id);
 };
 
-type AddIconToDB = (
-    iconInfo: CreateIconInfo,
+type AddIcon = (
+    iconInfo: IconFile,
     modifiedBy: string,
     createSideEffect?: () => Observable<void>
 ) => Observable<number>;
-type AddIconToDBProvider = (pool: Pool) => AddIconToDB;
-export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
+type AddIconProvider = (pool: Pool) => AddIcon;
+export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
     const iconVersion = 1;
     const addIconSQL: string = "INSERT INTO icon(name, version, modified_by) " +
                                 "VALUES($1, $2, $3) RETURNING id";
@@ -175,7 +175,7 @@ export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, cr
                 .flatMap(addIconResult => {
                     const iconId = addIconResult.rows[0].id;
                     return addIconFileToTable(executeQuery, {
-                        iconName: iconInfo.name,
+                        name: iconInfo.name,
                         format: iconInfo.format,
                         size: iconInfo.size,
                         content: iconInfo.content
@@ -200,18 +200,23 @@ export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconName, forma
         .map(result => result.rows[0].content);
 };
 
-type AddIconFile = (iconFile: IconFile, modifiedBy: string) => Observable<number>;
+type AddIconFile = (
+    iconFile: IconFile,
+    modifiedBy: string,
+    createSideEffect?: () => Observable<void>) => Observable<number>;
 
-const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifiedBy) => {
+const addIconFileToIcon: (pool: Pool) => AddIconFile
+= pool => (iconFile, modifiedBy, createSideEffect) => {
     const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE name = $1 FOR UPDATE";
     const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE name = $2";
     return tx(pool, (executeQuery: ExecuteQuery) => {
-        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.iconName])
+        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.name])
         .flatMap(queryResult =>
             addIconFileToTable(executeQuery, iconFile, modifiedBy)
             .flatMap(iconFileId => {
                 const version = queryResult.rows[0].version;
-                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.iconName])
+                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.name])
+                .flatMap(() => createSideEffect ? createSideEffect() : Observable.of(void 0))
                 .map(() => iconFileId);
             })
         );
@@ -219,7 +224,7 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifi
 };
 
 export interface IconDAFs {
-    readonly createIcon: AddIconToDB;
+    readonly createIcon: AddIcon;
     readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
     readonly describeAllIcons: DescribeAllIcons;

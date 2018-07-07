@@ -1,7 +1,9 @@
 import * as util from "util";
 import "jasmine";
 
-import { SerializableJobImpl, JobDoneCallback, create as createSerializer } from "./serializer";
+import { SerializableJobImpl, create as createSerializer } from "./serializer";
+import { Observable, Observer } from "rxjs";
+import { boilerplateSubscribe } from "../../integration-tests/testUtils";
 
 interface StepResult {
     readonly batchId: number;
@@ -44,23 +46,23 @@ const createJob: (
     resultList: StepResult[],
     assertFn: () => void
 ) => SerializableJobImpl
-= (id, batch, resultList, assertFn) => done => {
+= (id, batch, resultList, assertFn) => () => Observable.create((observer: Observer<StepResult>) => {
     const executeStep = (stepIndex: number) => {
         if (stepIndex < batch.length) {
             batch[stepIndex](id, stepIndex, resultList, (error: Error) => {
                 if (error) {
-                    done();
+                    observer.error(error);
                 } else {
                     executeStep(stepIndex + 1);
                 }
             });
         } else {
-            done();
             assertFn();
+            observer.complete();
         }
     };
     executeStep(0);
-};
+});
 
 const firstBatch: AsynchStep[] = [
     createAsynchStep(1000),
@@ -99,8 +101,10 @@ describe("Test artifacts for serializer", () => {
         const job1 = createJob(1, firstBatch, result, assert("ONE"));
         const job2 = createJob(2, secondBatch, result, assert("TWO"));
 
-        job1(() => void 0);
-        job2(() => void 0);
+        job1()
+        .subscribe(boilerplateSubscribe(fail, void 0));
+        job2()
+        .subscribe(boilerplateSubscribe(fail, void 0));
     });
 });
 
@@ -118,8 +122,10 @@ describe("Asynch step batches serializer", () => {
         const job1 = createJob(1, firstBatch, result, assert("ONE"));
         const job2 = createJob(2, secondBatch, result, assert("TWO"));
 
-        enqueueJob(job1);
-        enqueueJob(job2);
+        enqueueJob(job1)
+        .subscribe(boilerplateSubscribe(fail, void 0));
+        enqueueJob(job2)
+        .subscribe(boilerplateSubscribe(fail, void 0));
     });
 });
 
@@ -137,7 +143,16 @@ describe("Asynch step batches serializer", () => {
         const job1 = createJob(1, failingBatch, result, assert("ONE"));
         const job2 = createJob(2, secondBatch, result, assert("TWO"));
 
-        enqueueJob(job1);
-        enqueueJob(job2);
+        enqueueJob(job1)
+        .subscribe(
+            next => fail("job1 was expected to fail"),
+            error => {
+                expect(error).toEqual(new Error("Step failed"));
+                done();
+            },
+            void 0
+        );
+        enqueueJob(job2)
+        .subscribe(boilerplateSubscribe(fail, void 0));
     });
 });

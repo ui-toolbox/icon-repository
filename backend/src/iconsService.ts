@@ -1,7 +1,7 @@
 import { List, Set } from "immutable";
 import { Observable } from "rxjs/Rx";
 
-import { CreateIconInfo, IconFile, IconDescriptor } from "./icon";
+import { IconFile, IconDescriptor } from "./icon";
 import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
 import { fromBase64 } from "./utils/encodings";
@@ -22,10 +22,10 @@ export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
 type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
-    initialIconFileInfo: CreateIconInfo,
+    initialIconFileInfo: IconFile,
     modifiedBy: string) => Observable<number>;
 type AddIconFile = (
-    addIconFileRequestData: IconFile,
+    iconFile: IconFile,
     modifiedBy: string) => Observable<number>;
 
 export interface IconService {
@@ -72,8 +72,11 @@ const iconServiceProvider: (
             modifiedBy,
             () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
 
-    const addIconFile: AddIconFile = (addIconFileRequestData, modifiedBy) =>
-        iconDAFs.addIconFileToIcon(addIconFileRequestData, modifiedBy);
+    const addIconFile: AddIconFile = (iconFile, modifiedBy) =>
+        iconDAFs.addIconFileToIcon(
+            iconFile,
+            modifiedBy,
+            () => gitAFs.addIconFile(iconFile, modifiedBy));
 
     const decodeIconPath = (encodedIconPath: string) => fromBase64(encodedIconPath);
 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { CreateIconInfo, IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 import { Set } from "immutable";
@@ -114,7 +114,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     createIcon: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("createIcon");
         ctxLogger.info("START");
-        const iconData: CreateIconInfo = {
+        const iconData: IconFile = {
             name: req.body.name,
             format: req.body.format,
             size: req.body.size,
@@ -136,12 +136,12 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     addIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("addIconFile");
         const iconData: IconFile = {
-            iconName: req.params.name,
+            name: req.params.name,
             format: req.params.format,
             size: req.params.size,
             content: (req.files as any)[0].buffer
         };
-        if (!iconData.iconName ||
+        if (!iconData.name ||
                 !iconData.format || iconData.format === ":format" ||
                 !iconData.size || iconData.size === ":size" ||
                 !iconData.content) {

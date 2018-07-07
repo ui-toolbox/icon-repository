@@ -4,7 +4,7 @@ import { Observable } from "rxjs";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { iconTableSpec } from "../../src/db/db-schema";
-import { CreateIconInfo } from "../../src/icon";
+import { IconFile } from "../../src/icon";
 import { getDefaultConfiguration } from "../../src/configuration";
 
 export const assertIconCount = (pool: Pool, expectedCount: number) =>
@@ -13,7 +13,7 @@ query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
 
 export const getCheckIconFile: (
     getIconFileFromDB: GetIconFile,
-    iconFileInfo: CreateIconInfo
+    iconFileInfo: IconFile
 ) => Observable<boolean>
 = (getIconFileFromDB, iconFileInfo) => {
     return getIconFileFromDB(iconFileInfo.name, iconFileInfo.format, iconFileInfo.size)
