@@ -57,15 +57,15 @@ set +x
 raster() {
     while read f;
     do
-        icon_name=$(echo "$f" | sed -e 's/.*\/ic_\([^.]\+\)_white_[^.]\+\.[^.]\+/\1/g')
-        format=$(echo "$f" | sed -e 's/.*\/ic_[^.]\+_white_[^.]\+\.\([^.]\+\)/\1/g')
-        size=$(echo "$f" | sed -e 's/.*\/ic_[^.]\+_white_\([^.]\+\)\.[^.]\+/\1/g')
+        icon_name=$(echo "$f" | sed -e 's/.*\/ic_\([^.]\+\)_black_[^.]\+\.[^.]\+/\1/g')
+        format=$(echo "$f" | sed -e 's/.*\/ic_[^.]\+_black_[^.]\+\.\([^.]\+\)/\1/g')
+        size=$(echo "$f" | sed -e 's/.*\/ic_[^.]\+_black_\([^.]\+\)\.[^.]\+/\1/g')
         store $f $size $format $icon_name
     done < <(find . -type f | \
                 egrep '(^\./editor/.*$|^\./hardware/.*$)' | \
                 grep -v /ios/ | \
                 grep drawable-hdpi | \
-                egrep '*_white_[^.]+.[a-z]+' | \
+                egrep '*_black_[^.]+.[a-z]+' | \
                 sort)
 }
 
