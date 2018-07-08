@@ -4,7 +4,6 @@
   "description": "Serves icon information to, and accepts updates on icons from, the front-end",
   "main": "build/app.js",
   "dependencies": {
-    "@types/superagent": "^3.8.2",
     "base64url": "^3.0.0",
     "body-parser": "^1.18.2",
     "consolidate": "^0.13.1",
@@ -46,6 +45,7 @@
     "@types/qs": "^6.5.1",
     "@types/request": "^2.47.1",
     "@types/rimraf": "^2.0.2",
+    "@types/superagent": "^3.8.2",
     "@types/underscore.string": "0.0.32",
     "@types/winston": "^2.3.0",
     "concurrently": "^3.6.0",
