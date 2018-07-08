@@ -47,7 +47,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
     1. Replace your company npm configuration with a blank one:
 
-        `mv ~/.npmrc ~/.npmrc-saved && touch ~/.npmrc`
+        `test ! -f ~/.npmrc-saved && mv ~/.npmrc ~/.npmrc-saved && touch ~/.npmrc`
     1. Start the fronted in the `client` subdirectory by
        executing:
 
