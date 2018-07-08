@@ -23,7 +23,7 @@ const defaultSourceDir = path.resolve(
     ".." /* exit "build" dir */,
     "demo-data");
 const sourceDir = process.env.ICON_IMPORT_SOURCE_DIR || defaultSourceDir;
-const createNewDB: boolean = process.env.CREATE_NEW_DB;
+const createNewDB: string = process.env.CREATE_NEW_DB;
 
 delete process.env.ICON_DATA_LOCATION_GIT;
 
