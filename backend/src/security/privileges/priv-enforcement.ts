@@ -21,11 +21,11 @@ const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
             privilegeDictionary.CREATE_ICON
         ]
     },
-    // "/icon/:id/format/:format"
-    "^/icon/[^/]+/format/[^/]+$": {
+    // "/icon/:id/format/:format/size/:size"
+    "^/icon/[^/]+/format/[^/]+/size/[^/]+$": {
         POST: [
             privilegeDictionary.CREATE_ICON,
-            privilegeDictionary.ADD_ICON_FORMAT
+            privilegeDictionary.ADD_ICON_FILE
         ]
     }
 });
@@ -42,15 +42,14 @@ export const requiredPrivilegesGetterProvider: (
     epPrivDesc: IEndPointPrivilegeDescriptor,
     ep2REMap: IEndPoint2REMap
 ) => RequiredPrivilegesGetter
-= (epPrivDesc, ep2REMap) => (url, requestMethod) => {
-    return Set(Object.keys(epPrivDesc))
+= (epPrivDesc, ep2REMap) => (url, requestMethod) =>
+    Set(Object.keys(epPrivDesc))
         .filter(route => ep2REMap[route].test(url))
         .flatMap(
             route => Set(Object.keys(epPrivDesc[route]))
                         .filter(privMethod => requestMethod === privMethod)
                         .flatMap(privMethod => Set(epPrivDesc[route][privMethod]))
         ).toSet();
-};
 
 const createDefaultRequiredPrivilegesGetter
     = () => requiredPrivilegesGetterProvider(privilegesForEndPoints, privEndPoint2RE);

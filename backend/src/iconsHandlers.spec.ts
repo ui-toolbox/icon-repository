@@ -9,10 +9,11 @@ import * as server from "./server";
 
 import iconServiceProvider from "./iconsService";
 import iconsHandlersProvider from "./iconsHandlers";
+import { getDefaultConfiguration } from "./configuration";
 
 describe("icon endpoint", () => {
     it("should return 404 status when icon not found on :path", done => {
-        const iconService = iconServiceProvider(null, null);
+        const iconService = iconServiceProvider(getDefaultConfiguration, null, null);
         spyOn(iconService, "getIcon").and.returnValue(Rx.Observable.throw({code: "ENOENT"}));
         const req = new Mock<Request>({params: {path: "somepath"}}).Object;
         const res = new Mock<Response>({ status: () => new Mock<Response>({ send: () => void 0}).Object }).Object;

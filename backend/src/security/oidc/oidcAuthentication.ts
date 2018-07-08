@@ -3,12 +3,13 @@ import * as util from "util";
 import * as Rx from "rxjs/Rx";
 import * as _ from "lodash";
 
-import * as appUtil from "../../util";
-
 // @ts-ignore
 import jose = require("jsrsasign");
 
-import logger, { ContextAbleLogger } from "../../logger";
+import logger, { ContextAbleLogger } from "../../utils/logger";
+import * as errorHandling from "../../utils/error-handling";
+import doFetch from "../../utils/fetch";
+import { fromBase64 } from "../../utils/encodings";
 
 const sformat = util.format;
 
@@ -53,7 +54,7 @@ export default (
             "Authorization": "Basic " + encodedClientCredentials()
         };
 
-        return appUtil.doFetch<IAuthorizationToken>(accessTokenURL, "POST", headers, formData);
+        return doFetch<IAuthorizationToken>(accessTokenURL, "POST", headers, formData);
     };
 
     const getIdProviderPublicKey: () => Rx.Observable<string> = () => {
@@ -70,7 +71,7 @@ export default (
     };
 
     const requestPublicKeyFromIDProvider: () => Rx.Observable<string> = () => {
-        return appUtil.doFetch(jwtPublicKeyURL, "GET", {}, void 0, true);
+        return doFetch(jwtPublicKeyURL, "GET", {}, void 0, true);
     };
 
     const parseVerifyAuthorizationToken: (token: IAuthorizationToken, publicKey: any) => Authentication
@@ -90,7 +91,7 @@ export default (
             const tokenParts = token.id_token.split(".");
             ctxLogger.debug("Nr. of tokenParts: ", tokenParts.length);
 
-            const payload = JSON.parse(appUtil.fromBase64(tokenParts[1]));
+            const payload = JSON.parse(fromBase64(tokenParts[1]));
             ctxLogger.debug("Payload: %O", payload);
 
             if (payload.iss === tokenIssuer) {
@@ -143,7 +144,7 @@ export default (
 
     const tokenVerificationFailed = (ctxtLogger: ContextAbleLogger, message: string, ...args: any[]) => {
         ctxtLogger.error(message, args);
-        appUtil.throwErrorWOStackTrace("Authentication failed");
+        errorHandling.throwErrorWOStackTrace("Authentication failed");
     };
 
     return authenticateByCode;

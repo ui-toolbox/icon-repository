@@ -3,11 +3,11 @@ import oidcLogoutSuccessHandler from "./oidcLogoutSuccessHandler";
 import config, { ConfigurationDataProvider } from "../../configuration";
 
 import { Request, Response } from "express";
-import * as Rx from "rxjs";
+import { Observable } from "rxjs";
 import { Mock } from "ts-mocks";
 
 const getConfigProviderWithLogoutURLAndContextPathSet: (logoutURLValue: string, contextPath: string)
-        => Rx.Observable<ConfigurationDataProvider>
+        => Observable<ConfigurationDataProvider>
 = (logoutURLValue, contextPath) =>
     config
     .map(configData => () => Object.assign(configData(), {

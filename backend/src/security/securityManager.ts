@@ -16,8 +16,8 @@ import {
     allPrivilegesForUserGetterProvider
 } from "./privileges/priv-config";
 import { hasRequiredPrivileges } from "./privileges/priv-enforcement";
-import logger from "./../logger";
-import { LogoutSuccessHandler, randomstring } from "./../util";
+import logger from "./../utils/logger";
+import randomstring from "./../utils/randomstring";
 
 import backdoors from "./backdoors";
 
@@ -61,6 +61,8 @@ const privilegeCheckInterceptor = (
         res.status(403).end();
     }
 };
+
+type LogoutSuccessHandler = (req: express.Request, res: express.Response) => void;
 
 const createLogoutHandler = (logoutSuccessHandler?: LogoutSuccessHandler) => {
     const ctxLogger = logger.createChild("securityManager#createLogoutHandler");

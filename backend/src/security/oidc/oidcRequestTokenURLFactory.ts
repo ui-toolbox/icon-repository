@@ -1,5 +1,5 @@
 import { URL, URLSearchParams } from "url";
-import { randomstring } from "../../util";
+import randomstring from "../../utils/randomstring";
 
 export default (userAuthorizationURL: string, clientID: string, redirectURL: string) => {
     const state = randomstring();

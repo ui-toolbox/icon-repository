@@ -5,18 +5,22 @@ import * as http from "http";
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import * as helmet from "helmet";
+import * as multer from "multer";
 import * as Rx from "rxjs";
 
-import iconServiceProvider from "./iconsService";
-import iconsHandlersProvider from "./iconsHandlers";
+import { IIconHanlders } from "./iconsHandlers";
 
 import { ConfigurationDataProvider } from "./configuration";
-import logger from "./logger";
+import logger from "./utils/logger";
 import securityManagerProvider from "./security/securityManager";
+import iconHandlersProvider from "./iconsHandlers";
 import brandingHandlerProvider from "./brandingHandler";
 
-const serverProvider: (appConfig: ConfigurationDataProvider) => Rx.Observable<http.Server>
-= appConfig => {
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IIconHanlders) => Rx.Observable<http.Server>
+= (appConfig, iconHandlers) => {
 
     const app = express();
     app.use(helmet());
@@ -35,13 +39,12 @@ const serverProvider: (appConfig: ConfigurationDataProvider) => Rx.Observable<ht
 
     app.use(appConfig().server_url_context, express.static(appConfig().path_to_static_files));
 
-    const iconService = iconServiceProvider(appConfig().icon_data_allowed_formats, appConfig().icon_data_location_git);
-    const iconsHandlers = iconsHandlersProvider(iconService);
-    router.get("/icons/formats", iconsHandlers.getIconFormats);
-    router.get("/icons", iconsHandlers.getAllIcons);
-    router.get("/icon/:path", iconsHandlers.getIcon);
-    router.post("/icon", iconsHandlers.createIcon);
-    router.post("/icon/:id/format/:format", iconsHandlers.addFormat);
+    router.get("/icons/config", iconHandlers.getIconRepoConfig);
+    router.get("/icons", iconHandlers.icons);
+    router.get("/icon/:path", iconHandlers.getIcon);
+    router.post("/icon", upload.any(), iconHandlers.createIcon);
+    router.post("/icon/:id/format/:format/size/:size", iconHandlers.addIconFile);
+    router.get("/icon/:id/format/:format/size/:size", upload.single("iconFile"), iconHandlers.getIconFile);
     router.get("/branding", brandingHandlerProvider(appConfig().app_description));
 
     return Rx.Observable.create((observer: Rx.Observer<http.Server>) => {
