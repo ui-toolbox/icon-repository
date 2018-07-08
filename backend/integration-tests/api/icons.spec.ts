@@ -7,15 +7,12 @@ import {
     createAddIconFileFormData,
     createUploadBuffer,
     ICreateIconFormData,
-    setUpGitRepoAndDbSchemaAndServer,
-    tearDownGitRepoAndServer
+    manageTestResourcesBeforeAfter
 } from "./api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { createInitialIcon, addIconFile } from "./iconFile.spec";
 import { IconFileDescriptor } from "../../src/icon";
-import { Pool } from "pg";
 import { Server } from "http";
-import { createTestPool, terminateTestPool } from "../db/db-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 const iconRepoConfigPath = "/icons/config";
@@ -50,13 +47,9 @@ const allIconsPath = "/icons";
 
 describe(allIconsPath, () => {
 
-    let pool: Pool;
     let server: Server;
 
-    beforeAll(createTestPool(p => pool = p, fail));
-    afterAll(terminateTestPool(pool));
-    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
-    afterEach(done => tearDownGitRepoAndServer(server, done));
+    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
 
     it("GET should return the description of all icons in the repository", done => {
         const icon1: ICreateIconFormData = {
@@ -133,13 +126,9 @@ describe(allIconsPath, () => {
 
 const singleIconPath = allIconsPath + "/:name";
 describe(singleIconPath, () => {
-    let pool: Pool;
     let server: Server;
 
-    beforeAll(createTestPool(p => pool = p, fail));
-    afterAll(terminateTestPool(pool));
-    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
-    afterEach(done => tearDownGitRepoAndServer(server, done));
+    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
 
     it ("GET should describe the icon", done => {
         const icon1: ICreateIconFormData = {

@@ -22,6 +22,7 @@ import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
+import { createTestPool, terminateTestPool } from "../db/db-test-utils";
 
 logger.setLevel("silly");
 
@@ -71,6 +72,26 @@ export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     deleteTestGitRepo()
         .map(() => server.close())
     .subscribe(boilerplateSubscribe(fail, done));
+};
+
+export const manageTestResourcesBeforeAfter = (
+    serverSetter: (server: Server) => void,
+    poolSetter?: (pool: Pool) => void
+) => {
+    let localPoolRef: Pool;
+    let localServerRef: Server;
+    beforeAll(createTestPool((p: Pool) => {
+        localPoolRef = p;
+        if (poolSetter) {
+            poolSetter(p);
+        }
+    }, fail));
+    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, (server: Server) => {
+        localServerRef = server;
+        serverSetter(server);
+    }, done));
+    afterAll(terminateTestPool(localPoolRef));
+    afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
 };
 
 export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;

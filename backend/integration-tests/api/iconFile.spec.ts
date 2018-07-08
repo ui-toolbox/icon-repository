@@ -1,5 +1,4 @@
 import { boilerplateSubscribe } from "../testUtils";
-import { createTestPool, terminateTestPool, createTestSchema } from "../db/db-test-utils";
 import {
     iconEndpointPath,
     iconFileEndpointPath,
@@ -11,8 +10,8 @@ import {
     createAddIconFileFormData,
     ICreateIconFormData,
     IUploadFormData,
-    setUpGitRepoAndDbSchemaAndServer,
-    tearDownGitRepoAndServer} from "./api-test-utils";
+    manageTestResourcesBeforeAfter
+} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { Pool } from "pg";
 import * as request from "request";
@@ -71,10 +70,7 @@ describe(iconFileEndpointPath, () => {
     let pool: Pool;
     let server: Server;
 
-    beforeAll(createTestPool(p => pool = p, fail));
-    afterAll(terminateTestPool(pool));
-    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
-    afterEach(done => tearDownGitRepoAndServer(server, done));
+    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer, p => pool = p);
 
     it ("POST should fail with 403 without either of CREATE_ICON or ADD_ICON_FILE privilege", done => {
         const jar = request.jar();

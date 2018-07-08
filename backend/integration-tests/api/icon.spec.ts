@@ -12,13 +12,10 @@ import {
     iconEndpointPath,
     testUploadRequest,
     convertToIconInfo,
-    setUpGitRepoAndDbSchemaAndServer,
-    tearDownGitRepoAndServer} from "./api-test-utils";
+    manageTestResourcesBeforeAfter } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
-    createTestPool,
-    terminateTestPool,
     assertIconCount,
     getCheckIconFile
  } from "../db/db-test-utils";
@@ -35,10 +32,7 @@ describe(iconEndpointPath, () => {
     let pool: Pool;
     let server: Server;
 
-    beforeAll(createTestPool(p => pool = p, fail));
-    afterAll(terminateTestPool(pool));
-    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
-    afterEach(done => tearDownGitRepoAndServer(server, done));
+    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer, p => pool = p);
 
     it ("POST should fail with 403 without CREATE_ICON privilege", done => {
         const jar = request.jar();
