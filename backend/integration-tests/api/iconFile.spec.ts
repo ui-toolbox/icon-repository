@@ -11,7 +11,7 @@ import {
     getURL,
     iconEndpointPath,
     iconFileEndpointPath} from "./api-test-utils";
-import { privilegeDictionary } from "../../src/security/privileges/priv-config";
+import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { Pool } from "pg";
 import * as request from "request";
 import { Observable } from "rxjs";

@@ -3,13 +3,14 @@ import logger from "./utils/logger";
 
 import { IIconFile } from "./icon";
 import { IIconService } from "./iconsService";
+import { getAuthentication } from "./security/common";
 export interface IIconHanlders {
-    getIconRepoConfig: (req: Request, res: Response) => void;
-    icons: (req: Request, res: Response) => void;
-    getIcon: (req: Request, res: Response) => Promise<void>;
-    getIconFile: (req: Request, res: Response) => void;
-    createIcon: (req: Request, res: Response) => void;
-    addIconFile: (req: Request, res: Response) => void;
+    readonly getIconRepoConfig: (req: Request, res: Response) => void;
+    readonly icons: (req: Request, res: Response) => void;
+    readonly getIcon: (req: Request, res: Response) => Promise<void>;
+    readonly getIconFile: (req: Request, res: Response) => void;
+    readonly createIcon: (req: Request, res: Response) => void;
+    readonly addIconFile: (req: Request, res: Response) => void;
 }
 
 const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
@@ -74,7 +75,7 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
             size: req.body.iconSize,
             content: (req.files as any)[0].buffer
         };
-        iconService.createIcon(iconData, req.session.authentication.username)
+        iconService.createIcon(iconData, getAuthentication(req.session).username)
         .subscribe(
             result => {
                 ctxLogger.info("Icon #%d created: %o", result, iconData);

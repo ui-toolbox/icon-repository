@@ -48,8 +48,8 @@ class IconInfo {
 }
 
 interface IIconFileData {
-    fileFormat: string;
-    fileData: Buffer;
+    readonly fileFormat: string;
+    readonly fileData: Buffer;
 }
 
 type GetIconRepoConfig = () => Rx.Observable<IIconRepoConfig>;
@@ -60,11 +60,11 @@ type CreateIcon = (
     initialIconFileInfo: IIconFile,
     username: string) => Rx.Observable<number>;
 export interface IIconService {
-    getRepoConfiguration: GetIconRepoConfig;
-    getIcons: GetIcons;
-    getIcon: GetIcon;
-    getIconFile: GetIconFile;
-    createIcon: CreateIcon;
+    readonly getRepoConfiguration: GetIconRepoConfig;
+    readonly getIcons: GetIcons;
+    readonly getIcon: GetIcon;
+    readonly getIconFile: GetIconFile;
+    readonly createIcon: CreateIcon;
 }
 
 export const iconFormatListParser = csvSplitter;
@@ -87,7 +87,7 @@ const iconServiceProvider: (
 
     const getIcons: GetIcons = () => {
         const ctxLogger = logger.createChild("getAllIcons");
-        const iconRepo: string = appConfig().icon_data_location_git;
+        const iconRepo: string = gitAFs.getRepoLocation(); // TODO: retrieve icons from the db instead of from git
         ctxLogger.debug(`Getting icons from file://${iconRepo}`);
         return readdir(iconRepo)
             .flatMap(directoriesBySize => directoriesBySize)

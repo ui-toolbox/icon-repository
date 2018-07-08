@@ -4,8 +4,8 @@ import "jasmine";
 import { SerializableJobImpl, JobDoneCallback, create as createSerializer } from "./serializer";
 
 interface IStepResult {
-    batchId: number;
-    stepId: number;
+    readonly batchId: number;
+    readonly stepId: number;
 }
 
 const createStepResult = (batchId: number, stepId: number) => ({

@@ -1,11 +1,11 @@
 export interface IColumnsDefinition {
-    [key: string]: string;
+    readonly [key: string]: string;
 }
 
 export interface ITableDefinition {
-    tableName: string;
-    columns: IColumnsDefinition;
-    col_constraints?: string[];
+    readonly tableName: string;
+    readonly columns: IColumnsDefinition;
+    readonly col_constraints?: string[];
 }
 
 export const iconTable: ITableDefinition = {

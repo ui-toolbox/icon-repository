@@ -1,6 +1,6 @@
 import oidcLogoutSuccessHandler from "./oidcLogoutSuccessHandler";
 
-import config, { ConfigurationDataProvider } from "../../configuration";
+import config, { ConfigurationDataProvider } from "../../../configuration";
 
 import { Request, Response } from "express";
 import { Observable } from "rxjs";

@@ -1,17 +1,20 @@
 import * as util from "util";
 import * as express from "express";
 
+import { storeAuthentication, getAuthentication } from "../../common";
+
 import oidcCreateRequestTokenURL from "./oidcRequestTokenURLFactory";
 import authenticateByCode from "./oidcAuthentication";
-import logger from "../../utils/logger";
-import { ConfigurationDataProvider } from "../../configuration";
-import { fromBase64 } from "../../utils/encodings";
+import logger from "../../../utils/logger";
+import { ConfigurationDataProvider } from "../../../configuration";
+import { fromBase64 } from "../../../utils/encodings";
+
+const ctxLogger = logger.createChild("oidc-login-handler");
 
 export default (
     appConfigProvider: ConfigurationDataProvider
 ) =>
 (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const ctxLogger = logger.createChild("oidcLoginRouteHandler");
 
     const authorizationURL = appConfigProvider().oidc_user_authorization_url;
     const redirectURL = appConfigProvider().oidc_client_redirect_back_url;
@@ -21,7 +24,7 @@ export default (
     if (req.query.error) {
         ctxLogger.error("Request has (returned with) an error", req.query.error);
         res.end(400, req.query.error);
-    } else if (req.session && req.session.authentication) {
+    } else if (req.session && getAuthentication(req.session)) {
         ctxLogger.verbose("Already logged in");
         res.redirect(appConfigProvider().server_url_context);
     } else if (!req.query || !req.query.code) {
@@ -46,16 +49,17 @@ export default (
         .toPromise()
         .then(
             auth => {
-                req.session.authentication = {username: auth};
+                storeAuthentication(req.session, auth);
                 next();
             },
-            err => authenticationError(res)
+            err => authenticationError(err, res)
         ).catch(err => {
-            authenticationError(res);
+            authenticationError(err, res);
         });
     }
 };
 
-const authenticationError = (res: express.Response) => {
+const authenticationError = (err: Error, res: express.Response) => {
+    ctxLogger.error("Error during authentication: $o", err);
     res.status(500).send("Internal error during authentication");
 };

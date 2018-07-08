@@ -5,7 +5,6 @@ import { Observable } from "rxjs";
 import * as request from "request";
 import { boilerplateSubscribe } from "../testUtils";
 
-import "../../src/security/privileges/priv-config";
 import {
     testRequest,
     testHTTPStatus,
@@ -20,7 +19,7 @@ import {
     IUploadFormData,
     convertToIconFileInfo,
     iconEndpointPath} from "./api-test-utils";
-import { privilegeDictionary } from "../../src/security/privileges/priv-config";
+import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
     createTestPool,
@@ -178,8 +177,7 @@ describe(iconEndpointPath, () => {
                         url: getURL(server, iconEndpointPath),
                         method: "POST",
                         formData: formData2,
-                        jar,
-                        json: true
+                        jar
                     })
                     .map(result2 => expect(result2.response.statusCode).toEqual(500))
                     .flatMap(() => getCurrentGitCommit()

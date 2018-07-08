@@ -1,4 +1,5 @@
 import * as util from "util";
+import fetch from "node-fetch";
 import { Observable, Observer } from "rxjs";
 
 import logger from "./logger";

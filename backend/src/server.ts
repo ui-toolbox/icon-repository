@@ -28,14 +28,12 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IIcon
     app.use(bodyParser.json());
 
     const securityManager = securityManagerProvider(appConfig);
-
     securityManager.setupSessionManagement(app);
 
     const router: express.Router = express.Router();
+    app.use(appConfig().server_url_context, router);
 
     securityManager.setupRoutes(router);
-
-    app.use(appConfig().server_url_context, router);
 
     app.use(appConfig().server_url_context, express.static(appConfig().path_to_static_files));
 

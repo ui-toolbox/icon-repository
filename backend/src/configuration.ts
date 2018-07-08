@@ -7,9 +7,9 @@ import * as Rx from "rxjs";
 import { fileExists, readTextFile } from "./utils/rx";
 
 interface IServerConfiguration {
-    hostname: string;
-    port: number;
-    context?: string;
+    readonly hostname: string;
+    readonly port: number;
+    readonly context?: string;
 }
 
 const configurationDataProto = Object.freeze({
@@ -49,6 +49,7 @@ const defaultSettings = {
     server_hostname: "localhost",
     server_port: 8090,
     server_url_context: "/",
+    authentication_type: "oidc",
     app_description: "Collection of custom icons designed at Wombat Inc.",
     path_to_static_files: path.join(__dirname, "..", "..", "..", "client", "dist"),
     icon_data_location_git: "/212c81749476c2a7336ab71661f1f7a0d94c1486/c3c565cd9e055de5339489b3edb121ce9961c56c",
@@ -110,11 +111,17 @@ export const updateConfigurationDataWithEnvVarValues = <T> (proto: T, conf: T) =
 export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) => Rx.Observable<T>
 = (filePath, proto, defaults) => {
     return fileExists(filePath)
-        .flatMap(exists => exists
-            ? readTextFile(filePath)
-                .map(fileContent => JSON.parse(fileContent))
-                .catch(error => ignoreJSONSyntaxError(error))
-            : Rx.Observable.of({}))
+        .flatMap(exists => {
+            if (exists) {
+                logger.info("Updating configuration from %s...", configFilePath);
+                return readTextFile(filePath)
+                    .map(fileContent => JSON.parse(fileContent))
+                    .catch(error => ignoreJSONSyntaxError(error));
+            } else {
+                logger.warn("Configuration file doesn't exist: %s...", configFilePath);
+                return Rx.Observable.of({});
+            }
+        })
         .map(json => Object.assign(clone(defaults), json))
         .do(conf => updateConfigurationDataWithEnvVarValues(proto, conf));
 };
@@ -126,7 +133,6 @@ export type ConfigurationDataProvider = () => IConfigurationData;
 const updateState: () => Rx.Observable<ConfigurationDataProvider> = () => {
     return readConfiguration(configFilePath, configurationDataProto, defaultSettings)
         .do(conf => {
-            logger.info(" Updating configuration from %s...", configFilePath);
             if (conf.logger_level) {
                 logger.setLevel(conf.logger_level);
             }
