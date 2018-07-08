@@ -9,7 +9,7 @@ import {
     create as createSerializer
 } from "./utils/serializer";
 import logger from "./utils/logger";
-import { IIconFile } from "./icon";
+import { CreateIconInfo } from "./icon";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -41,13 +41,13 @@ export const createGitCommandExecutor: (iconRepository: string) => GitCommandExe
 
 const enqueueJob = createSerializer("GIT");
 
-const getFileName: (inconFileInfo: IIconFile) => string
+const getFileName: (inconFileInfo: CreateIconInfo) => string
     = inconFileInfo => `${inconFileInfo.iconName}@${inconFileInfo.size}.${inconFileInfo.format}`;
 
 /*
  * @return an Observable for the path to the icon file relative to the local GIT repository's root.
  */
-const createIconFile: (inconFileInfo: IIconFile, iconRepository: string) => Observable<string>
+const createIconFile: (inconFileInfo: CreateIconInfo, iconRepository: string) => Observable<string>
 = (inconFileInfo, iconRepository) =>
     mkdirMaybe(path.join(iconRepository, inconFileInfo.format))
     .flatMap(pathToFormatDir =>
@@ -82,7 +82,7 @@ const rollback: () => string[][] = () => [
 ];
 
 const createAddIconFileJob: (
-    inconFileInfo: IIconFile,
+    inconFileInfo: CreateIconInfo,
     userName: string,
     gitExec: GitCommandExecutor,
     iconRepository: string
@@ -118,7 +118,7 @@ const createAddIconFileJob: (
 };
 
 type AddIconFile = (
-    inconFileInfo: IIconFile,
+    inconFileInfo: CreateIconInfo,
     userName: string
 ) => Observable<void>;
 

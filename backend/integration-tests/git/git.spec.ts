@@ -5,7 +5,7 @@ import gitAccessFunctionsProvider, {
     IGitAccessFunctions,
     GIT_COMMIT_FAIL_INTRUSIVE_TEST
 } from "../../src/git";
-import { IIconFile } from "../../src/icon";
+import { CreateIconInfo } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import {
@@ -37,7 +37,7 @@ describe("git access functions", () => {
 
     describe("should include addIconFile which", () => {
         it("should add an icon file", done => {
-            const iconInfo: IIconFile = {
+            const iconInfo: CreateIconInfo = {
                 iconName: "pizza",
                 format: "thin-crust",
                 size: "32cm",
@@ -55,13 +55,13 @@ describe("git access functions", () => {
         it("should throw an error, but preserve the last consistent git repo state, " +
                 "in case adding an icon file failse", done => {
             const statusMessageTail = "nothing to commit, working tree clean";
-            const iconInfo: IIconFile = {
+            const iconInfo: CreateIconInfo = {
                 iconName: "pizza",
                 format: "thin-crust",
                 size: "32cm",
                 content: crypto.randomBytes(1024)
             };
-            const iconInfo1: IIconFile = {
+            const iconInfo1: CreateIconInfo = {
                 iconName: "pizza1",
                 format: "thin-crust1",
                 size: "32cm1",

@@ -1,11 +1,11 @@
 import {
     IColumnsDefinition,
-    ITableDefinition } from "../src/db/db-schema";
+    ITableSpec } from "../src/db/db-schema";
 import { makeCreateTableStatement } from "./create-schema";
 
 describe("makeCreateTableStatement", () => {
     it("should create the proper statement", () => {
-        const iconTable: ITableDefinition = {
+        const iconTable: ITableSpec = {
             tableName: "icons",
             columns: {
                 id: "serial primary key",
