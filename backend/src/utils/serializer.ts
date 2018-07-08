@@ -4,31 +4,38 @@
 import { List } from "immutable";
 
 import logger from "../utils/logger";
+import { Observable, Observer } from "rxjs";
 
 export type JobResult = any;
-export type JobDoneCallback = (error: Error, result: JobResult) => void;
-export type SerializableJobImpl = (done: JobDoneCallback) => void;
-export type EnqueueJob = (job: SerializableJobImpl, callback: JobDoneCallback) => void;
 
-interface IJobItem {
+interface JobCallback {
+    readonly next: (result: JobResult) => void;
+    readonly error: (error: Error) => void;
+    readonly complete: () => void;
+}
+
+export type SerializableJobImpl = () => Observable<JobResult>;
+export type EnqueueJob = (job: SerializableJobImpl) => Observable<JobResult>;
+
+interface JobItem {
     readonly job: SerializableJobImpl;
-    readonly callback: JobDoneCallback;
+    readonly callbacks: JobCallback;
 }
 
 export const create: (jobType: string) => EnqueueJob = jobType => {
     const ctxLogger = logger.createChild("asynch-jobs-serializer: " + jobType);
 
-    let queue: List<IJobItem> = List([]);
+    let queue: List<JobItem> = List([]);
 
     const hasPending: () => boolean = () => queue.size > 0;
 
-    const executeItem: (item: IJobItem) => void = item => {
-        item.job((error: Error, result: any) => {
-            if (item.callback) {
-                item.callback(error, result);
-            }
-            setImmediate(next);
-        });
+    const executeItem: (item: JobItem) => void = item => {
+        item.job()
+        .subscribe(
+            nextValue => item.callbacks.next(nextValue),
+            error => item.callbacks.error(error),
+            () => item.callbacks.complete()
+        );
     };
 
     const executeNextItem = () => {
@@ -42,23 +49,39 @@ export const create: (jobType: string) => EnqueueJob = jobType => {
         }
     };
 
-    const enqueue: (job: SerializableJobImpl, callback: JobDoneCallback) => void
-    = (job, callback) => {
-        const newItem: IJobItem = {
+    const scheduleNextJob = () => {
+        ctxLogger.debug("Scheduling next job");
+        setImmediate(next);
+    };
+
+    const enqueue: (job: SerializableJobImpl) => Observable<JobResult>
+    = job => Observable.create((observer: Observer<JobResult>) => {
+        const newItem: JobItem = {
             job,
-            callback
+            callbacks: {
+                next: nextValue => {
+                    observer.next(nextValue);
+                },
+                error: error => {
+                    observer.error(error);
+                    scheduleNextJob();
+                },
+                complete: () => {
+                    observer.complete();
+                    scheduleNextJob();
+                }
+            }
         };
 
         const hadPending = hasPending();
         queue = queue.push(newItem);
         if (hadPending) {
-            ctxLogger.verbose("Jobs in the queue already, one of them must be running");
+            ctxLogger.debug("Jobs in the queue already, one of them must be running");
         } else {
-            ctxLogger.verbose("No jobs in the queue, execute this one");
+            ctxLogger.debug("No jobs in the queue, execute this one");
             setImmediate(executeNextItem);
         }
-
-    };
+    });
 
     return enqueue;
 };

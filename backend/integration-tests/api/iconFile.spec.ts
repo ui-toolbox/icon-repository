@@ -19,7 +19,7 @@ import * as request from "request";
 import { Observable } from "rxjs";
 import {
     getIconFile as getIconFileFromDBProvider,
-    getAllIcons as getAllIconsFromDB,
+    describeAllIcons as getAllIconsFromDB,
     GetIconFile } from "../../src/db/db";
 import { Server } from "http";
 
@@ -47,7 +47,7 @@ export const createInitialIcon: (
 export const addIconFile = (
     server: Server,
     privileges: string[],
-    iconId: number,
+    iconName: string,
     format: string,
     size: string,
     formData: IUploadFormData
@@ -57,15 +57,15 @@ export const addIconFile = (
     return setAuthentication(server, "zazie", privileges, jar)
     .flatMap(() =>
         testUploadRequest({
-            url: getURL(server, createIconFileURL(iconId, format, size)),
+            url: getURL(server, createIconFileURL(iconName, format, size)),
             method: "POST",
             formData,
             jar
         }));
 };
 
-const createIconFileURL: (iconId: number, format: string, size: string) => string
-    = (iconId, format, size) => `/icons/${iconId}/formats/${format}/sizes/${size}`;
+const createIconFileURL: (iconName: string, format: string, size: string) => string
+    = (iconName, format, size) => `/icons/${iconName}/formats/${format}/sizes/${size}`;
 
 describe(iconFileEndpointPath, () => {
     let pool: Pool;
@@ -108,17 +108,19 @@ describe(iconFileEndpointPath, () => {
     });
 
     const checkIconFileContent = (
-        iconId: number, format: string, size: string, expectedContent: Buffer
+        iconName: string, format: string, size: string, expectedContent: Buffer
     ) => {
         return testRequest({
             url: getURL(
                 server,
-                createIconFileURL(iconId, format, size)
+                createIconFileURL(iconName, format, size)
             ),
-            method: "GET"
+            method: "GET",
+            json: false,
+            encoding: null
         })
         .map(getResult => {
-            const actualContent = Buffer.from(getResult.body, "binary");
+            const actualContent: Buffer = getResult.body;
             expect(getResult.response.statusCode).toEqual(200);
             expect(Buffer.compare(actualContent, expectedContent)).toEqual(0);
         });
@@ -127,28 +129,28 @@ describe(iconFileEndpointPath, () => {
     const createIconThenAddIconFileWithPrivileges = (privileges: string[]) => {
         const getIconFileFromDB: GetIconFile = getIconFileFromDBProvider(pool);
 
+        const iconName = "cartouche";
         const format = "french";
         const size1 = "great";
-        const upForm1 = createAddIconFormData("cartouche", format, size1);
+        const upForm1 = createAddIconFormData(iconName, format, size1);
         const upForm2 = createAddIconFileFormData();
         const size2 = "large";
         return createInitialIcon(server, upForm1)
-        .flatMap(iconId =>
-            addIconFile(server, privileges, iconId, format, size2, upForm2)
-            .map(result => expect(result.response.statusCode).toEqual(201))
-            .flatMap(getAllIconsFromDB(pool))
-            .flatMap(iconInfoList => {
-                expect(iconInfoList.size).toEqual(1);
-                expect(iconInfoList.get(0).id).toEqual(iconId);
-                expect(iconInfoList.get(0).iconFiles.size).toEqual(2);
-                return getIconFileFromDB(iconId, format, size1)
-                .map(buffer => {
-                    expect(Buffer.compare(buffer, upForm1.iconFile.value)).toEqual(0);
-                    return getIconFileFromDB(iconId, format, size2);
-                });
-            })
-            .flatMap(() => checkIconFileContent(iconId, format, size1, upForm1.iconFile.value))
-            .flatMap(() => checkIconFileContent(iconId, format, size2, upForm2.iconFile.value)));
+        .flatMap(iconId => addIconFile(server, privileges, iconName, format, size2, upForm2))
+        .map(result => expect(result.response.statusCode).toEqual(201))
+        .flatMap(getAllIconsFromDB(pool))
+        .flatMap(iconInfoList => {
+            expect(iconInfoList.size).toEqual(1);
+            expect(iconInfoList.get(0).iconName).toEqual(iconName);
+            expect(iconInfoList.get(0).iconFiles.size).toEqual(2);
+            return getIconFileFromDB(iconName, format, size1)
+            .map(buffer => {
+                expect(Buffer.compare(buffer, upForm1.iconFile.value)).toEqual(0);
+                return getIconFileFromDB(iconName, format, size2);
+            });
+        })
+        .flatMap(() => checkIconFileContent(iconName, format, size1, upForm1.iconFile.value))
+        .flatMap(() => checkIconFileContent(iconName, format, size2, upForm2.iconFile.value));
     };
 
     it ("POST should complete with CREATE_ICON privilege", done => {
@@ -187,7 +189,7 @@ describe(iconFileEndpointPath, () => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
                 return checkIconFileContent(
-                    result.body.iconId, formData.fileFormat, formData.iconSize, formData.iconFile.value
+                    formData.name, formData.format, formData.size, formData.iconFile.value
                 );
             })
         )

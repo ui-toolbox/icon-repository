@@ -8,7 +8,7 @@ import { createTestPool,
     getCheckIconFile,
     assertIconCount
  } from "./db-test-utils";
-import { CreateIconInfo } from "../../src/icon";
+import { IconFile } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
@@ -24,8 +24,8 @@ describe("addIconToDBProvider", () => {
 
     it("should be capable to add a first icon", done => {
         const user = "zazie";
-        const iconFileInfo: CreateIconInfo = {
-            iconName: "metro-icon",
+        const iconFileInfo: IconFile = {
+            name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
@@ -34,21 +34,21 @@ describe("addIconToDBProvider", () => {
         .flatMap(result => {
             const expectedId = 1;
             expect(result).toEqual(expectedId);
-            return getCheckIconFile(getIconFile(pool), expectedId, iconFileInfo);
+            return getCheckIconFile(getIconFile(pool), iconFileInfo);
         })
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it("should be capable to add a second icon", done => {
         const user = "zazie";
-        const iconFileInfo1: CreateIconInfo = {
-            iconName: "metro-icon",
+        const iconFileInfo1: IconFile = {
+            name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: CreateIconInfo = {
-            iconName: "animal-icon",
+        const iconFileInfo2: IconFile = {
+            name: "animal-icon",
             format: "french",
             size: "huge",
             content: crypto.randomBytes(4096)
@@ -61,8 +61,8 @@ describe("addIconToDBProvider", () => {
                 expect(result1).toEqual(expectedId1);
                 expect(result2).toEqual(expectedId2);
                 const getIconFileFromDB = getIconFile(pool);
-                return getCheckIconFile(getIconFileFromDB, expectedId1, iconFileInfo1)
-                    .flatMap(() => getCheckIconFile(getIconFileFromDB, expectedId2, iconFileInfo2));
+                return getCheckIconFile(getIconFileFromDB, iconFileInfo1)
+                    .flatMap(() => getCheckIconFile(getIconFileFromDB, iconFileInfo2));
             })
         )
         .flatMap(() => assertIconCount(pool, 2))
@@ -71,14 +71,14 @@ describe("addIconToDBProvider", () => {
 
     it("should rollback to last consistent state, in case an error occurs in sideEffect", done => {
         const user = "zazie";
-        const iconFileInfo1: CreateIconInfo = {
-            iconName: "metro-icon",
+        const iconFileInfo1: IconFile = {
+            name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: CreateIconInfo = {
-            iconName: "animal-icon",
+        const iconFileInfo2: IconFile = {
+            name: "animal-icon",
             format: "french",
             size: "huge",
             content: crypto.randomBytes(4096)
@@ -98,7 +98,7 @@ describe("addIconToDBProvider", () => {
                 const expectedId1 = 1;
                 expect(result1).toEqual(expectedId1);
                 const getIconFileFromDB = getIconFile(pool);
-                return getCheckIconFile(getIconFileFromDB, expectedId1, iconFileInfo1)
+                return getCheckIconFile(getIconFileFromDB, iconFileInfo1)
                     .flatMap(() => assertIconCount(pool, 1));
             })
         )

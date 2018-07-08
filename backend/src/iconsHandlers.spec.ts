@@ -1,27 +1,8 @@
 import "jasmine";
-import { Mock } from "ts-mocks";
-import { Request, Response } from "express";
-import * as Rx from "rxjs";
 
-import iconServiceProvider from "./iconsService";
-import iconsHandlersProvider, { IconDTO } from "./iconsHandlers";
-import { getDefaultConfiguration } from "./configuration";
+import { IconDTO } from "./iconsHandlers";
 import { Set } from "immutable";
 import { IconFileDescriptor, IconDescriptor } from "./icon";
-
-describe("icon endpoint", () => {
-    it("should return 404 status when icon not found on :path", done => {
-        const iconService = iconServiceProvider(getDefaultConfiguration, null, null);
-        spyOn(iconService, "getIcon").and.returnValue(Rx.Observable.throw({code: "ENOENT"}));
-        const req = new Mock<Request>({params: {path: "somepath"}}).Object;
-        const res = new Mock<Response>({ status: () => new Mock<Response>({ send: () => void 0}).Object }).Object;
-        iconsHandlersProvider(iconService).getIcon(req, res)
-        .then(() => {
-            expect(res.status).toHaveBeenCalledWith(404);
-            done();
-        });
-    });
-});
 
 describe("getAllIcons", () => {
     it("should return the list of icons with proper paths", () => {
@@ -30,27 +11,25 @@ describe("getAllIcons", () => {
         //       in the tested module
         const iconPathRoot: string = "/icon";
 
-        const iconId: number = 1;
-        const iconName: string = "cartouche";
+        const name: string = "cartouche";
         const iconFiles: Set<IconFileDescriptor> = Set([
             {format: "french", size: "great"},
             {format: "french", size: "huge"},
             {format: "english", size: "OK"},
             {format: "english", size: "nice"}
         ]);
-        const iconDesc: IconDescriptor = new IconDescriptor(iconId, iconName, iconFiles);
+        const iconDesc: IconDescriptor = new IconDescriptor(name, iconFiles);
 
         const expectedDTO: IconDTO = {
-            id: iconId,
-            iconName,
-            iconFiles: {
+            name,
+            paths: {
                 french: {
-                    great: iconPathRoot + "/formats/french/sizes/great",
-                    huge: iconPathRoot + "/formats/french/sizes/huge"
+                    great: iconPathRoot + "/cartouche/formats/french/sizes/great",
+                    huge: iconPathRoot + "/cartouche/formats/french/sizes/huge"
                 },
                 english: {
-                    OK: iconPathRoot + "/formats/english/sizes/OK",
-                    nice: iconPathRoot + "/formats/english/sizes/nice"
+                    OK: iconPathRoot + "/cartouche/formats/english/sizes/OK",
+                    nice: iconPathRoot + "/cartouche/formats/english/sizes/nice"
                 }
             }
         };

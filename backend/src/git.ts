@@ -1,15 +1,14 @@
 import * as path from "path";
-import { spawn, exec } from "child_process";
+import { spawn, exec, SpawnOptions } from "child_process";
 import { Observable, Observer } from "rxjs";
 import { mkdirMaybe, appendFile } from "./utils/rx";
 import {
     SerializableJobImpl,
-    JobDoneCallback,
-    JobResult,
     create as createSerializer
 } from "./utils/serializer";
-import logger from "./utils/logger";
-import { CreateIconInfo } from "./icon";
+import logger, { ContextAbleLogger } from "./utils/logger";
+import { IconFile } from "./icon";
+import { commandExecutor } from "./utils/command-executor";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -18,36 +17,18 @@ export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 export const createGitCommandExecutor: (iconRepository: string) => GitCommandExecutor
 = iconRepository => spawnArgs => {
     const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${iconRepository}`);
-    ctxLogger.debug("BEGIN");
-    let stdoutData: string = "";
-    const proc = spawn("git", spawnArgs, { cwd: iconRepository });
-    proc.stderr.on("data", data => ctxLogger.info(`stderr: ${data}`));
-    proc.stdout.on("data", data => {
-        ctxLogger.info(`stdout: ${data}`);
-        stdoutData += data;
-    });
-    return Observable.create((observer: Observer<string>) => {
-        proc.on("error", err => observer.error(err));
-        proc.on("close", code => {
-            if (code === 0) {
-                observer.next(stdoutData);
-                observer.complete();
-            } else {
-                observer.error(new Error(`Git command ${spawnArgs} failed with exit code ${code}`));
-            }
-        });
-    });
+    return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: iconRepository });
 };
 
-const enqueueJob = createSerializer("GIT");
+const enqueueJob = createSerializer("G I T");
 
-const getFileName: (inconFileInfo: CreateIconInfo) => string
-    = inconFileInfo => `${inconFileInfo.iconName}@${inconFileInfo.size}.${inconFileInfo.format}`;
+const getFileName: (inconFileInfo: IconFile) => string
+    = inconFileInfo => `${inconFileInfo.name}@${inconFileInfo.size}.${inconFileInfo.format}`;
 
 /*
  * @return an Observable for the path to the icon file relative to the local GIT repository's root.
  */
-const createIconFile: (inconFileInfo: CreateIconInfo, iconRepository: string) => Observable<string>
+const createIconFile: (inconFileInfo: IconFile, iconRepository: string) => Observable<string>
 = (inconFileInfo, iconRepository) =>
     mkdirMaybe(path.join(iconRepository, inconFileInfo.format))
     .flatMap(pathToFormatDir =>
@@ -82,43 +63,36 @@ const rollback: () => string[][] = () => [
 ];
 
 const createAddIconFileJob: (
-    inconFileInfo: CreateIconInfo,
+    inconFileInfo: IconFile,
     userName: string,
     gitExec: GitCommandExecutor,
     iconRepository: string
 ) => SerializableJobImpl
 = (inconFileInfo, userName, gitExec, iconRepository) => {
-    const ctxLogger = logger.createChild("add icon file");
+    const ctxLogger = logger.createChild("git: add icon file");
     ctxLogger.debug("BEGIN");
-    return (done: JobDoneCallback) =>
+    return () =>
             createIconFile(inconFileInfo, iconRepository)
             .flatMap(pathInRepo =>
                 gitExec(addToIndex(pathInRepo))
                 .flatMap(() =>
                     gitExec(commit(pathInRepo, userName)))
-                .mapTo(pathInRepo))
-            .subscribe(
-                pathInRepo => done(void 0, pathInRepo),
-                error => {
+                .map(() => ctxLogger.debug("icon file added"))
+                .catch(error => {
                     ctxLogger.error(`Adding file failed with ${error}`);
                     gitExec(rollback()[0])
                     .flatMap(() => gitExec(rollback()[1]))
                     .catch(errorInRollback => {
                         ctxLogger.error(errorInRollback);
                         return "dummy return value";
-                    })
-                    .subscribe(
-                        void 0,
-                        e => done(error, void 0),
-                        () => done(error, void 0)
-                    );
-                },
-                void 0
-            );
+                    });
+                    return Observable.throw(error);
+                })
+                .mapTo(pathInRepo));
 };
 
 type AddIconFile = (
-    inconFileInfo: CreateIconInfo,
+    inconFileInfo: IconFile,
     userName: string
 ) => Observable<void>;
 
@@ -132,24 +106,13 @@ type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunction
 const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => ({
     getRepoLocation: () => localIconRepositoryLocation,
 
-    addIconFile: (inconFileInfo, userName) => Observable.create((observer: Observer<string>) =>
-    enqueueJob(
+    addIconFile: (inconFileInfo, userName) => enqueueJob(
             createAddIconFileJob(
                 inconFileInfo,
                 userName,
                 createGitCommandExecutor(localIconRepositoryLocation),
                 localIconRepositoryLocation
-            ),
-            (error: Error, result: JobResult) => {
-                if (error) {
-                    observer.error(error);
-                } else {
-                    observer.next(result);
-                    observer.complete();
-                }
-            }
-        )
-    )
+            ))
 });
 
 export default gitAccessFunctionsProvider;

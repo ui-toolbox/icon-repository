@@ -1,9 +1,11 @@
 import * as util from "util";
 import "jasmine";
 
-import { SerializableJobImpl, JobDoneCallback, create as createSerializer } from "./serializer";
+import { SerializableJobImpl, create as createSerializer } from "./serializer";
+import { Observable, Observer } from "rxjs";
+import { boilerplateSubscribe } from "../../integration-tests/testUtils";
 
-interface IStepResult {
+interface StepResult {
     readonly batchId: number;
     readonly stepId: number;
 }
@@ -16,13 +18,13 @@ const createStepResult = (batchId: number, stepId: number) => ({
 type AsynchStep = (
     batchId: number,
     stepId: number,
-    resultList: IStepResult[],
+    resultList: StepResult[],
     done: (error: Error) => void
 ) => void;
 
 const createAsynchStep: (delay: number) => AsynchStep
 = delay => {
-    return (batchId: number, stepId: number, resultList: IStepResult[], done: (error: Error) => void) => {
+    return (batchId: number, stepId: number, resultList: StepResult[], done: (error: Error) => void) => {
         setTimeout(() => {
             resultList.push(createStepResult(batchId, stepId));
             done(void 0);
@@ -31,7 +33,7 @@ const createAsynchStep: (delay: number) => AsynchStep
 };
 
 const createFailingStep: () => AsynchStep = () => {
-    return (batchId: number, stepId: number, resultList: IStepResult[], done: (error: any) => void) => {
+    return (batchId: number, stepId: number, resultList: StepResult[], done: (error: any) => void) => {
         setTimeout(() => {
             done(new Error("Step failed"));
         });
@@ -41,26 +43,26 @@ const createFailingStep: () => AsynchStep = () => {
 const createJob: (
     id: number,
     batch: AsynchStep[],
-    resultList: IStepResult[],
+    resultList: StepResult[],
     assertFn: () => void
 ) => SerializableJobImpl
-= (id, batch, resultList, assertFn) => done => {
+= (id, batch, resultList, assertFn) => () => Observable.create((observer: Observer<StepResult>) => {
     const executeStep = (stepIndex: number) => {
         if (stepIndex < batch.length) {
             batch[stepIndex](id, stepIndex, resultList, (error: Error) => {
                 if (error) {
-                    done(error, void 0);
+                    observer.error(error);
                 } else {
                     executeStep(stepIndex + 1);
                 }
             });
         } else {
-            done(void 0, void 0);
             assertFn();
+            observer.complete();
         }
     };
     executeStep(0);
-};
+});
 
 const firstBatch: AsynchStep[] = [
     createAsynchStep(1000),
@@ -89,7 +91,7 @@ const expectedWithFirstBatchFailing = [
 
 describe("Test artifacts for serializer", () => {
     it("should give interleaved batch results without serialization", done => {
-        const result: IStepResult[] = [];
+        const result: StepResult[] = [];
         const assert = (id: string) => () => {
             if (result.length === 4) {
                 expect(result).not.toEqual(expected);
@@ -99,20 +101,20 @@ describe("Test artifacts for serializer", () => {
         const job1 = createJob(1, firstBatch, result, assert("ONE"));
         const job2 = createJob(2, secondBatch, result, assert("TWO"));
 
-        job1(() => void 0);
-        job2(() => void 0);
+        job1()
+        .subscribe(boilerplateSubscribe(fail, void 0));
+        job2()
+        .subscribe(boilerplateSubscribe(fail, void 0));
     });
 });
 
 describe("Asynch step batches serializer", () => {
     it("should have batches coming in later wait until batches that came in earlier complete", done => {
-        const batchCallbackSpy = jasmine.createSpy("Batch callback");
         const enqueueJob = createSerializer("TEST");
 
-        const result: IStepResult[] = [];
+        const result: StepResult[] = [];
         const assert = (id: string) => () => {
             if (result.length === 4) {
-                expect(batchCallbackSpy).toHaveBeenCalledWith(undefined, undefined);
                 expect(result).toEqual(expected);
                 done();
             }
@@ -120,21 +122,20 @@ describe("Asynch step batches serializer", () => {
         const job1 = createJob(1, firstBatch, result, assert("ONE"));
         const job2 = createJob(2, secondBatch, result, assert("TWO"));
 
-        enqueueJob(job1, batchCallbackSpy);
-        enqueueJob(job2, batchCallbackSpy);
+        enqueueJob(job1)
+        .subscribe(boilerplateSubscribe(fail, void 0));
+        enqueueJob(job2)
+        .subscribe(boilerplateSubscribe(fail, void 0));
     });
 });
 
 describe("Asynch step batches serializer", () => {
     it("should allow handling errors occurring in batches", done => {
-        const batchCallbackSpy = jasmine.createSpy("Batch callback");
-
         const enqueueJob = createSerializer("TEST");
 
-        const result: IStepResult[] = [];
+        const result: StepResult[] = [];
         const assert = (id: string) => () => {
             if (result.length === 2) {
-                expect(batchCallbackSpy).toHaveBeenCalledWith(new Error("Step failed"), undefined);
                 expect(result).toEqual(expectedWithFirstBatchFailing);
                 done();
             }
@@ -142,7 +143,16 @@ describe("Asynch step batches serializer", () => {
         const job1 = createJob(1, failingBatch, result, assert("ONE"));
         const job2 = createJob(2, secondBatch, result, assert("TWO"));
 
-        enqueueJob(job1, batchCallbackSpy);
-        enqueueJob(job2, batchCallbackSpy);
+        enqueueJob(job1)
+        .subscribe(
+            next => fail("job1 was expected to fail"),
+            error => {
+                expect(error).toEqual(new Error("Step failed"));
+                done();
+            },
+            void 0
+        );
+        enqueueJob(job2)
+        .subscribe(boilerplateSubscribe(fail, void 0));
     });
 });

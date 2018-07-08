@@ -41,7 +41,7 @@ describe("getConfigFilePath", () => {
 
     it("should return the correct profile config, if ICON_REPO_CONFIG_PROFILE", () => {
         const someProfileConfig = "some profile config";
-        const expected = path.join(getBuildDirectory(), "configurations", `${someProfileConfig}.json`);
+        const expected = path.resolve(getBuildDirectory(), "..", "configurations", `${someProfileConfig}.json`);
         setEnvVar("ICON_REPO_CONFIG_PROFILE", someProfileConfig);
         expect(getConfigFilePath()).toEqual(expected);
     });

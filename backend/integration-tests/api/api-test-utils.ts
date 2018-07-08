@@ -10,14 +10,14 @@ const req = request.defaults({
 });
 // request.debug = true;
 
-import { getDefaultConfiguration } from "../../src/configuration";
-import iconDAFsProvider from "../../src/db/db";
+import { getDefaultConfiguration, ConfigurationData } from "../../src/configuration";
+import iconDAFsProvider, { createConnectionProperties } from "../../src/db/db";
 import gitProvider from "../../src/git";
 import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { CreateIconInfo, IconDescriptor } from "../../src/icon";
+import { IconFile, IconDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
@@ -32,7 +32,7 @@ export const defaultTestServerconfig = Object.freeze({
 });
 
 export const startServer: StartServer = customConfig => {
-    const configData = Object.assign(
+    const configData: ConfigurationData = Object.assign(
         Object.assign(
             getDefaultConfiguration(),
             defaultTestServerconfig
@@ -40,8 +40,11 @@ export const startServer: StartServer = customConfig => {
         Object.assign(customConfig, {server_port: 0})
     );
     const iconService = iconServiceProvider(
-        getDefaultConfiguration,
-        iconDAFsProvider(() => configData),
+        {
+            allowedFormats: configData.icon_data_allowed_formats,
+            allowedSizes: configData.icon_data_allowed_sizes
+        },
+        iconDAFsProvider(createConnectionProperties(configData)),
         gitProvider(configData.icon_data_location_git)
     );
     const iconHandlers = iconHandlersProvider(iconService);
@@ -71,6 +74,10 @@ export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
 };
 
 export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;
+export const getURLBasicAuth = (
+    server: http.Server,
+    auth: string,
+    path: string) => `http://${auth}@localhost:${server.address().port}${path}`;
 
 interface IUploadRequestBuffer {
     readonly value: Buffer;
@@ -156,46 +163,40 @@ export interface IUploadFormData {
 }
 
 export interface ICreateIconFormData extends IUploadFormData {
-    readonly iconName: string;
-    readonly fileFormat: string;
-    readonly iconSize: string;
+    readonly name: string;
+    readonly format: string;
+    readonly size: string;
 }
 
-export const createAddIconFormData: (iconName: string, format: string, size: string) => ICreateIconFormData
-= (iconName, format, size) => ({
-    iconName,
-    fileFormat: format,
-    iconSize: size,
-    iconFile: createUploadBuffer(4096)
-});
+export const createAddIconFormData: (name: string, format: string, size: string) => ICreateIconFormData
+= (name, format, size) => ({ name, format, size, iconFile: createUploadBuffer(4096) });
 
-export const convertToAddIconRequest: (formData: ICreateIconFormData) => CreateIconInfo = formData => ({
-    iconName: formData.iconName,
-    format: formData.fileFormat,
-    size: formData.iconSize,
+export const convertToAddIconRequest: (formData: ICreateIconFormData) => IconFile = formData => ({
+    name: formData.name,
+    format: formData.format,
+    size: formData.size,
     content: formData.iconFile.value
 });
 
 export const convertToIconInfo: (iconFormData: ICreateIconFormData, id: number) => IconDescriptor
 = (iconFormData, id) => new IconDescriptor(
-    id,
-    iconFormData.iconName,
+    iconFormData.name,
     null).addIconFile({
-        format: iconFormData.fileFormat,
-        size: iconFormData.iconSize
+        format: iconFormData.format,
+        size: iconFormData.size
     });
 
 export const createAddIconFileFormData: () => IUploadFormData = () => ({
     iconFile: createUploadBuffer(4096)
 });
 
-interface ITestUploadRequestData {
+interface TestUploadRequestData {
     url: string;
     method: string;
     formData: IUploadFormData;
     jar: request.CookieJar;
 }
-type TestUploadRequest = (requestData: ITestUploadRequestData) => Observable<IRequestResult>;
+type TestUploadRequest = (requestData: TestUploadRequestData) => Observable<IRequestResult>;
 export const testUploadRequest: TestUploadRequest
     = uploadRequestData => testRequest({...uploadRequestData, json: true});
 

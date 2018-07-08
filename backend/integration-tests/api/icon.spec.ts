@@ -25,7 +25,7 @@ import {
 import {
     getCurrentCommit as getCurrentGitCommit,
     assertGitStatus } from "../git/git-test-utils";
-import { getIconFile, getAllIcons } from "../../src/db/db";
+import { describeAllIcons, describeIcon, getIconFile } from "../../src/db/db";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { IconDescriptor } from "../../src/icon";
@@ -74,7 +74,7 @@ describe(iconEndpointPath, () => {
             expect(result.response.statusCode).toEqual(201);
             expect(result.body.iconId).toEqual(1);
         })
-        .flatMap(() => getAllIcons(pool)())
+        .flatMap(() => describeAllIcons(pool)())
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
             expect(iconInfoList.get(0)).toEqual(expectedIconInfo);
@@ -121,12 +121,10 @@ describe(iconEndpointPath, () => {
                     .flatMap(() =>
                         getCheckIconFile(
                             getIconFileFromDB,
-                            result1.body.iconId,
                             convertToAddIconRequest(formData1)))
                     .flatMap(() =>
                         getCheckIconFile(
                             getIconFileFromDB,
-                            result2.body.iconId,
                             convertToAddIconRequest(formData2)
                         ));
                 })
@@ -134,7 +132,7 @@ describe(iconEndpointPath, () => {
         })
         .flatMap(() => assertIconCount(pool, 2))
         .flatMap(() => assertGitStatus())
-        .flatMap(() => getAllIcons(pool)())
+        .flatMap(() => describeAllIcons(pool)())
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(2);
             expect(iconInfoList).toEqual(expectedIconInfoList);
@@ -179,13 +177,12 @@ describe(iconEndpointPath, () => {
                 .flatMap(() =>
                     getCheckIconFile(
                         getIconFileFromDB,
-                        result1.body.iconId,
                         convertToAddIconRequest(formData1)));
             });
         })
         .flatMap(() => assertIconCount(pool, 1))
         .flatMap(() => assertGitStatus())
-        .flatMap(() => getAllIcons(pool)())
+        .flatMap(() => describeAllIcons(pool)())
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
             expect(iconInfoList).toEqual(expectedIconInfoList);

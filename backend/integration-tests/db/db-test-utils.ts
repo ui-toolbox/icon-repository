@@ -1,10 +1,11 @@
-import { createPool, query, getIconFile, GetIconFile } from "../../src/db/db";
+import { createPool, query, getIconFile, GetIconFile, createConnectionProperties } from "../../src/db/db";
 import { Pool } from "pg";
 import { Observable } from "rxjs";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { iconTableSpec } from "../../src/db/db-schema";
-import { CreateIconInfo } from "../../src/icon";
+import { IconFile } from "../../src/icon";
+import { getDefaultConfiguration } from "../../src/configuration";
 
 export const assertIconCount = (pool: Pool, expectedCount: number) =>
 query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
@@ -12,16 +13,15 @@ query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
 
 export const getCheckIconFile: (
     getIconFileFromDB: GetIconFile,
-    iconID: number,
-    iconFileInfo: CreateIconInfo
+    iconFileInfo: IconFile
 ) => Observable<boolean>
-= (getIconFileFromDB, iconID, iconFileInfo) => {
-    return getIconFileFromDB(iconID, iconFileInfo.format, iconFileInfo.size)
+= (getIconFileFromDB, iconFileInfo) => {
+    return getIconFileFromDB(iconFileInfo.name, iconFileInfo.format, iconFileInfo.size)
         .map(content1 => expect(Buffer.compare(content1, iconFileInfo.content)).toEqual(0));
 };
 
 export const createTestPool = (setPool: (p: Pool) => void, fail: (err: any) => void) => (done: () => void) =>
-    createPool()
+    createPool(createConnectionProperties(getDefaultConfiguration()))
     .subscribe(
         p => {
             setPool(p);

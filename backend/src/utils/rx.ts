@@ -1,13 +1,17 @@
 import * as fs from "fs";
 import * as rimraf from "rimraf";
 import { Observable, Observer } from "rxjs";
+import { pathMatch } from "tough-cookie";
 
 export const fileExists: (pathToFile: string) => Observable<boolean> = Observable.bindCallback(fs.exists);
 
-const readFile: (pathToFile: string, callback: (err: NodeJS.ErrnoException, data: string) => void) => void
+const readFileUTF8: (pathToFile: string, callback: (err: NodeJS.ErrnoException, data: string) => void) => void
 = (pathToFile, callback) => fs.readFile(pathToFile, "utf8", callback);
 
-export const readTextFile: (pathToFile: string) => Observable<string> = Observable.bindNodeCallback(readFile);
+export const readTextFile: (pathToFile: string) => Observable<string> = Observable.bindNodeCallback(readFileUTF8);
+
+export const readdir: (path: string) => Observable<string[]> = Observable.bindNodeCallback(fs.readdir);
+export const readFile: (path: string) => Observable<Buffer> = Observable.bindNodeCallback(fs.readFile);
 
 export const stat: (pathToDir: string) => Observable<fs.Stats>
 = pathToDir => Observable.create((observer: Observer<fs.Stats>) =>

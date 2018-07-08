@@ -10,31 +10,23 @@ export interface IconFileData extends IconFileDescriptor {
 }
 
 export interface IconFile extends IconFileData {
-    readonly iconId: number;
-}
-export interface CreateIconInfo extends IconFileData {
-    readonly iconName: string;
-    // public readonly format: string;
-    // public readonly size: string;
-    // public readonly content: Buffer;
+    readonly name: string;
 }
 
 export class IconDescriptor {
-    public readonly id: number;
     public readonly iconName: string;
     public readonly iconFiles: Set<IconFileDescriptor>;
 
-    constructor(id: number, iconName: string, iconFiles: Set<IconFileDescriptor>) {
-        this.id = id;
+    constructor(iconName: string, iconFiles: Set<IconFileDescriptor>) {
         this.iconName = iconName;
         this.iconFiles = iconFiles || Set();
     }
 
     public addIconFile(iconFile: IconFileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.id, this.iconName, this.iconFiles.add(iconFile));
+        return new IconDescriptor(this.iconName, this.iconFiles.add(iconFile));
     }
 
     public removeIconFile(iconFile: IconFileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.id, this.iconName, this.iconFiles.remove(iconFile));
+        return new IconDescriptor(this.iconName, this.iconFiles.remove(iconFile));
     }
 }

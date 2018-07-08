@@ -2,8 +2,7 @@ import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult, Query, PoolClient } from "pg";
 
-import { CreateIconInfo, IconDescriptor, IconFileData, IconFile, IconFileDescriptor } from "../icon";
-import appConfigProvider, { ConfigurationDataProvider } from "../configuration";
+import { IconDescriptor, IconFileData, IconFile, IconFileDescriptor } from "../icon";
 import logger from "../utils/logger";
 import {
     IconFileTableColumnsDef,
@@ -16,25 +15,56 @@ import { last } from "rxjs/operator/last";
 
 const ctxLogger = logger.createChild("db");
 
-const createPoolUsing: (configProvider: ConfigurationDataProvider) => Pool
-= config => {
-        const connOptions = {
-            user: config().conn_user,
-            host: config().conn_host,
-            database: config().conn_database,
-            password: config().conn_password,
-            port: parseInt(config().conn_port, 10)
-        };
-        const pool = new Pool(connOptions);
-        pool.on("error", (err, client) => {
-            ctxLogger.error("Unexpected error on idle client: %o", err);
-            process.exit(-1);
-        });
-        return pool;
-    };
+export interface ConnectionProperties {
+    readonly user: string;
+    readonly host: string;
+    readonly database: string;
+    readonly password: string;
+    readonly port: string;
+}
 
-export const createPool: () => Observable<Pool>
-= () => appConfigProvider.map(config => createPoolUsing(config));
+const checkDefined: (value: string, name: string) => void = (value, name) => {
+    if (typeof value === "undefined") {
+        throw new Error(`Connection property ${name} is undefined`);
+    }
+};
+
+export const createConnectionProperties: (config: any) => ConnectionProperties
+= config => {
+    checkDefined(config.conn_user, "conn_user");
+    checkDefined(config.conn_host, "conn_host");
+    checkDefined(config.conn_database, "conn_database");
+    checkDefined(config.conn_password, "conn_password");
+    checkDefined(config.conn_port, "conn_port");
+
+    return {
+        user: config.conn_user,
+        host: config.conn_host,
+        database: config.conn_database,
+        password: config.conn_password,
+        port: config.conn_port
+    };
+};
+
+const createPoolUsing: (connectionProperties: ConnectionProperties) => Pool
+= connectionProperties => {
+    const connOptions = {
+        user: connectionProperties.user,
+        password: connectionProperties.password,
+        host: connectionProperties.host,
+        database: connectionProperties.database,
+        port: parseInt(connectionProperties.port, 10)
+    };
+    const pool = new Pool(connOptions);
+    pool.on("error", (err, client) => {
+        ctxLogger.error("Unexpected error on idle client: %o", err);
+        process.exit(-1);
+    });
+    return pool;
+};
+
+export const createPool: (connectionProperties: ConnectionProperties) => Observable<Pool>
+= connectionProperties => Observable.of(createPoolUsing(connectionProperties));
 
 export const query: (pool: Pool, statement: string, parameters: any[]) => Observable<QueryResult>
 = (pool, statement, parameters) => {
@@ -101,12 +131,11 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
         )
         .catch(error =>
             conn.executeQuery("ROLLBACK", [])
-            .mapTo(conn.release())
             .catch(rollbakcError => {
-                conn.release();
                 ctxLogger.error("Error while rolling back: %o", rollbakcError);
                 return Observable.throw(error);
             })
+            .finally(() => conn.release())
             .map(() => { throw error; })
         )
     );
@@ -119,9 +148,9 @@ type AddIconFileToTable = (
 ) => Observable<number>;
 const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modifiedBy) => {
     const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
-                                "VALUES($1, $2, $3, $4) RETURNING id";
+                                "SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
     return executeQuery(addIconFile, [
-        iconFileInfo.iconId,
+        iconFileInfo.name,
         iconFileInfo.format,
         iconFileInfo.size,
         iconFileInfo.content
@@ -129,24 +158,27 @@ const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modi
     .map(result => result.rows[0].id);
 };
 
-type AddIconToDB = (
-    iconInfo: CreateIconInfo,
+type AddIcon = (
+    iconInfo: IconFile,
     modifiedBy: string,
     createSideEffect?: () => Observable<void>
 ) => Observable<number>;
-type AddIconToDBProvider = (pool: Pool) => AddIconToDB;
-export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
+type AddIconProvider = (pool: Pool) => AddIcon;
+export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
     const iconVersion = 1;
     const addIconSQL: string = "INSERT INTO icon(name, version, modified_by) " +
                                 "VALUES($1, $2, $3) RETURNING id";
-    const addIconParams = [iconInfo.iconName, iconVersion, modifiedBy];
+    const addIconParams = [iconInfo.name, iconVersion, modifiedBy];
     return tx<number>(
         pool,
         executeQuery => executeQuery(addIconSQL, addIconParams)
                 .flatMap(addIconResult => {
                     const iconId = addIconResult.rows[0].id;
                     return addIconFileToTable(executeQuery, {
-                        iconId, format: iconInfo.format, size: iconInfo.size, content: iconInfo.content
+                        name: iconInfo.name,
+                        format: iconInfo.format,
+                        size: iconInfo.size,
+                        content: iconInfo.content
                     }, modifiedBy)
                     .flatMap(() => createSideEffect ? createSideEffect() : Observable.of(void 0))
                     .mapTo(iconId);
@@ -155,30 +187,36 @@ export const createIcon: AddIconToDBProvider = pool => (iconInfo, modifiedBy, cr
 };
 
 export type GetIconFile = (
-    iconId: number,
+    iconName: string,
     format: string,
     iconSize: string) => Observable<Buffer>;
-export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconId, format, iconSize) => {
-    const getIconFileSQL = "SELECT content FROM icon_file " +
-                            "WHERE icon_id = $1 AND " +
+export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconName, format, iconSize) => {
+    const getIconFileSQL = "SELECT content FROM icon, icon_file " +
+                            "WHERE icon_id = icon.id AND " +
                                 "file_format = $2 AND " +
-                                "icon_size = $3";
-    return query(pool, getIconFileSQL, [iconId, format, iconSize])
+                                "icon_size = $3 AND " +
+                                "icon.name = $1";
+    return query(pool, getIconFileSQL, [iconName, format, iconSize])
         .map(result => result.rows[0].content);
 };
 
-type AddIconFile = (iconFile: IconFile, modifiedBy: string) => Observable<number>;
+type AddIconFile = (
+    iconFile: IconFile,
+    modifiedBy: string,
+    createSideEffect?: () => Observable<void>) => Observable<number>;
 
-const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifiedBy) => {
-    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE id = $1 FOR UPDATE";
-    const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE id = $2";
+const addIconFileToIcon: (pool: Pool) => AddIconFile
+= pool => (iconFile, modifiedBy, createSideEffect) => {
+    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE name = $1 FOR UPDATE";
+    const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE name = $2";
     return tx(pool, (executeQuery: ExecuteQuery) => {
-        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.iconId])
+        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.name])
         .flatMap(queryResult =>
             addIconFileToTable(executeQuery, iconFile, modifiedBy)
             .flatMap(iconFileId => {
                 const version = queryResult.rows[0].version;
-                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.iconId])
+                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.name])
+                .flatMap(() => createSideEffect ? createSideEffect() : Observable.of(void 0))
                 .map(() => iconFileId);
             })
         );
@@ -186,25 +224,27 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile = pool => (iconFile, modifi
 };
 
 export interface IconDAFs {
-    readonly createIcon: AddIconToDB;
+    readonly createIcon: AddIcon;
     readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
-    readonly getAllIcons: GetAllIcons;
+    readonly describeAllIcons: DescribeAllIcons;
+    readonly describeIcon: DescribeIcon;
 }
 
-const dbAccessProvider: (configProvider: ConfigurationDataProvider) => IconDAFs
-= configProvider => {
-    const pool = createPoolUsing(configProvider);
+const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
+= connectionProperties => {
+    const pool = createPoolUsing(connectionProperties);
     return {
         createIcon: createIcon(pool),
         getIconFile: getIconFile(pool),
         addIconFileToIcon: addIconFileToIcon(pool),
-        getAllIcons: getAllIcons(pool)
+        describeAllIcons: describeAllIcons(pool),
+        describeIcon: describeIcon(pool)
     };
 };
 
-type GetAllIcons = () => Observable<List<IconDescriptor>>;
-export const getAllIcons: (pool: Pool) => GetAllIcons
+type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
+export const describeAllIcons: (pool: Pool) => DescribeAllIcons
 = pool => () => {
     const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
     const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
@@ -226,14 +266,49 @@ export const getAllIcons: (pool: Pool) => GetAllIcons
             };
             let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
-            if (!lastIconInfo || row.icon_id !== lastIconInfo.id) {
-                lastIconInfo = new IconDescriptor(row.icon_id, row.icon_name, Set());
+            if (!lastIconInfo || row.icon_name !== lastIconInfo.iconName) {
+                lastIconInfo = new IconDescriptor(row.icon_name, Set());
                 lastIndex++;
             }
             return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));
         },
         List()
     ));
+};
+
+type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
+export const describeIcon: (pool: Pool) => DescribeIcon
+= pool => iconName => {
+    const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
+    const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
+    const sql: string =
+                "SELECT icon.name as icon_name, " +
+                    "icon.id as icon_id, " +
+                    "icon.version as icon_version, " +
+                    "icon_file.file_format as icon_file_format, " +
+                    "icon_file.icon_size as icon_size " +
+                "FROM icon, icon_file " +
+                    "WHERE icon.id = icon_file.icon_id AND " +
+                        "icon.name = $1 " +
+                    "ORDER BY icon_id, icon_file_format, icon_size";
+    return query(pool, sql, [iconName])
+    .map(result => result.rows.reduce(
+        (iconInfoList: List<IconDescriptor>, row: any) => {
+            const iconFile: IconFileDescriptor = {
+                format: row.icon_file_format,
+                size: row.icon_size
+            };
+            let lastIconInfo: IconDescriptor = iconInfoList.last();
+            let lastIndex: number = iconInfoList.size - 1;
+            if (!lastIconInfo || row.icon_name !== lastIconInfo.iconName) {
+                lastIconInfo = new IconDescriptor(row.icon_name, Set());
+                lastIndex++;
+            }
+            return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));
+        },
+        List()
+    ))
+    .map(list => list.get(0));
 };
 
 export default dbAccessProvider;

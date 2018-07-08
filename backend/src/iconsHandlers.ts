@@ -1,15 +1,14 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { CreateIconInfo, IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
-import { IconService, GetAllIcons } from "./iconsService";
+import { IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 import { Set } from "immutable";
 export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
-    readonly getAllIconsFromGit: (iconPathRoot: string) => (req: Request, res: Response) => void;
-    readonly getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
-    readonly getIcon: (req: Request, res: Response) => Promise<void>;
+    readonly describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
+    readonly describeIcon: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
@@ -21,9 +20,9 @@ export interface IconPathsDTO {
     };
 }
 
-type CreateIconFilePaths = (baseUrl: string, iconFiles: Set<IconFileDescriptor>) => IconPathsDTO;
+type CreateIconFilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPathsDTO;
 
-const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFiles
+const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconDesc) => iconDesc.iconFiles
     .groupBy(ifDesc => ifDesc.format)
     .reduce(
         (paths, fileDescCollection, format) => ({
@@ -31,7 +30,7 @@ const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFil
             [format]: fileDescCollection.reduce(
                 (sizeToPath, fdescItem) => ({
                     ...sizeToPath,
-                    [fdescItem.size]: `${baseUrl}/formats/${format}/sizes/${fdescItem.size}`
+                    [fdescItem.size]: `${baseUrl}/${iconDesc.iconName}/formats/${format}/sizes/${fdescItem.size}`
                 }),
                 {}
             )
@@ -40,27 +39,39 @@ const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFil
     );
 
 export class IconDTO {
-    public readonly id: number;
-    public readonly iconName: string;
-    public readonly iconFiles: IconPathsDTO;
+    public readonly name: string;
+    public readonly paths: IconPathsDTO;
 
     constructor(iconPathRoot: string, iconDesc: IconDescriptor) {
-        this.id = iconDesc.id;
-        this.iconName = iconDesc.iconName;
-        this.iconFiles = createIconFilePaths(iconPathRoot, iconDesc.iconFiles);
+        this.name = iconDesc.iconName;
+        this.paths = createIconFilePaths(iconPathRoot, iconDesc);
     }
 }
 
-const getAllIcons: (getter: GetAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
+const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
 = (getter, iconPathRoot) => (req, res) => {
     const log = logger.createChild(`${req.url} request handler`);
     getter()
+    .map(iconList => iconList.map(iconDescriptor => new IconDTO(iconPathRoot, iconDescriptor)).toArray())
     .subscribe(
-        iconList => {
-            res.send(iconList.map(iconDescriptor => new IconDTO(iconPathRoot, iconDescriptor)).toArray());
-        },
+        iconDTOArray => res.send(iconDTOArray),
         error => {
             log.error("Failed to retrieve icons", error);
+            res.status(500).send(error.message);
+        },
+        void 0
+    );
+};
+
+const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Request, res: Response) => void
+= (getter, iconPathRoot) => (req, res) => {
+    const log = logger.createChild(`${req.url} request handler`);
+    getter(req.params.name)
+    .map(iconDescriptor => iconDescriptor ? new IconDTO(iconPathRoot, iconDescriptor) : void 0)
+    .subscribe(
+        iconDTO => iconDTO ? res.send(iconDTO) : res.status(404).end(),
+        error => {
+            log.error("Failed to retrieve icon description", error);
             res.status(500).send(error.message);
         },
         void 0
@@ -77,35 +88,20 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             res.status(500).send(err.message);
         }
     ),
-    getAllIconsFromGit:  (iconPathRoot: string) =>  (req: Request, res: Response) =>
-        getAllIcons(iconService.getAllIconsFromGit, iconPathRoot)(req, res),
 
-    getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
-        getAllIcons(iconService.getAllIcons, iconPathRoot)(req, res),
+    describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
+        describeAllIcons(iconService.describeAllIcons, iconPathRoot)(req, res),
 
-    getIcon: (req: Request, res: Response) =>
-        iconService.getIcon(req.params.path)
-            .toPromise()
-            .then(
-                icon => {
-                    res.contentType(icon.fileFormat);
-                    res.end(icon.fileData);
-                }
-            )
-            .catch(error => {
-                if (error.code === "ENOENT") {
-                    res.status(404).send(`Icon not found on path: ${req.params.path}`);
-                } else {
-                    res.status(500).send(`Error while retrieving icon on path: ${req.params.path}`);
-                }
-            }),
+    describeIcon: (iconPathRoot: string) => (req: Request, res: Response) =>
+        describeIcon(iconService.describeIcon, iconPathRoot)(req, res),
+
     getIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("getIconFile");
-        iconService.getIconFile(req.params.id, req.params.format, req.params.size)
+        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
         .toPromise()
         .then(
             result => {
-                res.send(result.toString("binary"));
+                res.type(req.params.format).send(result);
             },
             error => {
                 ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
@@ -118,10 +114,10 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     createIcon: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("createIcon");
         ctxLogger.info("START");
-        const iconData: CreateIconInfo = {
-            iconName: req.body.iconName,
-            format: req.body.fileFormat,
-            size: req.body.iconSize,
+        const iconData: IconFile = {
+            name: req.body.name,
+            format: req.body.format,
+            size: req.body.size,
             content: (req.files as any)[0].buffer
         };
         iconService.createIcon(iconData, getAuthentication(req.session).username)
@@ -140,12 +136,12 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     addIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("addIconFile");
         const iconData: IconFile = {
-            iconId: req.params.id,
+            name: req.params.name,
             format: req.params.format,
             size: req.params.size,
             content: (req.files as any)[0].buffer
         };
-        if (!iconData.iconId ||
+        if (!iconData.name ||
                 !iconData.format || iconData.format === ":format" ||
                 !iconData.size || iconData.size === ":size" ||
                 !iconData.content) {

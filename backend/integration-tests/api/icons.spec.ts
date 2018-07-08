@@ -35,24 +35,20 @@ describe(iconRepoConfigPath, () => {
                                     "png"
                                 ],
                                 allowedIconSizes: [
-                                    "1x",
-                                    "2x",
-                                    "3x"
+                                    "18px", "24px", "48px", // for svg
+                                    "18dp", "24dp", "36dp", "48dp", "144dp" // for png
                                 ]
                             });
                         })
-                        .catch(error => {
-                            server.close();
-                            return Rx.Observable.throw(error);
-                        })
+                        .finally(() => server.close())
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 });
 
-const getAllIconsPath = "/icons";
+const allIconsPath = "/icons";
 
-describe(getAllIconsPath, () => {
+describe(allIconsPath, () => {
 
     let pool: Pool;
     let server: Server;
@@ -62,11 +58,11 @@ describe(getAllIconsPath, () => {
     beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
     afterEach(done => tearDownGitRepoAndServer(server, done));
 
-    it("should return the description of all icons in the repository", done => {
+    it("GET should return the description of all icons in the repository", done => {
         const icon1: ICreateIconFormData = {
-            iconName: "zazie",
-            fileFormat: "french",
-            iconSize: "great",
+            name: "zazie",
+            format: "french",
+            size: "great",
             iconFile: createUploadBuffer(4096)
         };
         const icon1File2: IconFileDescriptor = {
@@ -75,9 +71,9 @@ describe(getAllIconsPath, () => {
         };
 
         const icon2: ICreateIconFormData = {
-            iconName: "cartouche",
-            fileFormat: "belgique",
-            iconSize: "huge",
+            name: "cartouche",
+            format: "belgique",
+            size: "huge",
             iconFile: createUploadBuffer(4096)
         };
         const icon2File2: IconFileDescriptor = {
@@ -87,32 +83,30 @@ describe(getAllIconsPath, () => {
 
         const expectedReply = [
             {
-                id: 1,
-                iconName: icon1.iconName,
-                iconFiles: {
-                    [icon1.fileFormat]: {
-                        [icon1.iconSize]: `/icons/formats/${icon1.fileFormat}/sizes/${icon1.iconSize}`,
-                        [icon1File2.size]: `/icons/formats/${icon1.fileFormat}/sizes/${icon1File2.size}`
+                name: icon1.name,
+                paths: {
+                    [icon1.format]: {
+                        [icon1.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1.size}`,
+                        [icon1File2.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1File2.size}`
                     }
                 }
             },
             {
-                id: 2,
-                iconName: icon2.iconName,
-                iconFiles: {
-                    [icon2.fileFormat]: {
-                        [icon2.iconSize]: `/icons/formats/${icon2.fileFormat}/sizes/${icon2.iconSize}`
+                name: icon2.name,
+                paths: {
+                    [icon2.format]: {
+                        [icon2.size]: `/icons/${icon2.name}/formats/${icon2.format}/sizes/${icon2.size}`
                     },
                     [icon2File2.format]: {
-                        [icon2File2.size]: `/icons/formats/${icon2File2.format}/sizes/${icon2File2.size}`
+                        [icon2File2.size]: `/icons/${icon2.name}/formats/${icon2File2.format}/sizes/${icon2File2.size}`
                     }
                 }
             }
         ];
 
-        const createIcon1Form = createAddIconFormData(icon1.iconName, icon1.fileFormat, icon1.iconSize);
+        const createIcon1Form = createAddIconFormData(icon1.name, icon1.format, icon1.size);
         const icon1File2FormData = createAddIconFileFormData();
-        const createIcon2Form = createAddIconFormData(icon2.iconName, icon2.fileFormat, icon2.iconSize);
+        const createIcon2Form = createAddIconFormData(icon2.name, icon2.format, icon2.size);
         const icon2File2FormData = createAddIconFileFormData();
         return createInitialIcon(server, createIcon1Form)
         .flatMap(iconId => addIconFile(
@@ -120,18 +114,79 @@ describe(getAllIconsPath, () => {
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
-            iconId, icon1File2.format, icon1File2.size, icon1File2FormData))
+            icon1.name, icon1File2.format, icon1File2.size, icon1File2FormData))
         .flatMap(() => createInitialIcon(server, createIcon2Form))
         .flatMap(iconId => addIconFile(
             server,
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
-            iconId, icon2File2.format, icon2File2.size, icon2File2FormData))
+            icon2.name, icon2File2.format, icon2File2.size, icon2File2FormData))
         .flatMap(() => testRequest({
             url: getURL(server, "/icons")
         }))
         .map(actualReply => expect(JSON.parse(actualReply.body)).toEqual(expectedReply))
+        .subscribe(boilerplateSubscribe(fail, done));
+    });
+
+});
+
+const singleIconPath = allIconsPath + "/:name";
+describe(singleIconPath, () => {
+    let pool: Pool;
+    let server: Server;
+
+    beforeAll(createTestPool(p => pool = p, fail));
+    afterAll(terminateTestPool(pool));
+    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(pool, sourceServer => server = sourceServer, done));
+    afterEach(done => tearDownGitRepoAndServer(server, done));
+
+    it ("GET should describe the icon", done => {
+        const icon1: ICreateIconFormData = {
+            name: "zazie",
+            format: "french",
+            size: "great",
+            iconFile: createUploadBuffer(4096)
+        };
+        const icon1File2: IconFileDescriptor = {
+            format: "french",
+            size: "big"
+        };
+
+        const expectedReply = {
+            name: icon1.name,
+            paths: {
+                [icon1.format]: {
+                    [icon1.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1.size}`,
+                    [icon1File2.size]: `/icons/${icon1.name}/formats/${icon1.format}/sizes/${icon1File2.size}`
+                }
+            }
+        };
+
+        const createIcon1Form = createAddIconFormData(icon1.name, icon1.format, icon1.size);
+        const icon1File2FormData = createAddIconFileFormData();
+        return createInitialIcon(server, createIcon1Form)
+        .flatMap(iconId => addIconFile(
+            server,
+            [
+                privilegeDictionary.ADD_ICON_FILE
+            ],
+            icon1.name, icon1File2.format, icon1File2.size, icon1File2FormData))
+        .flatMap(() => testRequest({
+            url: getURL(server, `/icons/${icon1.name}`)
+        }))
+        .map(actualReply => {
+            expect(actualReply.response.statusCode).toEqual(200);
+            expect(JSON.parse(actualReply.body)).toEqual(expectedReply);
+        })
+        .subscribe(boilerplateSubscribe(fail, done));
+    });
+
+    it ("GET should return 404 for non-existent icon", done => {
+        testRequest({
+            url: getURL(server, `/icons/somenonexistentname`)
+        })
+        .map(actualReply => expect(actualReply.response.statusCode).toEqual(404))
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
