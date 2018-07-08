@@ -1,15 +1,13 @@
 import "jasmine";
 import { Mock } from "ts-mocks";
 import { Request, Response } from "express";
-import * as http from "http";
-import * as fs from "fs";
 import * as Rx from "rxjs";
 
-import * as server from "./server";
-
 import iconServiceProvider from "./iconsService";
-import iconsHandlersProvider from "./iconsHandlers";
+import iconsHandlersProvider, { IconDTO } from "./iconsHandlers";
 import { getDefaultConfiguration } from "./configuration";
+import { Set } from "immutable";
+import { IconFileDescriptor, IconDescriptor } from "./icon";
 
 describe("icon endpoint", () => {
     it("should return 404 status when icon not found on :path", done => {
@@ -22,5 +20,41 @@ describe("icon endpoint", () => {
             expect(res.status).toHaveBeenCalledWith(404);
             done();
         });
+    });
+});
+
+describe("getAllIcons", () => {
+    it("should return the list of icons with proper paths", () => {
+        // TODO: Implement the verification of the actual requirement,
+        //       not just a part of it. Then stop exporting "createPaths"
+        //       in the tested module
+        const iconPathRoot: string = "/icon";
+
+        const iconId: number = 1;
+        const iconName: string = "cartouche";
+        const iconFiles: Set<IconFileDescriptor> = Set([
+            {format: "french", size: "great"},
+            {format: "french", size: "huge"},
+            {format: "english", size: "OK"},
+            {format: "english", size: "nice"}
+        ]);
+        const iconDesc: IconDescriptor = new IconDescriptor(iconId, iconName, iconFiles);
+
+        const expectedDTO: IconDTO = {
+            id: iconId,
+            iconName,
+            iconFiles: {
+                french: {
+                    great: iconPathRoot + "/formats/french/sizes/great",
+                    huge: iconPathRoot + "/formats/french/sizes/huge"
+                },
+                english: {
+                    OK: iconPathRoot + "/formats/english/sizes/OK",
+                    nice: iconPathRoot + "/formats/english/sizes/nice"
+                }
+            }
+        };
+
+        expect(JSON.parse(JSON.stringify(new IconDTO(iconPathRoot, iconDesc)))).toEqual(expectedDTO);
     });
 });

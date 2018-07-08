@@ -1,19 +1,73 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { CreateIconInfo, IconFile } from "./icon";
-import { IIconService } from "./iconsService";
+import { CreateIconInfo, IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconService, GetAllIcons } from "./iconsService";
 import { getAuthentication } from "./security/common";
-export interface IIconHanlders {
+import { Set } from "immutable";
+export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
-    readonly icons: (req: Request, res: Response) => void;
+    readonly getAllIconsFromGit: (iconPathRoot: string) => (req: Request, res: Response) => void;
+    readonly getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getIcon: (req: Request, res: Response) => Promise<void>;
     readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
 }
 
-const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
+export interface IconPathsDTO {
+    [format: string]: {
+        [size: string]: string
+    };
+}
+
+type CreateIconFilePaths = (baseUrl: string, iconFiles: Set<IconFileDescriptor>) => IconPathsDTO;
+
+const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconFiles) => iconFiles
+    .groupBy(ifDesc => ifDesc.format)
+    .reduce(
+        (paths, fileDescCollection, format) => ({
+            ...paths,
+            [format]: fileDescCollection.reduce(
+                (sizeToPath, fdescItem) => ({
+                    ...sizeToPath,
+                    [fdescItem.size]: `${baseUrl}/formats/${format}/sizes/${fdescItem.size}`
+                }),
+                {}
+            )
+        }),
+        {}
+    );
+
+export class IconDTO {
+    public readonly id: number;
+    public readonly iconName: string;
+    public readonly iconFiles: IconPathsDTO;
+
+    constructor(iconPathRoot: string, iconDesc: IconDescriptor) {
+        this.id = iconDesc.id;
+        this.iconName = iconDesc.iconName;
+        this.iconFiles = createIconFilePaths(iconPathRoot, iconDesc.iconFiles);
+    }
+}
+
+const getAllIcons: (getter: GetAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
+= (getter, iconPathRoot) => (req, res) => {
+    const log = logger.createChild(`${req.url} request handler`);
+    getter()
+    .subscribe(
+        iconList => {
+            res.send(iconList.map(iconDescriptor => new IconDTO(iconPathRoot, iconDescriptor)).toArray());
+        },
+        error => {
+            log.error("Failed to retrieve icons", error);
+            res.status(500).send(error.message);
+        },
+        void 0
+    );
+};
+
+const iconHandlersProvider: (iconService: IconService) => IconHanlders
 = iconService => ({
     getIconRepoConfig: (req: Request, res: Response) => iconService.getRepoConfiguration().toPromise()
     .then(
@@ -23,17 +77,12 @@ const iconHandlersProvider: (iconService: IIconService) => IIconHanlders
             res.status(500).send(err.message);
         }
     ),
-    icons: (req: Request, res: Response) => {
-        const log = logger.createChild(`"/icons" request handler`);
-        iconService.getIcons().toPromise()
-        .then(
-            iconList => res.send(iconList),
-            err => {
-                log.error("Failed to retrieve icons", err);
-                res.status(500).send(err.message);
-            }
-        );
-    },
+    getAllIconsFromGit:  (iconPathRoot: string) =>  (req: Request, res: Response) =>
+        getAllIcons(iconService.getAllIconsFromGit, iconPathRoot)(req, res),
+
+    getAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
+        getAllIcons(iconService.getAllIcons, iconPathRoot)(req, res),
+
     getIcon: (req: Request, res: Response) =>
         iconService.getIcon(req.params.path)
             .toPromise()

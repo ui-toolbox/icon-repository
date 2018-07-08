@@ -1,6 +1,3 @@
-import * as path from "path";
-import * as fs from "fs";
-import * as util from "util";
 import * as http from "http";
 import * as express from "express";
 import * as bodyParser from "body-parser";
@@ -8,18 +5,16 @@ import * as helmet from "helmet";
 import * as multer from "multer";
 import * as Rx from "rxjs";
 
-import { IIconHanlders } from "./iconsHandlers";
+import { IconHanlders } from "./iconsHandlers";
 
 import { ConfigurationDataProvider } from "./configuration";
-import logger from "./utils/logger";
 import securityManagerProvider from "./security/securityManager";
-import iconHandlersProvider from "./iconsHandlers";
 import brandingHandlerProvider from "./brandingHandler";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IIconHanlders) => Rx.Observable<http.Server>
+const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconHanlders) => Rx.Observable<http.Server>
 = (appConfig, iconHandlers) => {
 
     const app = express();
@@ -38,11 +33,10 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IIcon
     app.use(appConfig().server_url_context, express.static(appConfig().path_to_static_files));
 
     router.get("/icons/config", iconHandlers.getIconRepoConfig);
-    router.get("/icons", iconHandlers.icons);
-    router.get("/icon/:path", iconHandlers.getIcon);
-    router.post("/icon", upload.any(), iconHandlers.createIcon);
-    router.post("/icon/:id/format/:format/size/:size", upload.any(), iconHandlers.addIconFile);
-    router.get("/icon/:id/format/:format/size/:size", iconHandlers.getIconFile);
+    router.get("/icons", iconHandlers.getAllIcons("/icons"));
+    router.post("/icons", upload.any(), iconHandlers.createIcon);
+    router.post("/icons/:id/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);
+    router.get("/icons/:id/formats/:format/sizes/:size", iconHandlers.getIconFile);
     router.get("/branding", brandingHandlerProvider(appConfig().app_description));
 
     return Rx.Observable.create((observer: Rx.Observer<http.Server>) => {

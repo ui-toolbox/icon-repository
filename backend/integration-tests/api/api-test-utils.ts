@@ -3,6 +3,7 @@ import * as crypto from "crypto";
 import * as http from "http";
 import * as request from "request";
 import { Observable, Observer, Subscription } from "rxjs";
+import { Pool } from "pg";
 
 const req = request.defaults({
     timeout: 4000
@@ -18,7 +19,9 @@ import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
 import { CreateIconInfo, IconDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
-import { getTestRepoDir } from "../git/git-test-utils";
+import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
+import { createSchema } from "../../scripts/create-schema";
+import { boilerplateSubscribe } from "../testUtils";
 
 logger.setLevel("silly");
 
@@ -48,20 +51,24 @@ export const startServer: StartServer = customConfig => {
 export const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
-export const startServerWithBackdoorsProlog:
-    (fail: (error: any) => void, serverConsumer: (testServer: Server) => void) => (done: () => void) => Subscription
-= (fail, serverConsumer) => done => startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
-    .subscribe(
-        testServer => {
-            serverConsumer(testServer);
-        },
-        error => {
-            fail(error);
-            done();
-        },
-        done
-    );
-export const closeServerEpilog: (sp: () => Server) => () => void = sp => () => sp().close();
+export const setUpGitRepoAndDbSchemaAndServer = (
+    pool: Pool,
+    assignServer: (sourceServer: Server) => void,
+    done: () => void
+) => {
+    createTestGitRepo()
+        .flatMap(() => createSchema(pool))
+        .flatMap(() => startServerWithBackdoors({icon_data_location_git: getTestRepoDir()}))
+        .map(testServer => assignServer(testServer))
+    .subscribe(boilerplateSubscribe(fail, done));
+};
+
+export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
+    delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
+    deleteTestGitRepo()
+        .map(() => server.close())
+    .subscribe(boilerplateSubscribe(fail, done));
+};
 
 export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;
 
@@ -148,13 +155,13 @@ export interface IUploadFormData {
     readonly iconFile: IUploadRequestBuffer;
 }
 
-export interface IAddIconFormData extends IUploadFormData {
+export interface ICreateIconFormData extends IUploadFormData {
     readonly iconName: string;
     readonly fileFormat: string;
     readonly iconSize: string;
 }
 
-export const createAddIconFormData: (iconName: string, format: string, size: string) => IAddIconFormData
+export const createAddIconFormData: (iconName: string, format: string, size: string) => ICreateIconFormData
 = (iconName, format, size) => ({
     iconName,
     fileFormat: format,
@@ -162,14 +169,14 @@ export const createAddIconFormData: (iconName: string, format: string, size: str
     iconFile: createUploadBuffer(4096)
 });
 
-export const convertToAddIconRequest: (formData: IAddIconFormData) => CreateIconInfo = formData => ({
+export const convertToAddIconRequest: (formData: ICreateIconFormData) => CreateIconInfo = formData => ({
     iconName: formData.iconName,
     format: formData.fileFormat,
     size: formData.iconSize,
     content: formData.iconFile.value
 });
 
-export const convertToIconInfo: (iconFormData: IAddIconFormData, id: number) => IconDescriptor
+export const convertToIconInfo: (iconFormData: ICreateIconFormData, id: number) => IconDescriptor
 = (iconFormData, id) => new IconDescriptor(
     id,
     iconFormData.iconName,
@@ -192,5 +199,5 @@ type TestUploadRequest = (requestData: ITestUploadRequestData) => Observable<IRe
 export const testUploadRequest: TestUploadRequest
     = uploadRequestData => testRequest({...uploadRequestData, json: true});
 
-export const iconEndpointPath = "/icon";
-export const iconFileEndpointPath = "/icon/:id/format/:format/size/:size";
+export const iconEndpointPath = "/icons";
+export const iconFileEndpointPath = "/icons/:id/formats/:format/sizes/:size";

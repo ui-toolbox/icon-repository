@@ -122,12 +122,12 @@ type AddIconFile = (
     userName: string
 ) => Observable<void>;
 
-export interface IGitAccessFunctions {
+export interface GitAccessFunctions {
     readonly getRepoLocation: () => string;
     readonly addIconFile: AddIconFile;
 }
 
-type GitAFsProvider = (localIconRepositoryLocation: string) => IGitAccessFunctions;
+type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunctions;
 
 const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => ({
     getRepoLocation: () => localIconRepositoryLocation,

@@ -15,7 +15,7 @@ describe("requiredPrivilegesGetter", () => {
             "^/icons$": {
                 GET: expectedPrivs1
             },
-            "^/icon/[^/]+/format/[^/]+$": {
+            "^/icons/[^/]+/formats/[^/]+$": {
                 POST: expectedPrivs2
             }
         });
@@ -24,6 +24,6 @@ describe("requiredPrivilegesGetter", () => {
         const requiredPrivilegesGetter = requiredPrivilegesGetterProvider(someEndPointPrivDesc, someEndPointREMap);
 
         expect(requiredPrivilegesGetter("/icons", "GET")).toEqual(Set(expectedPrivs1));
-        expect(requiredPrivilegesGetter("/icon/asdfqwerqasdf/format/3x", "POST")).toEqual(Set(expectedPrivs2));
+        expect(requiredPrivilegesGetter("/icons/asdfqwerqasdf/formats/3x", "POST")).toEqual(Set(expectedPrivs2));
     });
 });

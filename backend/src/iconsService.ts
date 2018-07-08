@@ -1,14 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as express from "express";
-import { List, Map } from "immutable";
+import { List, Set } from "immutable";
 import { Observable } from "rxjs/Rx";
 
-import { CreateIconInfo, IconFile } from "./icon";
-import { IIconDAFs } from "./db/db";
-import { IGitAccessFunctions } from "./git";
+import { CreateIconInfo, IconFile, IconDescriptor } from "./icon";
+import { IconDAFs } from "./db/db";
+import { GitAccessFunctions } from "./git";
 import logger, { ContextAbleLogger } from "./utils/logger";
-import { toBase64, fromBase64 } from "./utils/encodings";
+import { fromBase64 } from "./utils/encodings";
 import csvSplitter from "./utils/csvSplitter";
 import { ConfigurationDataProvider } from "./configuration";
 
@@ -22,39 +21,19 @@ const debugIconFileNames = (ctxLogger: ContextAbleLogger, filesOfSize: string[])
         ctxLogger.silly("file=", file);
     });
 
-interface IIconRepoConfig {
+interface IconRepoConfig {
     readonly allowedFileFormats: List<string>;
     readonly allowedIconSizes: List<string>;
 }
 
-class IconInfo {
-    public static create: (name: string, size: string, pathToFile: string) => IconInfo = (name, size, pathToFile) => {
-        return new IconInfo(name, Map.of(size, pathToFile), null);
-    }
-
-    private readonly name: string;
-    private readonly paths: Map<string, string>;
-    private readonly tags: List<string>;
-
-    constructor(
-        name: string,
-        size2path: Map<string, string>,
-        tags: List<string>
-    ) {
-        this.name = name;
-        this.paths = size2path;
-        this.tags = tags;
-    }
-}
-
-interface IIconFileData {
+interface IconFileData {
     readonly fileFormat: string;
     readonly fileData: Buffer;
 }
 
-type GetIconRepoConfig = () => Observable<IIconRepoConfig>;
-type GetIcons = () => Observable<IconInfo[]>;
-type GetIcon = (encodeIconPath: string) => Observable<IIconFileData>;
+type GetIconRepoConfig = () => Observable<IconRepoConfig>;
+export type GetAllIcons = () => Observable<List<IconDescriptor>>;
+type GetIcon = (encodeIconPath: string) => Observable<IconFileData>;
 type GetIconFile = (iconId: number, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
     initialIconFileInfo: CreateIconInfo,
@@ -62,9 +41,10 @@ type CreateIcon = (
 type AddIconFile = (
     addIconFileRequestData: IconFile,
     modifiedBy: string) => Observable<number>;
-export interface IIconService {
+export interface IconService {
     readonly getRepoConfiguration: GetIconRepoConfig;
-    readonly getIcons: GetIcons;
+    readonly getAllIconsFromGit: GetAllIcons;
+    readonly getAllIcons: GetAllIcons;
     readonly getIcon: GetIcon;
     readonly getIconFile: GetIconFile;
     readonly createIcon: CreateIcon;
@@ -77,9 +57,9 @@ export const iconSizeListParser = csvSplitter;
 
 const iconServiceProvider: (
     appConfig: ConfigurationDataProvider,
-    iconDAFs: IIconDAFs,
-    gitAFs: IGitAccessFunctions
-) => IIconService
+    iconDAFs: IconDAFs,
+    gitAFs: GitAccessFunctions
+) => IconService
 = (appConfig, iconDAFs, gitAFs) => {
 
     const getRepoConfiguration: GetIconRepoConfig = () => {
@@ -89,24 +69,31 @@ const iconServiceProvider: (
         });
     };
 
-    const getIcons: GetIcons = () => {
+    const getAllIconsFromGit: GetAllIcons = () => {
         const ctxLogger = logger.createChild("getAllIcons");
         const iconRepo: string = gitAFs.getRepoLocation(); // TODO: retrieve icons from the db instead of from git
         ctxLogger.debug(`Getting icons from file://${iconRepo}`);
         return readdir(iconRepo)
             .flatMap(directoriesBySize => directoriesBySize)
-                .filter(directoryForSize => directoryForSize.toUpperCase() === "SVG")
-                .flatMap(directoryForSize => readdir(path.join(iconRepo, directoryForSize))
-                    .do(filesOfSize => debugIconFileNames(ctxLogger, filesOfSize))
-                    .map(filesOfSize => filesOfSize
-                        .map(file => IconInfo.create(
-                            stripExtension(file),
-                            "SVG",
-                            "/icon/" + toBase64(path.join(iconRepo, directoryForSize, file))
-                        ))
+            .filter(directoryForSize => directoryForSize.toUpperCase() === "SVG")
+            .flatMap(directoryForSize => readdir(path.join(iconRepo, directoryForSize)))
+            .do(filesOfSize => debugIconFileNames(ctxLogger, filesOfSize))
+            .flatMap(filesOfSize => filesOfSize
+                .map(file => new IconDescriptor(
+                        1,
+                        stripExtension(file),
+                        Set.of({
+                            format: "svg",
+                            size: "1x",
+                            file
+                        })
                     )
-                );
+                )
+                .map(iconDescriptorArray => List(iconDescriptorArray))
+            );
     };
+
+    const getAllIcons: GetAllIcons = () => iconDAFs.getAllIcons();
 
     const getIcon: GetIcon = encodeIconPath => {
         const ctxLogger = logger.createChild("Get icon file " + encodeIconPath);
@@ -135,7 +122,8 @@ const iconServiceProvider: (
 
     return {
         getRepoConfiguration,
-        getIcons,
+        getAllIcons,
+        getAllIconsFromGit,
         getIcon,
         getIconFile,
         createIcon,
