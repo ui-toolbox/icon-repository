@@ -1,54 +1,29 @@
 <template>
     <div class="user-area">
-        <div class="user-settings-head" :class="{ 'authenticated-user': authenticatedUser }" @click="showItems = !showItems">
+        <div class="user-settings-head" :class="{ 'authenticated-user': user.authenticated }" @click="showItems = !showItems">
             <div class="user-settings-head-content">
                 <img src="@/assets/User.svg" height="27"/>
-                <span class="user-name">{{ userName }}</span>
-                <div class="arrow-down" v-if="authenticatedUser"/>
+                <span class="user-name">{{ user.username }}</span>
+                <div class="arrow-down" v-if="user.authenticated"/>
             </div>
         </div>
-        <ul v-if="authenticatedUser && showItems" class="user-settings-items" @click="logout">
+        <ul v-if="user.authenticated && showItems" class="user-settings-items" @click="logout">
             <li>Logout</li>
         </ul>
     </div>
 </template>
 
 <script>
+import * as user from '@/services/user';
+
 export default {
     name: 'UserSettings',
-    props: ['userInfoUrl', 'logoutUrl'],
+    props: ['user', 'logoutUrl'],
     created() {
-        fetch(this.userInfoUrl, {
-            method: 'GET',
-            credentials: 'include'
-        })
-        .then(response => {
-            if (response.status < 200 || response.status >= 300) {
-                throw new Error('Failed to get user info');
-            }
-            return response.json();
-        })
-        .then(
-            json => {
-                if (json && json.username) {
-                    this.userName = json.username;
-                    this.authenticatedUser = true;
-                } else {
-                    this.userName = 'John Doe';
-                    this.authenticatedUser = false;
-                }
-            },
-            error => {
-                throw new Error('Failed to get user info: ', error);
-            }
-        );
-
         this.showItems = false;
     },
     data() {
         return {
-            authenticatedUser: false,
-            userName: this.userName,
             showItems: this.showItems
         }
     },

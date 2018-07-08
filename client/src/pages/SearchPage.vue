@@ -17,7 +17,7 @@
               <input type="text" class="search-input" v-model="searchQuery">
             </div>
           </div>
-          <user-settings :userInfoUrl="userInfoUrl" :logoutUrl="logoutUrl"/>
+          <user-settings :user="user" :logoutUrl="logoutUrl"/>
         </div>
       </div>
     </header>
@@ -40,6 +40,8 @@
 </template>
 
 <script>
+import * as userService from '@/services/user';
+import fetchUserInfo from '@/services/fetch-user-info';
 import UserSettings from '@/components/UserSettings';
 import fetchIconRepoConfig from '@/services/fetch-iconrepo-config';
 import IconCell from '@/components/IconCell';
@@ -52,6 +54,9 @@ export default {
     'icon-cell': IconCell
   },
   computed: {
+    hasAddIconPrivilege: function() {
+      return userService.hasAddIconPrivilege(this.user);
+    },
     filteredIcons: function () {
       var self = this;
       if (this.searchQuery=='') {
@@ -65,36 +70,39 @@ export default {
     }
   },
   created () {
-
-    const iconListUrl = this.$config.baseUrl + '/icons';
-
-    fetchIconRepoConfig(this.$config.baseUrl)
-    .then(config => this.iconRepoConfig = config);
-
     this.$http.get(this.$config.baseUrl + '/branding')
     .then(response => {
         this.branding = response.body
-    })
+    });
 
-    this.$http.get(iconListUrl).then(function(response) {
-      this.icons = response.body;
-    }, response => {
-      if (process.env.NODE_ENV === 'development') {
-        this.icons = testIconData;
-      } else {
-        throw new Error(response);
-      }
-    })
+    const iconListUrl = this.$config.baseUrl + '/icons';
+    fetchUserInfo(this.userInfoUrl)
+    .then(userinfo => this.user = userinfo)
+    .then(() => {
+      fetchIconRepoConfig(this.$config.baseUrl)
+      .then(config => {
+        this.iconRepoConfig = config
+        this.$http.get(iconListUrl).then(function(response) {
+          this.icons = response.body;
+        }, response => {
+          if (process.env.NODE_ENV === 'development') {
+            this.icons = testIconData;
+          } else {
+            throw new Error(response);
+          }
+        })
+      });
+    });
   },
   data () {
     return {
       branding: {},
       userInfoUrl: this.$config.baseUrl + '/user',
+      user: userService.initialUserInfo(),
       logoutUrl: this.$config.baseUrl + '/logout',
       searchQuery: '',
       icons: [],
       iconRepoConfig: {},
-      hasAddIconPrivilege: false
     }
   }
 }
