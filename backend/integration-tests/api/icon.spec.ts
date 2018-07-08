@@ -1,5 +1,4 @@
 import { Server } from "http";
-import { Pool } from "pg";
 import * as request from "request";
 import { boilerplateSubscribe } from "../testUtils";
 
@@ -7,18 +6,13 @@ import {
     getURL,
     setAuthentication,
     createAddIconFormData,
-    ICreateIconFormData,
-    convertToAddIconRequest,
+    CreateIconFormData,
     iconEndpointPath,
     testUploadRequest,
     convertToIconInfo,
     manageTestResourcesBeforeAfter } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
-import {
-    assertIconCount,
-    getCheckIconFile
- } from "../db/db-test-utils";
 import {
     getCurrentCommit as getCurrentGitCommit,
     assertGitStatus } from "../git/git-test-utils";
@@ -29,10 +23,9 @@ import { IconDescriptor } from "../../src/icon";
 import { List } from "immutable";
 
 describe(iconEndpointPath, () => {
-    let pool: Pool;
     let server: Server;
 
-    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer, p => pool = p);
+    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
 
     it ("POST should fail with 403 without CREATE_ICON privilege", done => {
         const jar = request.jar();
@@ -53,7 +46,7 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
         const jar = request.jar();
-        const iconFormData: ICreateIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const iconFormData: CreateIconFormData = createAddIconFormData("cartouche", "french", "great");
         const expectedIconInfo: IconDescriptor = convertToIconInfo(iconFormData, 1);
 
         setAuthentication(server, "zazie", privileges, jar)
@@ -81,8 +74,8 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
 
-        const formData1: ICreateIconFormData = createAddIconFormData("cartouche", "french", "great");
-        const formData2: ICreateIconFormData = createAddIconFormData("cartouche1", "french", "great");
+        const formData1: CreateIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const formData2: CreateIconFormData = createAddIconFormData("cartouche1", "french", "great");
 
         const expectedIconInfoList: List<IconDescriptor> = List<IconDescriptor>()
             .push(convertToIconInfo(formData1, 1))
@@ -139,8 +132,8 @@ describe(iconEndpointPath, () => {
             privilegeDictionary.CREATE_ICON
         ];
 
-        const formData1: ICreateIconFormData = createAddIconFormData("cartouche", "french", "great");
-        const formData2: ICreateIconFormData = createAddIconFormData("cartouche1", "french", "great");
+        const formData1: CreateIconFormData = createAddIconFormData("cartouche", "french", "great");
+        const formData2: CreateIconFormData = createAddIconFormData("cartouche1", "french", "great");
 
         const expectedIconInfoList = List<IconDescriptor>().push(convertToIconInfo(formData1, 1));
 

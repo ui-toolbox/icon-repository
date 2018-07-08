@@ -8,23 +8,18 @@ import {
     testRequest,
     testUploadRequest,
     createAddIconFileFormData,
-    ICreateIconFormData,
-    IUploadFormData,
+    CreateIconFormData,
+    UploadFormData,
     manageTestResourcesBeforeAfter
 } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
-import { Pool } from "pg";
 import * as request from "request";
 import { Observable } from "rxjs";
-import {
-    getIconFile as getIconFileFromDBProvider,
-    describeAllIcons as getAllIconsFromDB,
-    GetIconFile } from "../../src/db/db";
 import { Server } from "http";
 
 export const createInitialIcon: (
     server: Server,
-    createIconFormData: ICreateIconFormData
+    createIconFormData: CreateIconFormData
 ) => Observable<number>
 = (server, createIconFormData) => {
     const privileges = [
@@ -49,7 +44,7 @@ export const addIconFile = (
     iconName: string,
     format: string,
     size: string,
-    formData: IUploadFormData
+    formData: UploadFormData
 ) => {
     const jar = request.jar();
 
@@ -67,10 +62,9 @@ const createIconFileURL: (iconName: string, format: string, size: string) => str
     = (iconName, format, size) => `/icons/${iconName}/formats/${format}/sizes/${size}`;
 
 describe(iconFileEndpointPath, () => {
-    let pool: Pool;
     let server: Server;
 
-    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer, p => pool = p);
+    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
 
     it ("POST should fail with 403 without either of CREATE_ICON or ADD_ICON_FILE privilege", done => {
         const jar = request.jar();
@@ -123,8 +117,6 @@ describe(iconFileEndpointPath, () => {
     };
 
     const createIconThenAddIconFileWithPrivileges = (privileges: string[]) => {
-        const getIconFileFromDB: GetIconFile = getIconFileFromDBProvider(pool);
-
         const iconName = "cartouche";
         const format = "french";
         const size1 = "great";

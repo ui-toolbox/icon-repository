@@ -1,4 +1,3 @@
-import * as Rx from "rxjs";
 import {
     startServer,
     testRequest,
@@ -6,7 +5,7 @@ import {
     createAddIconFormData,
     createAddIconFileFormData,
     createUploadBuffer,
-    ICreateIconFormData,
+    CreateIconFormData,
     manageTestResourcesBeforeAfter
 } from "./api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
@@ -52,7 +51,7 @@ describe(allIconsPath, () => {
     manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
 
     it("GET should return the description of all icons in the repository", done => {
-        const icon1: ICreateIconFormData = {
+        const icon1: CreateIconFormData = {
             name: "zazie",
             format: "french",
             size: "great",
@@ -63,7 +62,7 @@ describe(allIconsPath, () => {
             size: "big"
         };
 
-        const icon2: ICreateIconFormData = {
+        const icon2: CreateIconFormData = {
             name: "cartouche",
             format: "belgique",
             size: "huge",
@@ -131,7 +130,7 @@ describe(singleIconPath, () => {
     manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
 
     it ("GET should describe the icon", done => {
-        const icon1: ICreateIconFormData = {
+        const icon1: CreateIconFormData = {
             name: "zazie",
             format: "french",
             size: "great",

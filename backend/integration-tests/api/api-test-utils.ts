@@ -17,7 +17,7 @@ import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { IconFile, IconDescriptor } from "../../src/icon";
+import { IconDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
@@ -75,16 +75,12 @@ export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
 };
 
 export const manageTestResourcesBeforeAfter = (
-    serverSetter: (server: Server) => void,
-    poolSetter?: (pool: Pool) => void
+    serverSetter: (server: Server) => void
 ) => {
     let localPoolRef: Pool;
     let localServerRef: Server;
     beforeAll(createTestPool((p: Pool) => {
         localPoolRef = p;
-        if (poolSetter) {
-            poolSetter(p);
-        }
     }, fail));
     beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, (server: Server) => {
         localServerRef = server;
@@ -100,13 +96,13 @@ export const getURLBasicAuth = (
     auth: string,
     path: string) => `http://${auth}@localhost:${server.address().port}${path}`;
 
-interface IUploadRequestBuffer {
+interface UploadRequestBuffer {
     readonly value: Buffer;
     readonly options: {
         readonly filename: string
     };
 }
-export const createUploadBuffer: (size: number, filename?: string) => IUploadRequestBuffer
+export const createUploadBuffer: (size: number, filename?: string) => UploadRequestBuffer
 = (size, filename = "a-file") => ({
     value: crypto.randomBytes(4096),
     options: {
@@ -114,13 +110,13 @@ export const createUploadBuffer: (size: number, filename?: string) => IUploadReq
     }
 });
 
-interface IRequestResult {
+interface RequestResult {
     readonly response: request.Response;
     readonly body: any;
 }
 type TestRequest = (
     options: any
-) => Observable<IRequestResult>;
+) => Observable<RequestResult>;
 
 export const authUX = Object.freeze({
     auth: {
@@ -139,7 +135,7 @@ export const authDEV = Object.freeze({
 });
 
 export const testRequest: TestRequest = options =>
-    Observable.create((observer: Observer<IRequestResult>) => {
+    Observable.create((observer: Observer<RequestResult>) => {
         req(Object.assign(options, authDEV),
             (error: any, response: request.Response, body: any) => {
                 logger.info("Reqest for %s is back: %o", options.url, {hasError: !!error});
@@ -179,27 +175,20 @@ export const setAuthentication = (
     return Observable.throw(error);
 });
 
-export interface IUploadFormData {
-    readonly iconFile: IUploadRequestBuffer;
+export interface UploadFormData {
+    readonly iconFile: UploadRequestBuffer;
 }
 
-export interface ICreateIconFormData extends IUploadFormData {
+export interface CreateIconFormData extends UploadFormData {
     readonly name: string;
     readonly format: string;
     readonly size: string;
 }
 
-export const createAddIconFormData: (name: string, format: string, size: string) => ICreateIconFormData
+export const createAddIconFormData: (name: string, format: string, size: string) => CreateIconFormData
 = (name, format, size) => ({ name, format, size, iconFile: createUploadBuffer(4096) });
 
-export const convertToAddIconRequest: (formData: ICreateIconFormData) => IconFile = formData => ({
-    name: formData.name,
-    format: formData.format,
-    size: formData.size,
-    content: formData.iconFile.value
-});
-
-export const convertToIconInfo: (iconFormData: ICreateIconFormData, id: number) => IconDescriptor
+export const convertToIconInfo: (iconFormData: CreateIconFormData, id: number) => IconDescriptor
 = (iconFormData, id) => new IconDescriptor(
     iconFormData.name,
     null).addIconFile({
@@ -207,17 +196,17 @@ export const convertToIconInfo: (iconFormData: ICreateIconFormData, id: number) 
         size: iconFormData.size
     });
 
-export const createAddIconFileFormData: () => IUploadFormData = () => ({
+export const createAddIconFileFormData: () => UploadFormData = () => ({
     iconFile: createUploadBuffer(4096)
 });
 
 interface TestUploadRequestData {
     url: string;
     method: string;
-    formData: IUploadFormData;
+    formData: UploadFormData;
     jar: request.CookieJar;
 }
-type TestUploadRequest = (requestData: TestUploadRequestData) => Observable<IRequestResult>;
+type TestUploadRequest = (requestData: TestUploadRequestData) => Observable<RequestResult>;
 export const testUploadRequest: TestUploadRequest
     = uploadRequestData => testRequest({...uploadRequestData, json: true});
 
