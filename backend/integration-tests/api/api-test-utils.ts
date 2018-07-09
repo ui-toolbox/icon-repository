@@ -2,7 +2,7 @@ import * as util from "util";
 import * as crypto from "crypto";
 import * as http from "http";
 import * as request from "request";
-import { Observable, Observer, Subscription } from "rxjs";
+import { Observable, Observer } from "rxjs";
 import { Pool } from "pg";
 
 const req = request.defaults({
@@ -23,6 +23,7 @@ import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { createTestPool, terminateTestPool } from "../db/db-test-utils";
+import { Auth, getIconFile } from "./api-client";
 
 logger.setLevel("silly");
 
@@ -95,6 +96,7 @@ export const getURLBasicAuth = (
     server: http.Server,
     auth: string,
     path: string) => `http://${auth}@localhost:${server.address().port}${path}`;
+export const defaultAuth: Auth = {user: "ux", password: "ux"};
 
 interface UploadRequestBuffer {
     readonly value: Buffer;
@@ -188,14 +190,6 @@ export interface CreateIconFormData extends UploadFormData {
 export const createAddIconFormData: (name: string, format: string, size: string) => CreateIconFormData
 = (name, format, size) => ({ name, format, size, iconFile: createUploadBuffer(4096) });
 
-export const convertToIconInfo: (iconFormData: CreateIconFormData, id: number) => IconDescriptor
-= (iconFormData, id) => new IconDescriptor(
-    iconFormData.name,
-    null).addIconFile({
-        format: iconFormData.format,
-        size: iconFormData.size
-    });
-
 export const createAddIconFileFormData: () => UploadFormData = () => ({
     iconFile: createUploadBuffer(4096)
 });
@@ -209,6 +203,20 @@ interface TestUploadRequestData {
 type TestUploadRequest = (requestData: TestUploadRequestData) => Observable<RequestResult>;
 export const testUploadRequest: TestUploadRequest
     = uploadRequestData => testRequest({...uploadRequestData, json: true});
+
+export const getCheckIconFile: (baseUrl: string, formData: CreateIconFormData) => Observable<any>
+    = (baseUrl, formData) => getIconFile(baseUrl, defaultAuth, formData.name, formData.format, formData.size)
+    .map(buffer => expect(Buffer.compare(formData.iconFile.value, buffer)).toEqual(0));
+
+export const getCheckIconFile1: (
+    baseUrl: string,
+    name: string,
+    format: string,
+    size: string,
+    formData: UploadFormData
+) => Observable<any>
+= (baseUrl, name, format, size, formData) => getIconFile(baseUrl, defaultAuth, name, format, size)
+    .map(buffer => expect(Buffer.compare(formData.iconFile.value, buffer)).toEqual(0));
 
 export const iconEndpointPath = "/icons";
 export const iconFileEndpointPath = "/icons/:id/formats/:format/sizes/:size";

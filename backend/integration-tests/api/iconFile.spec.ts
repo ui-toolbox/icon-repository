@@ -10,12 +10,16 @@ import {
     createAddIconFileFormData,
     CreateIconFormData,
     UploadFormData,
-    manageTestResourcesBeforeAfter
+    manageTestResourcesBeforeAfter,
+    defaultAuth,
+    getCheckIconFile1,
+    getCheckIconFile
 } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import * as request from "request";
 import { Observable } from "rxjs";
 import { Server } from "http";
+import { describeAllIcons } from "./api-client";
 
 export const createInitialIcon: (
     server: Server,
@@ -97,25 +101,6 @@ describe(iconFileEndpointPath, () => {
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
-    const checkIconFileContent = (
-        iconName: string, format: string, size: string, expectedContent: Buffer
-    ) => {
-        return testRequest({
-            url: getURL(
-                server,
-                createIconFileURL(iconName, format, size)
-            ),
-            method: "GET",
-            json: false,
-            encoding: null
-        })
-        .map(getResult => {
-            const actualContent: Buffer = getResult.body;
-            expect(getResult.response.statusCode).toEqual(200);
-            expect(Buffer.compare(actualContent, expectedContent)).toEqual(0);
-        });
-    };
-
     const createIconThenAddIconFileWithPrivileges = (privileges: string[]) => {
         const iconName = "cartouche";
         const format = "french";
@@ -126,19 +111,16 @@ describe(iconFileEndpointPath, () => {
         return createInitialIcon(server, upForm1)
         .flatMap(iconId => addIconFile(server, privileges, iconName, format, size2, upForm2))
         .map(result => expect(result.response.statusCode).toEqual(201))
-        .flatMap(getAllIconsFromDB(pool))
-        .flatMap(iconInfoList => {
-            expect(iconInfoList.size).toEqual(1);
-            expect(iconInfoList.get(0).iconName).toEqual(iconName);
-            expect(iconInfoList.get(0).iconFiles.size).toEqual(2);
-            return getIconFileFromDB(iconName, format, size1)
-            .map(buffer => {
-                expect(Buffer.compare(buffer, upForm1.iconFile.value)).toEqual(0);
-                return getIconFileFromDB(iconName, format, size2);
-            });
+        .flatMap(() => describeAllIcons(getURL(server, ""), defaultAuth))
+        .map(iconDTOList => {
+            expect(iconDTOList.size).toEqual(1);
+            expect(iconDTOList.get(0).name).toEqual(iconName);
+            expect(Object.keys(iconDTOList.get(0).paths).reduce(
+                (pathCount, formatInPath) => pathCount + Object.keys(iconDTOList.get(0).paths[formatInPath]).length, 0
+            )).toEqual(2);
         })
-        .flatMap(() => checkIconFileContent(iconName, format, size1, upForm1.iconFile.value))
-        .flatMap(() => checkIconFileContent(iconName, format, size2, upForm2.iconFile.value));
+        .flatMap(() => getCheckIconFile(getURL(server, ""), upForm1))
+        .flatMap(() => getCheckIconFile1(getURL(server, ""), iconName, format, size2, upForm2));
     };
 
     it ("POST should complete with CREATE_ICON privilege", done => {
@@ -176,9 +158,7 @@ describe(iconFileEndpointPath, () => {
             .flatMap(result => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
-                return checkIconFileContent(
-                    formData.name, formData.format, formData.size, formData.iconFile.value
-                );
+                return getCheckIconFile(getURL(server, ""), formData);
             })
         )
         .subscribe(boilerplateSubscribe(fail, done));

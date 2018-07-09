@@ -16,6 +16,7 @@ import { createSchema } from "./create-schema";
 import { commandExecutor } from "../src/utils/command-executor";
 import { create as createSerializer } from "../src/utils/serializer";
 import { Set } from "immutable";
+import { describeIcon } from "../integration-tests/api/api-client";
 
 const defaultSourceDir = path.resolve(
     __dirname,
@@ -57,31 +58,9 @@ const iconFileCollector: () => Observable<SourceFileDescriptor>
 };
 
 const doesIconExist: (server: Server, iconName: string) => Observable<boolean>
-= (server, iconName) => Observable.create((observer: Observer<boolean>) => {
-    superagent
-        .get(getURL(server, `/icons/${iconName}`)).auth("ux", "ux")
-        .ok(res => res.status === 200 || res.status === 404)
-        .then(
-            response => {
-                switch (response.status) {
-                    case 200:
-                        observer.next(true);
-                        break;
-                    case 404:
-                        observer.next(false);
-                        break;
-                    default:
-                        observer.error(`Failed to query icon ${iconName}: ${response.error}`);
-                        return;
-                }
-                observer.complete();
-            },
-            error => observer.error(error)
-        )
-        .catch(error => {
-            observer.error(error);
-        });
-});
+= (server, iconName) =>
+    describeIcon(getURL(server, ""), {user: "ux", password: "ux"}, iconName)
+    .map(icon => !!icon);
 
 const addIconFile: (
     server: Server,
