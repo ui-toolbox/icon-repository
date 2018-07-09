@@ -5,7 +5,6 @@ import {
     createAddIconFormData,
     setAuthentication,
     getURL,
-    testRequest,
     testUploadRequest,
     createAddIconFileFormData,
     CreateIconFormData,
@@ -18,23 +17,21 @@ import {
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import * as request from "request";
 import { Observable } from "rxjs";
-import { Server } from "http";
 import { describeAllIcons } from "./api-client";
 
 export const createInitialIcon: (
-    server: Server,
     createIconFormData: CreateIconFormData
 ) => Observable<number>
-= (server, createIconFormData) => {
+= createIconFormData => {
     const privileges = [
         privilegeDictionary.CREATE_ICON
     ];
     const jar = request.jar();
 
-    return setAuthentication(server, "zazie", privileges, jar)
+    return setAuthentication("zazie", privileges, jar)
     .flatMap(() =>
         testUploadRequest({
-            url: getURL(server, iconEndpointPath),
+            url: getURL(iconEndpointPath),
             method: "POST",
             formData: createIconFormData,
             jar
@@ -43,7 +40,6 @@ export const createInitialIcon: (
 };
 
 export const addIconFile = (
-    server: Server,
     privileges: string[],
     iconName: string,
     format: string,
@@ -52,10 +48,10 @@ export const addIconFile = (
 ) => {
     const jar = request.jar();
 
-    return setAuthentication(server, "zazie", privileges, jar)
+    return setAuthentication("zazie", privileges, jar)
     .flatMap(() =>
         testUploadRequest({
-            url: getURL(server, createIconFileURL(iconName, format, size)),
+            url: getURL(createIconFileURL(iconName, format, size)),
             method: "POST",
             formData,
             jar
@@ -66,16 +62,15 @@ const createIconFileURL: (iconName: string, format: string, size: string) => str
     = (iconName, format, size) => `/icons/${iconName}/formats/${format}/sizes/${size}`;
 
 describe(iconFileEndpointPath, () => {
-    let server: Server;
 
-    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
+    manageTestResourcesBeforeAfter();
 
     it ("POST should fail with 403 without either of CREATE_ICON or ADD_ICON_FILE privilege", done => {
         const jar = request.jar();
-        setAuthentication(server, "zazie", [], jar)
+        setAuthentication("zazie", [], jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(server, iconFileEndpointPath),
+                url: getURL(iconFileEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
                 jar
@@ -89,10 +84,10 @@ describe(iconFileEndpointPath, () => {
             privilegeDictionary.ADD_ICON_FILE
         ];
         const jar = request.jar();
-        setAuthentication(server, "zazie", privileges, jar)
+        setAuthentication("zazie", privileges, jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(server, iconFileEndpointPath),
+                url: getURL(iconFileEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
                 jar
@@ -108,10 +103,10 @@ describe(iconFileEndpointPath, () => {
         const upForm1 = createAddIconFormData(iconName, format, size1);
         const upForm2 = createAddIconFileFormData();
         const size2 = "large";
-        return createInitialIcon(server, upForm1)
-        .flatMap(iconId => addIconFile(server, privileges, iconName, format, size2, upForm2))
+        return createInitialIcon(upForm1)
+        .flatMap(iconId => addIconFile(privileges, iconName, format, size2, upForm2))
         .map(result => expect(result.response.statusCode).toEqual(201))
-        .flatMap(() => describeAllIcons(getURL(server, ""), defaultAuth))
+        .flatMap(() => describeAllIcons(getURL(""), defaultAuth))
         .map(iconDTOList => {
             expect(iconDTOList.size).toEqual(1);
             expect(iconDTOList.get(0).name).toEqual(iconName);
@@ -119,8 +114,8 @@ describe(iconFileEndpointPath, () => {
                 (pathCount, formatInPath) => pathCount + Object.keys(iconDTOList.get(0).paths[formatInPath]).length, 0
             )).toEqual(2);
         })
-        .flatMap(() => getCheckIconFile(getURL(server, ""), upForm1))
-        .flatMap(() => getCheckIconFile1(getURL(server, ""), iconName, format, size2, upForm2));
+        .flatMap(() => getCheckIconFile(getURL(""), upForm1))
+        .flatMap(() => getCheckIconFile1(getURL(""), iconName, format, size2, upForm2));
     };
 
     it ("POST should complete with CREATE_ICON privilege", done => {
@@ -147,10 +142,10 @@ describe(iconFileEndpointPath, () => {
         const jar = request.jar();
         const formData = createAddIconFormData("cartouche", "french", "great");
 
-        setAuthentication(server, "zazie", privileges, jar)
+        setAuthentication("zazie", privileges, jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(server, iconEndpointPath),
+                url: getURL(iconEndpointPath),
                 method: "POST",
                 formData,
                 jar
@@ -158,7 +153,7 @@ describe(iconFileEndpointPath, () => {
             .flatMap(result => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
-                return getCheckIconFile(getURL(server, ""), formData);
+                return getCheckIconFile(getURL(""), formData);
             })
         )
         .subscribe(boilerplateSubscribe(fail, done));

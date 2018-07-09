@@ -11,7 +11,6 @@ import {
 import { boilerplateSubscribe } from "../testUtils";
 import { createInitialIcon, addIconFile } from "./iconFile.spec";
 import { IconFileDescriptor } from "../../src/icon";
-import { Server } from "http";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 const iconRepoConfigPath = "/icons/config";
@@ -20,7 +19,7 @@ describe(iconRepoConfigPath, () => {
     it("should return the correct default", done => {
         startServer({})
         .flatMap(server => testRequest({
-                            url: getURL(server, iconRepoConfigPath)
+                            url: getURL(iconRepoConfigPath)
                         })
                         .map(result => {
                             server.close();
@@ -46,9 +45,7 @@ const allIconsPath = "/icons";
 
 describe(allIconsPath, () => {
 
-    let server: Server;
-
-    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
+    manageTestResourcesBeforeAfter();
 
     it("GET should return the description of all icons in the repository", done => {
         const icon1: CreateIconFormData = {
@@ -100,22 +97,20 @@ describe(allIconsPath, () => {
         const icon1File2FormData = createAddIconFileFormData();
         const createIcon2Form = createAddIconFormData(icon2.name, icon2.format, icon2.size);
         const icon2File2FormData = createAddIconFileFormData();
-        return createInitialIcon(server, createIcon1Form)
+        return createInitialIcon(createIcon1Form)
         .flatMap(iconId => addIconFile(
-            server,
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
             icon1.name, icon1File2.format, icon1File2.size, icon1File2FormData))
-        .flatMap(() => createInitialIcon(server, createIcon2Form))
+        .flatMap(() => createInitialIcon(createIcon2Form))
         .flatMap(iconId => addIconFile(
-            server,
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
             icon2.name, icon2File2.format, icon2File2.size, icon2File2FormData))
         .flatMap(() => testRequest({
-            url: getURL(server, "/icons")
+            url: getURL("/icons")
         }))
         .map(actualReply => expect(JSON.parse(actualReply.body)).toEqual(expectedReply))
         .subscribe(boilerplateSubscribe(fail, done));
@@ -125,9 +120,8 @@ describe(allIconsPath, () => {
 
 const singleIconPath = allIconsPath + "/:name";
 describe(singleIconPath, () => {
-    let server: Server;
 
-    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
+    manageTestResourcesBeforeAfter();
 
     it ("GET should describe the icon", done => {
         const icon1: CreateIconFormData = {
@@ -153,15 +147,14 @@ describe(singleIconPath, () => {
 
         const createIcon1Form = createAddIconFormData(icon1.name, icon1.format, icon1.size);
         const icon1File2FormData = createAddIconFileFormData();
-        return createInitialIcon(server, createIcon1Form)
+        return createInitialIcon(createIcon1Form)
         .flatMap(iconId => addIconFile(
-            server,
             [
                 privilegeDictionary.ADD_ICON_FILE
             ],
             icon1.name, icon1File2.format, icon1File2.size, icon1File2FormData))
         .flatMap(() => testRequest({
-            url: getURL(server, `/icons/${icon1.name}`)
+            url: getURL(`/icons/${icon1.name}`)
         }))
         .map(actualReply => {
             expect(actualReply.response.statusCode).toEqual(200);
@@ -172,7 +165,7 @@ describe(singleIconPath, () => {
 
     it ("GET should return 404 for non-existent icon", done => {
         testRequest({
-            url: getURL(server, `/icons/somenonexistentname`)
+            url: getURL(`/icons/somenonexistentname`)
         })
         .map(actualReply => expect(actualReply.response.statusCode).toEqual(404))
         .subscribe(boilerplateSubscribe(fail, done));

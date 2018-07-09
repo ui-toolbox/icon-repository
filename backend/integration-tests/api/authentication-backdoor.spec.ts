@@ -1,6 +1,4 @@
-import * as http from "http";
 import * as request from "request";
-import { Observable } from "rxjs/Observable";
 import {
     startServer,
     getURL,
@@ -14,7 +12,7 @@ describe("backdoor to privileges", () => {
         startServer({})
         .flatMap(server =>
             testRequest({
-                url: getURL(server, "/backdoor/authentication"),
+                url: getURL("/backdoor/authentication"),
                 method: "POST"
             })
             .map(result => {
@@ -28,7 +26,7 @@ describe("backdoor to privileges", () => {
     it("should be available when enabled", done => {
         startServer({enable_backdoors: true})
         .flatMap(server =>
-            testRequest({url: getURL(server, "/backdoor/authentication")})
+            testRequest({url: getURL("/backdoor/authentication")})
             .map(result => {
                 expect(result.response.statusCode).toEqual(200);
             })
@@ -45,18 +43,17 @@ describe("backdoor to privileges", () => {
 
             startServer({enable_backdoors: true})
             .flatMap(
-                server => setAuthentication(server, "dani", testPrivileges, cookieJar)
-            )
-            .flatMap(
-                server => testRequest({
-                        url: getURL(server, authenticationBackdoorPath),
-                        json: true,
-                        jar: cookieJar
-                    })
-                    .map(result => expect(result.body).toEqual(testPrivileges))
-                    .finally(() => server.close())
-            )
-            .subscribe(boilerplateSubscribe(fail, done));
+                server => setAuthentication("dani", testPrivileges, cookieJar)
+                .flatMap(
+                    () => testRequest({
+                            url: getURL(authenticationBackdoorPath),
+                            json: true,
+                            jar: cookieJar
+                        })
+                        .map(result => expect(result.body).toEqual(testPrivileges))
+                        .finally(() => server.close())
+                ))
+        .subscribe(boilerplateSubscribe(fail, done));
         });
     });
 });

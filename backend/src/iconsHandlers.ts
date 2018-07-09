@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconFile, IconDescriptor } from "./icon";
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
-import { Set } from "immutable";
 export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
     readonly describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;

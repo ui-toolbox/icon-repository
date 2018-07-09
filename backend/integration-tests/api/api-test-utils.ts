@@ -17,7 +17,6 @@ import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import { IconDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
@@ -32,6 +31,8 @@ type StartServer = (customServerConfig: any) => Observable<Server>;
 export const defaultTestServerconfig = Object.freeze({
     authentication_type: "basic"
 });
+
+let localServerRef: Server;
 
 export const startServer: StartServer = customConfig => {
     const configData: ConfigurationData = Object.assign(
@@ -50,21 +51,20 @@ export const startServer: StartServer = customConfig => {
         gitProvider(configData.icon_data_location_git)
     );
     const iconHandlers = iconHandlersProvider(iconService);
-    return serverProvider(() => configData, iconHandlers);
+    return serverProvider(() => configData, iconHandlers)
+    .map(server => {
+        localServerRef = server;
+        return server;
+    });
 };
 
 export const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
-export const setUpGitRepoAndDbSchemaAndServer = (
-    pool: Pool,
-    assignServer: (sourceServer: Server) => void,
-    done: () => void
-) => {
+export const setUpGitRepoAndDbSchemaAndServer = (pool: Pool, done: () => void) => {
     createTestGitRepo()
         .flatMap(() => createSchema(pool))
         .flatMap(() => startServerWithBackdoors({icon_data_location_git: getTestRepoDir()}))
-        .map(testServer => assignServer(testServer))
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
@@ -75,23 +75,17 @@ export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
-export const manageTestResourcesBeforeAfter = (
-    serverSetter: (server: Server) => void
-) => {
+export const manageTestResourcesBeforeAfter = () => {
     let localPoolRef: Pool;
-    let localServerRef: Server;
     beforeAll(createTestPool((p: Pool) => {
         localPoolRef = p;
     }, fail));
-    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, (server: Server) => {
-        localServerRef = server;
-        serverSetter(server);
-    }, done));
+    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, done));
     afterAll(terminateTestPool(localPoolRef));
     afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
 };
 
-export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;
+export const getURL = (path: string) => `http://localhost:${localServerRef.address().port}${path}`;
 export const getURLBasicAuth = (
     server: http.Server,
     auth: string,
@@ -154,12 +148,11 @@ export const testRequest: TestRequest = options =>
 export const authenticationBackdoorPath = "/backdoor/authentication";
 
 export const setAuthentication = (
-    server: http.Server,
     username: string,
     privileges: string[],
     jar: any
 ) => testRequest({
-    url: getURL(server, authenticationBackdoorPath),
+    url: getURL(authenticationBackdoorPath),
     method: "PUT",
     json: {username, privileges},
     jar
@@ -169,7 +162,6 @@ export const setAuthentication = (
         if (result.response.statusCode !== 200) {
             throw Error("Failed to set test authentication: " + result.response.statusCode);
         }
-        return server;
     }
 )
 .catch(error => {

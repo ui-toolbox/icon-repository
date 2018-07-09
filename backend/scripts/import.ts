@@ -59,7 +59,7 @@ const iconFileCollector: () => Observable<SourceFileDescriptor>
 
 const doesIconExist: (server: Server, iconName: string) => Observable<boolean>
 = (server, iconName) =>
-    describeIcon(getURL(server, ""), {user: "ux", password: "ux"}, iconName)
+    describeIcon(getURL(""), {user: "ux", password: "ux"}, iconName)
     .map(icon => !!icon);
 
 const addIconFile: (

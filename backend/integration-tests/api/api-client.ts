@@ -2,7 +2,6 @@ import * as superagent from "superagent";
 import { Observable, Observer } from "rxjs";
 import { IconDTO } from "../../src/iconsHandlers";
 import { List } from "immutable";
-import { IconDescriptor } from "../../src/icon";
 
 export const describeAllIcons: (baseUrl: string, auth: Auth) => Observable<List<IconDTO>>
 = (baseUrl, auth) => Observable.create((observer: Observer<List<IconDTO>>) => {

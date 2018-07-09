@@ -1,4 +1,3 @@
-import { Server } from "http";
 import * as request from "request";
 import { boilerplateSubscribe } from "../testUtils";
 
@@ -19,11 +18,9 @@ import {
     assertGitStatus } from "../git/git-test-utils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
-import { IconDescriptor } from "../../src/icon";
-import { List, Set } from "immutable";
-import { describeAllIcons, getIconFile } from "./api-client";
+import { List } from "immutable";
+import { describeAllIcons } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
-import { Observable } from "rxjs";
 
 const createIconDTO = (formData: CreateIconFormData) => ({
     name: formData.name,
@@ -35,16 +32,15 @@ const createIconDTO = (formData: CreateIconFormData) => ({
 });
 
 describe(iconEndpointPath, () => {
-    let server: Server;
 
-    manageTestResourcesBeforeAfter(sourceServer => server = sourceServer);
+    manageTestResourcesBeforeAfter();
 
     it ("POST should fail with 403 without CREATE_ICON privilege", done => {
         const jar = request.jar();
-        setAuthentication(server, "zazie", [], jar)
+        setAuthentication("zazie", [], jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(server, iconEndpointPath),
+                url: getURL(iconEndpointPath),
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
                 jar
@@ -61,10 +57,10 @@ describe(iconEndpointPath, () => {
         const iconFormData: CreateIconFormData = createAddIconFormData("cartouche", "french", "great");
         const expectedIconInfo: IconDTO = createIconDTO(iconFormData);
 
-        setAuthentication(server, "zazie", privileges, jar)
+        setAuthentication("zazie", privileges, jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(server, iconEndpointPath),
+                url: getURL(iconEndpointPath),
                 method: "POST",
                 formData: iconFormData,
                 jar
@@ -73,7 +69,7 @@ describe(iconEndpointPath, () => {
             expect(result.response.statusCode).toEqual(201);
             expect(result.body.iconId).toEqual(1);
         })
-        .flatMap(() => describeAllIcons(getURL(server, ""), defaultAuth))
+        .flatMap(() => describeAllIcons(getURL(""), defaultAuth))
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
             expect({...iconInfoList.get(0)}).toEqual({...expectedIconInfo});
@@ -95,9 +91,9 @@ describe(iconEndpointPath, () => {
         ]);
 
         const jar = request.jar();
-        setAuthentication(server, "zazie", privileges, jar)
+        setAuthentication("zazie", privileges, jar)
         .flatMap(() => testUploadRequest({
-            url: getURL(server, iconEndpointPath),
+            url: getURL(iconEndpointPath),
             method: "POST",
             formData: formData1,
             jar
@@ -108,7 +104,7 @@ describe(iconEndpointPath, () => {
         })
         .flatMap(gitSha1 =>
             testUploadRequest({
-                url: getURL(server, iconEndpointPath),
+                url: getURL(iconEndpointPath),
                 method: "POST",
                 formData: formData2,
                 jar
@@ -118,10 +114,10 @@ describe(iconEndpointPath, () => {
                 return getCurrentGitCommit()
             .map(gitSha2 => expect(gitSha1).not.toEqual(gitSha2));
         }))
-        .flatMap(() => getCheckIconFile(getURL(server, ""), formData1))
-        .flatMap(() => getCheckIconFile(getURL(server, ""), formData2))
+        .flatMap(() => getCheckIconFile(getURL(""), formData1))
+        .flatMap(() => getCheckIconFile(getURL(""), formData2))
         .flatMap(() => assertGitStatus())
-        .flatMap(() => describeAllIcons(getURL(server, ""), defaultAuth))
+        .flatMap(() => describeAllIcons(getURL(""), defaultAuth))
         .map((iconDTOList: List<IconDTO>) => {
             expect(iconDTOList.size).toEqual(2);
             expect(iconDTOList).toEqual(expectedIconInfoList);
@@ -140,9 +136,9 @@ describe(iconEndpointPath, () => {
         const expectedIconInfoList = List([createIconDTO(formData1)]);
 
         const jar = request.jar();
-        setAuthentication(server, "zazie", privileges, jar)
+        setAuthentication("zazie", privileges, jar)
         .flatMap(() => testUploadRequest({
-            url: getURL(server, iconEndpointPath),
+            url: getURL(iconEndpointPath),
             method: "POST",
             formData: formData1,
             jar
@@ -153,7 +149,7 @@ describe(iconEndpointPath, () => {
             .flatMap(gitSha1 => {
                 setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true");
                 return testUploadRequest({
-                    url: getURL(server, iconEndpointPath),
+                    url: getURL(iconEndpointPath),
                     method: "POST",
                     formData: formData2,
                     jar
@@ -161,11 +157,11 @@ describe(iconEndpointPath, () => {
                 .map(result2 => expect(result2.response.statusCode).toEqual(500))
                 .flatMap(() => getCurrentGitCommit()
                     .map(gitSha2 => expect(gitSha1).toEqual(gitSha2)))
-                .flatMap(() => getCheckIconFile(getURL(server, ""), formData1));
+                .flatMap(() => getCheckIconFile(getURL(""), formData1));
             });
         })
         .flatMap(() => assertGitStatus())
-        .flatMap(() => describeAllIcons(getURL(server, ""), defaultAuth))
+        .flatMap(() => describeAllIcons(getURL(""), defaultAuth))
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
             expect(iconInfoList).toEqual(expectedIconInfoList);
