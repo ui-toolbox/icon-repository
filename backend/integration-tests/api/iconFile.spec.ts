@@ -4,20 +4,18 @@ import {
     iconFileEndpointPath,
     createAddIconFormData,
     setAuthentication,
-    getURL,
     testUploadRequest,
     createAddIconFileFormData,
     CreateIconFormData,
     UploadFormData,
     manageTestResourcesBeforeAfter,
-    defaultAuth,
+    describeAllIcons,
     getCheckIconFile1,
     getCheckIconFile
 } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import * as request from "request";
 import { Observable } from "rxjs";
-import { describeAllIcons } from "./api-client";
 
 export const createInitialIcon: (
     createIconFormData: CreateIconFormData
@@ -31,7 +29,7 @@ export const createInitialIcon: (
     return setAuthentication("zazie", privileges, jar)
     .flatMap(() =>
         testUploadRequest({
-            url: getURL(iconEndpointPath),
+            path: iconEndpointPath,
             method: "POST",
             formData: createIconFormData,
             jar
@@ -51,7 +49,7 @@ export const addIconFile = (
     return setAuthentication("zazie", privileges, jar)
     .flatMap(() =>
         testUploadRequest({
-            url: getURL(createIconFileURL(iconName, format, size)),
+            path: createIconFileURL(iconName, format, size),
             method: "POST",
             formData,
             jar
@@ -70,7 +68,7 @@ describe(iconFileEndpointPath, () => {
         setAuthentication("zazie", [], jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(iconFileEndpointPath),
+                path: iconFileEndpointPath,
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
                 jar
@@ -87,7 +85,7 @@ describe(iconFileEndpointPath, () => {
         setAuthentication("zazie", privileges, jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(iconFileEndpointPath),
+                path: iconFileEndpointPath,
                 method: "POST",
                 formData: createAddIconFormData("cartouche", "french", "great"),
                 jar
@@ -106,7 +104,7 @@ describe(iconFileEndpointPath, () => {
         return createInitialIcon(upForm1)
         .flatMap(iconId => addIconFile(privileges, iconName, format, size2, upForm2))
         .map(result => expect(result.response.statusCode).toEqual(201))
-        .flatMap(() => describeAllIcons(getURL(""), defaultAuth))
+        .flatMap(() => describeAllIcons())
         .map(iconDTOList => {
             expect(iconDTOList.size).toEqual(1);
             expect(iconDTOList.get(0).name).toEqual(iconName);
@@ -114,8 +112,8 @@ describe(iconFileEndpointPath, () => {
                 (pathCount, formatInPath) => pathCount + Object.keys(iconDTOList.get(0).paths[formatInPath]).length, 0
             )).toEqual(2);
         })
-        .flatMap(() => getCheckIconFile(getURL(""), upForm1))
-        .flatMap(() => getCheckIconFile1(getURL(""), iconName, format, size2, upForm2));
+        .flatMap(() => getCheckIconFile(upForm1))
+        .flatMap(() => getCheckIconFile1(iconName, format, size2, upForm2));
     };
 
     it ("POST should complete with CREATE_ICON privilege", done => {
@@ -145,7 +143,7 @@ describe(iconFileEndpointPath, () => {
         setAuthentication("zazie", privileges, jar)
         .flatMap(() =>
             testUploadRequest({
-                url: getURL(iconEndpointPath),
+                path: iconEndpointPath,
                 method: "POST",
                 formData,
                 jar
@@ -153,7 +151,7 @@ describe(iconFileEndpointPath, () => {
             .flatMap(result => {
                 expect(result.response.statusCode).toEqual(201);
                 expect(result.body.iconId).toEqual(1);
-                return getCheckIconFile(getURL(""), formData);
+                return getCheckIconFile(formData);
             })
         )
         .subscribe(boilerplateSubscribe(fail, done));

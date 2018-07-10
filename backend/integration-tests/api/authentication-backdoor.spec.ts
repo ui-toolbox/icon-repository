@@ -1,7 +1,6 @@
 import * as request from "request";
 import {
     startServer,
-    getURL,
     testRequest,
     setAuthentication,
     authenticationBackdoorPath } from "./api-test-utils";
@@ -12,7 +11,7 @@ describe("backdoor to privileges", () => {
         startServer({})
         .flatMap(server =>
             testRequest({
-                url: getURL("/backdoor/authentication"),
+                path: "/backdoor/authentication",
                 method: "POST"
             })
             .map(result => {
@@ -26,7 +25,7 @@ describe("backdoor to privileges", () => {
     it("should be available when enabled", done => {
         startServer({enable_backdoors: true})
         .flatMap(server =>
-            testRequest({url: getURL("/backdoor/authentication")})
+            testRequest({path: "/backdoor/authentication"})
             .map(result => {
                 expect(result.response.statusCode).toEqual(200);
             })
@@ -46,7 +45,7 @@ describe("backdoor to privileges", () => {
                 server => setAuthentication("dani", testPrivileges, cookieJar)
                 .flatMap(
                     () => testRequest({
-                            url: getURL(authenticationBackdoorPath),
+                            path: authenticationBackdoorPath,
                             json: true,
                             jar: cookieJar
                         })

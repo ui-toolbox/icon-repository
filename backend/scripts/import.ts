@@ -5,8 +5,7 @@ import { Observable, Observer } from "rxjs";
 
 import {
     startServer,
-    getURL,
-    getURLBasicAuth
+    getBaseURLBasicAuth
 } from "../integration-tests/api/api-test-utils";
 import logger from "../src/utils/logger";
 import { readdir, readFile } from "../src/utils/rx";
@@ -59,7 +58,7 @@ const iconFileCollector: () => Observable<SourceFileDescriptor>
 
 const doesIconExist: (server: Server, iconName: string) => Observable<boolean>
 = (server, iconName) =>
-    describeIcon(getURL(""), {user: "ux", password: "ux"}, iconName)
+    describeIcon(getBaseURLBasicAuth(server, "ux:ux"), iconName)
     .map(icon => !!icon);
 
 const addIconFile: (
@@ -70,9 +69,10 @@ const addIconFile: (
     content: Buffer,
     create: boolean) => Observable<void>
 = (server, iconName, format, size, content, create) => Observable.create((observer: Observer<void>) => {
+    const baseUrl = getBaseURLBasicAuth(server, "ux:ux");
     const url: string = create
-        ? getURLBasicAuth(server, "ux:ux", `/icons`)
-        : getURLBasicAuth(server, "ux:ux", `/icons/${iconName}/formats/${format}/sizes/${size}`);
+        ? `${baseUrl}/icons`
+        : `${baseUrl}/icons/${iconName}/formats/${format}/sizes/${size}`;
 
     const request = create
         ? superagent.post(url).field({name: iconName}).field({format}).field({size})

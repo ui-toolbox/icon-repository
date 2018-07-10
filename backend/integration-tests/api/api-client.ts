@@ -23,11 +23,10 @@ export interface Auth {
     readonly password: string;
 }
 
-export const describeIcon: (baseUrl: string, auth: Auth, iconName: string) => Observable<IconDTO>
-= (baseUrl, auth, iconName) => Observable.create((observer: Observer<boolean>) => {
+export const describeIcon: (baseUrl: string, iconName: string) => Observable<IconDTO>
+= (baseUrl, iconName) => Observable.create((observer: Observer<boolean>) => {
     superagent
         .get(`${baseUrl}/icons/${iconName}`)
-        .auth(auth.user, auth.password)
         .ok(res => res.status === 200 || res.status === 404)
         .then(
             response => {

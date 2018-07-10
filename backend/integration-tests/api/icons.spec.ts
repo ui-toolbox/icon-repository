@@ -1,7 +1,6 @@
 import {
     startServer,
     testRequest,
-    getURL,
     createAddIconFormData,
     createAddIconFileFormData,
     createUploadBuffer,
@@ -19,7 +18,7 @@ describe(iconRepoConfigPath, () => {
     it("should return the correct default", done => {
         startServer({})
         .flatMap(server => testRequest({
-                            url: getURL(iconRepoConfigPath)
+                            path: iconRepoConfigPath
                         })
                         .map(result => {
                             server.close();
@@ -110,7 +109,7 @@ describe(allIconsPath, () => {
             ],
             icon2.name, icon2File2.format, icon2File2.size, icon2File2FormData))
         .flatMap(() => testRequest({
-            url: getURL("/icons")
+            path: "/icons"
         }))
         .map(actualReply => expect(JSON.parse(actualReply.body)).toEqual(expectedReply))
         .subscribe(boilerplateSubscribe(fail, done));
@@ -154,7 +153,7 @@ describe(singleIconPath, () => {
             ],
             icon1.name, icon1File2.format, icon1File2.size, icon1File2FormData))
         .flatMap(() => testRequest({
-            url: getURL(`/icons/${icon1.name}`)
+            path: `/icons/${icon1.name}`
         }))
         .map(actualReply => {
             expect(actualReply.response.statusCode).toEqual(200);
@@ -165,7 +164,7 @@ describe(singleIconPath, () => {
 
     it ("GET should return 404 for non-existent icon", done => {
         testRequest({
-            url: getURL(`/icons/somenonexistentname`)
+            path: `/icons/somenonexistentname`
         })
         .map(actualReply => expect(actualReply.response.statusCode).toEqual(404))
         .subscribe(boilerplateSubscribe(fail, done));

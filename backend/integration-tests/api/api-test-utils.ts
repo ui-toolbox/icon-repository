@@ -16,13 +16,14 @@ import gitProvider from "../../src/git";
 import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
-import iconHandlersProvider from "../../src/iconsHandlers";
+import iconHandlersProvider, { IconDTO } from "../../src/iconsHandlers";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { createTestPool, terminateTestPool } from "../db/db-test-utils";
-import { Auth, getIconFile } from "./api-client";
+import { Auth, describeAllIcons as describeAllIconsClient, getIconFile } from "./api-client";
+import { List } from "immutable";
 
 logger.setLevel("silly");
 
@@ -85,13 +86,10 @@ export const manageTestResourcesBeforeAfter = () => {
     afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
 };
 
-export const getURL = (path: string) => `http://localhost:${localServerRef.address().port}${path}`;
-export const getURLBasicAuth = (
+const getURL = (path: string) => `http://localhost:${localServerRef.address().port}${path}`;
+export const getBaseURLBasicAuth = (
     server: http.Server,
-    auth: string,
-    path: string) => `http://${auth}@localhost:${server.address().port}${path}`;
-export const defaultAuth: Auth = {user: "ux", password: "ux"};
-
+    auth: string) => `http://${auth}@localhost:${server.address().port}`;
 interface UploadRequestBuffer {
     readonly value: Buffer;
     readonly options: {
@@ -132,7 +130,15 @@ export const authDEV = Object.freeze({
 
 export const testRequest: TestRequest = options =>
     Observable.create((observer: Observer<RequestResult>) => {
-        req(Object.assign(options, authDEV),
+        const engineeredOptions = Object.assign(
+            options,
+            {
+                url: getURL(options.path),
+                path: void 0
+            },
+            authDEV);
+        req(
+            engineeredOptions,
             (error: any, response: request.Response, body: any) => {
                 logger.info("Reqest for %s is back: %o", options.url, {hasError: !!error});
                 if (error) {
@@ -152,7 +158,7 @@ export const setAuthentication = (
     privileges: string[],
     jar: any
 ) => testRequest({
-    url: getURL(authenticationBackdoorPath),
+    path: authenticationBackdoorPath,
     method: "PUT",
     json: {username, privileges},
     jar
@@ -187,7 +193,7 @@ export const createAddIconFileFormData: () => UploadFormData = () => ({
 });
 
 interface TestUploadRequestData {
-    url: string;
+    path: string;
     method: string;
     formData: UploadFormData;
     jar: request.CookieJar;
@@ -196,18 +202,22 @@ type TestUploadRequest = (requestData: TestUploadRequestData) => Observable<Requ
 export const testUploadRequest: TestUploadRequest
     = uploadRequestData => testRequest({...uploadRequestData, json: true});
 
-export const getCheckIconFile: (baseUrl: string, formData: CreateIconFormData) => Observable<any>
-    = (baseUrl, formData) => getIconFile(baseUrl, defaultAuth, formData.name, formData.format, formData.size)
+const defaultAuth: Auth = {user: "ux", password: "ux"};
+
+export const describeAllIcons: () => Observable<List<IconDTO>>
+= () => describeAllIconsClient(`${getURL("")}`, defaultAuth);
+
+export const getCheckIconFile: (formData: CreateIconFormData) => Observable<any>
+    = formData => getIconFile(getURL(""), defaultAuth, formData.name, formData.format, formData.size)
     .map(buffer => expect(Buffer.compare(formData.iconFile.value, buffer)).toEqual(0));
 
 export const getCheckIconFile1: (
-    baseUrl: string,
     name: string,
     format: string,
     size: string,
     formData: UploadFormData
 ) => Observable<any>
-= (baseUrl, name, format, size, formData) => getIconFile(baseUrl, defaultAuth, name, format, size)
+= (name, format, size, formData) => getIconFile(getURL(""), defaultAuth, name, format, size)
     .map(buffer => expect(Buffer.compare(formData.iconFile.value, buffer)).toEqual(0));
 
 export const iconEndpointPath = "/icons";
