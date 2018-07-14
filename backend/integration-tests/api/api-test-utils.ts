@@ -5,7 +5,7 @@ import * as request from "request";
 import { Observable, Observer } from "rxjs";
 import { Pool } from "pg";
 
-const req = request.defaults({
+const defaultRequest = request.defaults({
     timeout: 4000
 });
 // request.debug = true;
@@ -22,8 +22,14 @@ import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { createTestPool, terminateTestPool } from "../db/db-test-utils";
-import { Auth, describeAllIcons as describeAllIconsClient, getIconFile } from "./api-client";
+import {
+    Auth,
+    describeAllIcons as describeAllIconsClient,
+    getIconFile,
+    authenticationBackdoorPath,
+    RequestBuilder } from "./api-client";
 import { List } from "immutable";
+import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
 
 logger.setLevel("silly");
 
@@ -76,7 +82,53 @@ export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
-export const manageTestResourcesBeforeAfter = () => {
+export class Session {
+    private readonly baseUrl: string;
+    private readonly session: SuperAgent<SuperAgentRequest>;
+    private readonly authentication: Auth;
+    private readonly responseValidator: (resp: Response) => boolean;
+
+    constructor(
+        baseUrl: string,
+        session: SuperAgent<SuperAgentRequest>,
+        authentication: Auth,
+        responseValidator: (resp: Response) => boolean
+    ) {
+        this.baseUrl = baseUrl;
+        this.session = session;
+        this.authentication = authentication;
+        this.responseValidator = responseValidator;
+    }
+
+    public auth(auth: Auth) {
+        return new Session(this.baseUrl, this.session, auth, this.responseValidator);
+    }
+
+    public responseOK(validator: (resp: Response) => boolean) {
+        return new Session(this.baseUrl, this.session, this.authentication, validator);
+    }
+
+    public requestBuilder() {
+        return ({
+            get: (path: string) => this.addConfig(this.session.get(`${this.baseUrl}${path}`)),
+            post: (path: string) => this.addConfig(this.session.post(`${this.baseUrl}${path}`).ok(() => true)),
+            put: (path: string) => this.addConfig(this.session.put(`${this.baseUrl}${path}`).ok(() => true)),
+            del: (path: string) => this.addConfig(this.session.del(`${this.baseUrl}${path}`).ok(() => true))
+        });
+    }
+
+    private addConfig(req: SuperAgentRequest) {
+        if (this.authentication) {
+            req = req.auth(this.authentication.user, this.authentication.password);
+        }
+        if (this.responseValidator) {
+            req = req.ok(this.responseValidator);
+        }
+        return req;
+    }
+}
+
+export const manageTestResourcesBeforeAfter: () => () => Session = () => {
     let localPoolRef: Pool;
     beforeAll(createTestPool((p: Pool) => {
         localPoolRef = p;
@@ -84,9 +136,10 @@ export const manageTestResourcesBeforeAfter = () => {
     beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, done));
     afterAll(terminateTestPool(localPoolRef));
     afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
+    return () => new Session(getBaseUrl(), agent(), void 0, void 0);
 };
 
-const getURL = (path: string) => `http://localhost:${localServerRef.address().port}${path}`;
+const getBaseUrl = () => `http://localhost:${localServerRef.address().port}`;
 export const getBaseURLBasicAuth = (
     server: http.Server,
     auth: string) => `http://${auth}@localhost:${server.address().port}`;
@@ -112,6 +165,9 @@ type TestRequest = (
     options: any
 ) => Observable<RequestResult>;
 
+export const uxAuth: Auth = {user: "ux", password: "ux"};
+export const devAuth: Auth = {user: "dev", password: "dev"};
+
 export const authUX = Object.freeze({
     auth: {
         user: "ux",
@@ -133,11 +189,11 @@ export const testRequest: TestRequest = options =>
         const engineeredOptions = Object.assign(
             options,
             {
-                url: getURL(options.path),
+                url: `${getBaseUrl()}${options.path}`,
                 path: void 0
             },
             authDEV);
-        req(
+        defaultRequest(
             engineeredOptions,
             (error: any, response: request.Response, body: any) => {
                 logger.info("Reqest for %s is back: %o", options.url, {hasError: !!error});
@@ -150,8 +206,6 @@ export const testRequest: TestRequest = options =>
             }
         );
     });
-
-export const authenticationBackdoorPath = "/backdoor/authentication";
 
 export const setAuthentication = (
     username: string,
@@ -205,10 +259,10 @@ export const testUploadRequest: TestUploadRequest
 const defaultAuth: Auth = {user: "ux", password: "ux"};
 
 export const describeAllIcons: () => Observable<List<IconDTO>>
-= () => describeAllIconsClient(`${getURL("")}`, defaultAuth);
+= () => describeAllIconsClient(`${getBaseUrl()}`, defaultAuth);
 
 export const getCheckIconFile: (formData: CreateIconFormData) => Observable<any>
-    = formData => getIconFile(getURL(""), defaultAuth, formData.name, formData.format, formData.size)
+    = formData => getIconFile(getBaseUrl(), defaultAuth, formData.name, formData.format, formData.size)
     .map(buffer => expect(Buffer.compare(formData.iconFile.value, buffer)).toEqual(0));
 
 export const getCheckIconFile1: (
@@ -217,7 +271,7 @@ export const getCheckIconFile1: (
     size: string,
     formData: UploadFormData
 ) => Observable<any>
-= (name, format, size, formData) => getIconFile(getURL(""), defaultAuth, name, format, size)
+= (name, format, size, formData) => getIconFile(getBaseUrl(), defaultAuth, name, format, size)
     .map(buffer => expect(Buffer.compare(formData.iconFile.value, buffer)).toEqual(0));
 
 export const iconEndpointPath = "/icons";

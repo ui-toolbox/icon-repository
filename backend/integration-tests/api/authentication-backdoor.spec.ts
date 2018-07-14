@@ -2,9 +2,9 @@ import * as request from "request";
 import {
     startServer,
     testRequest,
-    setAuthentication,
-    authenticationBackdoorPath } from "./api-test-utils";
+    setAuthentication } from "./api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
+import { authenticationBackdoorPath } from "./api-client";
 
 describe("backdoor to privileges", () => {
     it("mustn't be available by default", done => {

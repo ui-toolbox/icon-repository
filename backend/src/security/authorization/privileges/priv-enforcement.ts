@@ -22,6 +22,11 @@ const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
             privilegeDictionary.CREATE_ICON
         ]
     },
+    "^/icons/[^/]+$": {
+        DELETE: [
+            privilegeDictionary.REMOVE_ICON
+        ]
+    },
     // "/icons/:id/formats/:format/sizes/:size"
     "^/icons/[^/]+/formats/[^/]+/sizes/[^/]+$": {
         POST: [

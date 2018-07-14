@@ -11,6 +11,7 @@ export interface IconHanlders {
     readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
+    readonly deleteIcon: (req: Request, res: Response) => void;
 }
 
 export interface IconPathsDTO {
@@ -130,6 +131,10 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 res.status(500).end("An error occurred while creating icon");
             }
         );
+    },
+
+    deleteIcon: (req: Request, res: Response) => {
+        res.status(200).end();
     },
 
     addIconFile: (req: Request, res: Response) => {
