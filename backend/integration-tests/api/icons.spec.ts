@@ -1,5 +1,4 @@
 import {
-    startServer,
     manageTestResourcesBeforeAfter,
     Session,
     uxAuth
@@ -8,7 +7,6 @@ import { boilerplateSubscribe } from "../testUtils";
 import { addTestData, getTestIconData, Icon, testDataDescriptor } from "./icon-api-test-utils";
 import { describeAllIcons, describeIcon, getFilePath } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
-import { finalize } from "rxjs/operators";
 
 const iconRepoConfigPath = "/icons/config";
 

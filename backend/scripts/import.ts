@@ -1,6 +1,5 @@
 import * as path from "path";
 import * as superagent from "superagent";
-import { Server } from "http";
 import { Observable, Observer } from "rxjs";
 
 import {

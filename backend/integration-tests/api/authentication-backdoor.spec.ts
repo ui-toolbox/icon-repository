@@ -2,7 +2,6 @@ import * as superagent from "superagent";
 import { startServer, getBaseUrl, uxAuth, manageTestResourcesBeforeAfter } from "./api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { authenticationBackdoorPath, setAuth } from "./api-client";
-import { Observable } from "rxjs";
 
 describe("backdoor to privileges", () => {
     it("mustn't be available by default", done => {
