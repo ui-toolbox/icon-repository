@@ -1,9 +1,7 @@
 import { Observable } from "rxjs";
-import { Set } from "immutable";
 import * as util from "util";
 import * as express from "express";
 
-import * as cookieParser from "cookie-parser";
 import * as session from "express-session";
 // @ts-ignore
 import sessionMemoryStoreFactory = require("session-memory-store");
@@ -173,9 +171,7 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
     const setupRoutes: (router: express.Router) => void = router => {
         const ctxLogger = logger.createChild("security-manager#setup-routes");
         const authType = appConfigProvider().authentication_type;
-
         ctxLogger.debug(`Authentication type: ${authType}`);
-
         const getAllPrivilegesForUser: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider(
             privilegeResourcesProvider(appConfigProvider().users_by_roles)
         );

@@ -5,7 +5,8 @@ import { Observable, Observer } from "rxjs";
 
 import {
     startServer,
-    getBaseURLBasicAuth
+    getBaseUrl,
+    Session
 } from "../integration-tests/api/api-test-utils";
 import logger from "../src/utils/logger";
 import { readdir, readFile } from "../src/utils/rx";
@@ -56,27 +57,38 @@ const iconFileCollector: () => Observable<SourceFileDescriptor>
             }))));
 };
 
-const doesIconExist: (server: Server, iconName: string) => Observable<boolean>
-= (server, iconName) =>
-    describeIcon(getBaseURLBasicAuth(server, "ux:ux"), iconName)
+const createSession = () => new Session(
+    getBaseUrl(),
+    superagent,
+    {
+        user: "ux",
+        password: "ux"
+    },
+    void 0
+);
+
+const doesIconExist: (iconName: string) => Observable<boolean>
+= iconName =>
+    describeIcon(
+        createSession().requestBuilder(),
+        iconName
+    )
     .map(icon => !!icon);
 
 const addIconFile: (
-    server: Server,
     iconName: string,
     format: string,
     size: string,
     content: Buffer,
     create: boolean) => Observable<void>
-= (server, iconName, format, size, content, create) => Observable.create((observer: Observer<void>) => {
-    const baseUrl = getBaseURLBasicAuth(server, "ux:ux");
+= (iconName, format, size, content, create) => Observable.create((observer: Observer<void>) => {
     const url: string = create
-        ? `${baseUrl}/icons`
-        : `${baseUrl}/icons/${iconName}/formats/${format}/sizes/${size}`;
+        ? `/icons`
+        : `/icons/${iconName}/formats/${format}/sizes/${size}`;
 
     const request = create
-        ? superagent.post(url).field({name: iconName}).field({format}).field({size})
-        : superagent.post(url);
+        ? createSession().requestBuilder().post(url).field({name: iconName}).field({format}).field({size})
+        : createSession().requestBuilder().post(url);
 
     return request
     .attach("icon", content, iconName)
@@ -97,18 +109,17 @@ const addIconFile: (
 const enqueueJob = createSerializer("I M P O R T");
 let existingIcons: Set<string> = Set();
 
-const readAndUploadIconFile: (server: Server, descriptor: SourceFileDescriptor) => Observable<void>
-= (server, descriptor) => {
+const readAndUploadIconFile: (descriptor: SourceFileDescriptor) => Observable<void>
+= descriptor => {
     ctxLogger.info("Processing icon file: %o", descriptor);
     return readFile(path.join(sourceDir, descriptor.format, descriptor.size, descriptor.filePath))
     .flatMap(content =>
         (existingIcons.contains(descriptor.name)
             ? Observable.of(true)
-            : doesIconExist(server, descriptor.name))
+            : doesIconExist(descriptor.name))
         .flatMap(iconExists => {
             existingIcons = existingIcons.add(descriptor.name);
             return addIconFile(
-                server,
                 descriptor.name,
                 descriptor.format,
                 descriptor.size,
@@ -117,10 +128,10 @@ const readAndUploadIconFile: (server: Server, descriptor: SourceFileDescriptor) 
     }));
 };
 
-const importIcons: (server: Server) => Observable<any> = server => {
+const importIcons: () => Observable<any> = () => {
     ctxLogger.info("Start importing from %s", sourceDir);
     return iconFileCollector()
-    .flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(server, iconFileData)));
+    .flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(iconFileData)));
 };
 
 // @WindowsUnfriendly
@@ -149,7 +160,7 @@ configuration
 .flatMap(createNewDBMaybe)
 .flatMap(configProvider => startServer(configProvider()))
 .flatMap(server => {
-    return importIcons(server)
+    return importIcons()
     .finally(() => server.close);
 })
 .subscribe(

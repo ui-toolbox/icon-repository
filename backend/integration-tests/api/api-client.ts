@@ -1,8 +1,10 @@
-import * as superagent from "superagent";
 import { SuperAgentRequest } from "superagent";
 import { Observable, Observer } from "rxjs";
 import { IconDTO } from "../../src/iconsHandlers";
 import { List } from "immutable";
+import { IconFile, IconFileDescriptor } from "../../src/icon";
+
+export const authenticationBackdoorPath = "/backdoor/authentication";
 
 export interface RequestBuilder {
     get: (path: string) => SuperAgentRequest;
@@ -11,38 +13,34 @@ export interface RequestBuilder {
     del: (path: string) => SuperAgentRequest;
 }
 
-export const authenticationBackdoorPath = "/backdoor/authentication";
+export const getFilePath = (iconName: string, fileDescriptor: IconFileDescriptor) =>
+    `/icons/${iconName}/formats/${fileDescriptor.format}/sizes/${fileDescriptor.size}`;
 
 export const setAuth: (
-    session: RequestBuilder,
+    requestBuilder: RequestBuilder,
     privileges: string[],
     userName?: string
 ) => Observable<void>
-= (session, privileges) => Observable.create((observer: Observer<any>) => {
+= (requestBuilder, privileges) => Observable.create((observer: Observer<any>) => {
     const userName: string = "ux";
-    session
+    requestBuilder
     .put(authenticationBackdoorPath)
     .auth(userName, "ux")
     .send({username: userName, privileges})
     .then(
         response => {
-            // if (response.status !== 500) {
-            //     observer.error(`status is ${response.status}`);
-            // } else {
-                observer.next(void 0);
-                observer.complete();
-            // }
+            observer.next(void 0);
+            observer.complete();
         },
         error => observer.error(error)
     )
     .catch(error => observer.error(error));
 });
 
-export const describeAllIcons: (baseUrl: string, auth: Auth) => Observable<List<IconDTO>>
-= (baseUrl, auth) => Observable.create((observer: Observer<List<IconDTO>>) => {
-    superagent
-        .get(`${baseUrl}/icons/`)
-        .auth(auth.user, auth.password)
+export const describeAllIcons: (reqBuilder: RequestBuilder) => Observable<List<IconDTO>>
+= reqBuilder => Observable.create((observer: Observer<List<IconDTO>>) => {
+    reqBuilder
+        .get(`/icons`)
         .then(
             response => {
                 observer.next(List(response.body));
@@ -58,10 +56,10 @@ export interface Auth {
     readonly password: string;
 }
 
-export const describeIcon: (baseUrl: string, iconName: string) => Observable<IconDTO>
-= (baseUrl, iconName) => Observable.create((observer: Observer<boolean>) => {
-    superagent
-        .get(`${baseUrl}/icons/${iconName}`)
+export const describeIcon: (reqBulder: RequestBuilder, iconName: string) => Observable<IconDTO>
+= (reqBuilder, iconName) => Observable.create((observer: Observer<boolean>) => {
+    reqBuilder
+        .get(`/icons/${iconName}`)
         .ok(res => res.status === 200 || res.status === 404)
         .then(
             response => {
@@ -84,15 +82,12 @@ export const describeIcon: (baseUrl: string, iconName: string) => Observable<Ico
 });
 
 export const getIconFile: (
-    baseUrl: string,
-    auth: Auth,
+    requestBuilder: RequestBuilder,
     iconName: string,
-    format: string,
-    size: string) => Observable<Buffer>
-= (baseUrl, auth, iconName, format, size) => Observable.create((observer: Observer<Buffer>) => {
-    superagent.agent()
-        .get(`${baseUrl}/icons/${iconName}/formats/${format}/sizes/${size}`)
-        .auth(auth.user, auth.password)
+    iconFileDesc: IconFileDescriptor) => Observable<Buffer>
+= (requestBuilder, iconName, iconFileDesc) => Observable.create((observer: Observer<Buffer>) => {
+    requestBuilder
+        .get(getFilePath(iconName, iconFileDesc))
         .buffer(true)
         .then(
             response => {
@@ -105,20 +100,58 @@ export const getIconFile: (
 });
 
 export const createIcon: (
-    session: RequestBuilder,
-    iconName: string,
-    format: string,
-    size: string,
-    content: Buffer)
+    requestBuilder: RequestBuilder,
+    initialIconFile: IconFile)
 => Observable<number>
-= (session, iconName, format, size, content) =>
+= (requestBuilder, initialIconFile) =>
     Observable.create((observer: Observer<number>) =>
-        session
-        .post("/icons")
-        .field({iconName})
-        .field({format})
-        .field({size})
-        .attach("icon", content, `${iconName}.${format}`)
+        requestBuilder
+            .post("/icons")
+            .field({name: initialIconFile.name})
+            .field({format: initialIconFile.format})
+            .field({size: initialIconFile.size})
+            .attach(
+                "icon",
+                initialIconFile.content,
+                `${initialIconFile.name}-${initialIconFile.size}.${initialIconFile.format}`
+            )
+            .then(
+                result => {
+                    observer.next(result.body.id);
+                    observer.complete();
+                },
+                error => observer.error(error)
+            )
+            .catch(error => observer.error(error))
+);
+
+export const deleteIcon: (
+    requestBuilder: RequestBuilder,
+    iconName: string
+) => Observable<void>
+= (requestBuilder, iconName) => Observable.create((observer: Observer<void>) => {
+    requestBuilder
+    .del(`/icons/${iconName}`)
+    .then(
+        result => {
+            observer.next(void 0);
+            observer.complete();
+        },
+        error => observer.error(error)
+    )
+    .catch(error => observer.error(error));
+});
+
+export const addIconFile: (
+    requestBuilder: RequestBuilder,
+    iconFile: IconFile
+)
+=> Observable<number>
+= (requestBuilder, iconFile) =>
+    Observable.create((observer: Observer<number>) =>
+        requestBuilder
+        .post(`/icons/${iconFile.name}/formats/${iconFile.format}/sizes/${iconFile.size}`)
+        .attach("icon", iconFile.content, `${iconFile.name}-${iconFile.size}.${iconFile.format}`)
         .then(
             result => {
                 observer.next(result.body.id);
@@ -129,13 +162,10 @@ export const createIcon: (
         .catch(error => observer.error(error))
 );
 
-export const deleteIcon: (
-    session: RequestBuilder,
-    iconName: string
-) => Observable<void>
-= (session, iconName) => Observable.create((observer: Observer<void>) => {
-    session
-    .del(`/icons/${iconName}`)
+export const deleteIconFile: (requestBuilder: RequestBuilder, iconFile: IconFile) => Observable<void>
+= (requestBuilder, iconFile) => Observable.create((observer: Observer<void>) => {
+    requestBuilder
+    .del(`/icons/${iconFile.name}/formats/${iconFile.format}/sizes/${iconFile.size}`)
     .then(
         result => {
             observer.next(void 0);

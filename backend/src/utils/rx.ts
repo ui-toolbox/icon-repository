@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as rimraf from "rimraf";
 import { Observable, Observer } from "rxjs";
-import { pathMatch } from "tough-cookie";
 
 export const fileExists: (pathToFile: string) => Observable<boolean> = Observable.bindCallback(fs.exists);
 

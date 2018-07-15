@@ -10,8 +10,9 @@ export interface IconHanlders {
     readonly describeIcon: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
-    readonly addIconFile: (req: Request, res: Response) => void;
     readonly deleteIcon: (req: Request, res: Response) => void;
+    readonly addIconFile: (req: Request, res: Response) => void;
+    readonly deleteIconFile: (req: Request, res: Response) => void;
 }
 
 export interface IconPathsDTO {
@@ -95,24 +96,8 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     describeIcon: (iconPathRoot: string) => (req: Request, res: Response) =>
         describeIcon(iconService.describeIcon, iconPathRoot)(req, res),
 
-    getIconFile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("getIconFile");
-        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
-        .toPromise()
-        .then(
-            result => {
-                res.type(req.params.format).send(result);
-            },
-            error => {
-                ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
-                                req.params.id, req.params.format, req.params.size, error);
-                res.sendStatus(500).end();
-            }
-        );
-    },
-
     createIcon: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("createIcon");
+        const ctxLogger = logger.createChild("createIcon-request-handler");
         ctxLogger.info("START");
         const iconData: IconFile = {
             name: req.body.name,
@@ -137,8 +122,24 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
         res.status(200).end();
     },
 
+    getIconFile: (req: Request, res: Response) => {
+        const ctxLogger = logger.createChild("getIconFile");
+        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
+        .toPromise()
+        .then(
+            result => {
+                res.type(req.params.format).send(result);
+            },
+            error => {
+                ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
+                                req.params.id, req.params.format, req.params.size, error);
+                res.sendStatus(500).end();
+            }
+        );
+    },
+
     addIconFile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("addIconFile");
+        const ctxLogger = logger.createChild("addIconFile-request-handler");
         const iconData: IconFile = {
             name: req.params.name,
             format: req.params.format,
@@ -161,6 +162,10 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 () => res.status(201).end()
             );
         }
+    },
+
+    deleteIconFile: (req: Request, res: Response) => {
+        res.status(200).end();
     }
 });
 

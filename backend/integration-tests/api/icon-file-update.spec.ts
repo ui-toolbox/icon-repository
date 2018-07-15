@@ -1,10 +1,10 @@
 import { manageTestResourcesBeforeAfter, Session, uxAuth } from "./api-test-utils";
-import { setAuth, deleteIcon } from "./api-client";
+import { setAuth, deleteIconFile } from "./api-client";
 import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
-import { addTestData, getTestIconData } from "./icon-api-test-utils";
+import { getTestIconData, addTestData } from "./icon-api-test-utils";
 
-describe("DEL /icons", () => {
+describe("DEL icons/:name/<file>", () => {
 
     const agent = manageTestResourcesBeforeAfter();
 
@@ -13,26 +13,24 @@ describe("DEL /icons", () => {
         const testData = getTestIconData();
         addTestData(session.requestBuilder(), testData)
             .flatMap(() => setAuth(session.requestBuilder(), []))
-            .flatMap(() => deleteIcon(
+            .flatMap(() => deleteIconFile(
                 session
                     .auth(uxAuth)
                     .responseOK(resp => resp.status === 403)
                     .requestBuilder(),
-                testData.get(0).name))
+                {name: testData.get(0).name, ...testData.get(0).files.get(0)}))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
-    it("should fail with 403 with only REMOVE_ICON_FILE privilege", done => {
+    it("should should succeed with REMOVE_ICON_FILE privilege", done => {
         const session: Session = agent();
         const testData = getTestIconData();
         addTestData(session.requestBuilder(), testData)
             .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON_FILE ]))
-            .flatMap(() => deleteIcon(
-                session
-                    .auth(uxAuth)
-                    .responseOK(resp => resp.status === 403)
-                    .requestBuilder(),
-                testData.get(0).name))
+            .flatMap(() => deleteIconFile(
+                session.auth(uxAuth).requestBuilder(),
+                {name: testData.get(0).name, ...testData.get(0).files.get(0)})
+            )
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -41,12 +39,11 @@ describe("DEL /icons", () => {
         const testData = getTestIconData();
         addTestData(session.requestBuilder(), testData)
             .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON ]))
-            .flatMap(() => deleteIcon(
-                session
-                    .auth(uxAuth)
-                    .responseOK(resp => resp.status === 200)
-                    .requestBuilder(),
-                testData.get(0).name))
+            .flatMap(() => deleteIconFile(
+                session.auth(uxAuth).requestBuilder(),
+                {name: testData.get(0).name, ...testData.get(0).files.get(0)})
+            )
             .subscribe(boilerplateSubscribe(fail, done));
     });
+
 });

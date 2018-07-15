@@ -32,6 +32,10 @@ const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
         POST: [
             privilegeDictionary.CREATE_ICON,
             privilegeDictionary.ADD_ICON_FILE
+        ],
+        DELETE: [
+            privilegeDictionary.REMOVE_ICON,
+            privilegeDictionary.REMOVE_ICON_FILE
         ]
     }
 });
