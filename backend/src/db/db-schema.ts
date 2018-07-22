@@ -17,7 +17,6 @@ const iconTableColumns = {
     modified_by: "text",
     modified_at: "timestamp DEFAULT now()"
 };
-export type IconTableColumnsDef = typeof iconTableColumns;
 
 export const iconTableSpec: ITableSpec = {
     tableName: "icon",
@@ -34,7 +33,6 @@ export const iconFileTableColumns =  {
     icon_size: "text",
     content: "bytea"
 };
-export type IconFileTableColumnsDef = typeof iconFileTableColumns;
 
 export const iconFileTableSpec: ITableSpec = {
     tableName: "icon_file",

@@ -139,7 +139,7 @@ export const getBaseURLBasicAuth = (
 export const uxAuth: Auth = {user: "ux", password: "ux"};
 export const devAuth: Auth = {user: "dev", password: "dev"};
 
-const defaultAuth: Auth = {user: "ux", password: "ux"};
+export const defaultAuth: Auth = {user: "ux", password: "ux"};
 
 export const getCheckIconFile: (session: Session, iconFile: IconFile) => Observable<any>
     = (session, iconFile) => getIconFile(

@@ -96,6 +96,18 @@ export const appendFile: (pathToFile: string, data: Buffer, options: {
         }
     }));
 
+export const deleteFile: (pathToFile: string) => Observable<void>
+= pathToFile => Observable.create((observer: Observer<void>) =>
+    fs.unlink(pathToFile, (error: NodeJS.ErrnoException) => {
+        if (error) {
+            observer.error(error);
+        } else {
+            observer.next(void 0);
+            observer.complete();
+        }
+    })
+);
+
 export const moveFile: (
     source: string,
     target: string

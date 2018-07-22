@@ -1,17 +1,9 @@
 import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
-import { Pool, QueryResult, Query, PoolClient } from "pg";
+import { Pool, QueryResult } from "pg";
 
-import { IconDescriptor, IconFileData, IconFile, IconFileDescriptor } from "../icon";
+import { IconDescriptor, IconFile, IconFileDescriptor } from "../icon";
 import logger from "../utils/logger";
-import {
-    IconFileTableColumnsDef,
-    IconTableColumnsDef,
-    iconTableSpec,
-    iconFileTableSpec,
-    iconFileTableColumns
-} from "./db-schema";
-import { last } from "rxjs/operator/last";
 
 const ctxLogger = logger.createChild("db");
 
@@ -99,6 +91,7 @@ const createClient: (pool: Pool) => Observable<IConnection> = pool => Observable
             observer.next({
                 executeQuery: (queryText, values) => Observable.create(
                     (qryObserver: Observer<QueryResult>) => {
+                        ctxLogger.debug("Executing %s, %o", queryText);
                         client.query(queryText, values)
                         .then(
                             queryResult => {
@@ -214,10 +207,35 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile
     });
 };
 
+type DeleteIconFile = (
+    iconName: string,
+    iconFileDesc: IconFileDescriptor,
+    modifiedBy: string,
+    createSideEffect?: () => Observable<void>) => Observable<void>;
+const deleteIconFile: (pool: Pool) => DeleteIconFile
+= pool => (iconName, iconFileDesc, modifiedBy, createSideEffect) => {
+    const getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE";
+    const deleteFile = "DELETE FROM icon_file WHERE icon_id = $1 and file_format = $2 and icon_size = $3";
+    const countIconFilesLeftForIcon = "SELECT count(*) as icon_file_count FROM icon_file WHERE icon_id = $1";
+    const deleteIcon = "DELETE FROM icon WHERE id = $1";
+    return tx(pool, (executeQuery: ExecuteQuery) =>
+        executeQuery(getIdAndLockIcon, [iconName])
+        .map(iconIdQueryResult => iconIdQueryResult.rows[0].id)
+        .flatMap(iconId => executeQuery(deleteFile, [iconId, iconFileDesc.format, iconFileDesc.size])
+            .flatMap(() => executeQuery(countIconFilesLeftForIcon, [iconId]))
+            .map(countQueryResult => countQueryResult.rows[0].icon_file_count)
+            .flatMap(countOfLeftIconFiles =>
+                countOfLeftIconFiles === 0
+                    ? executeQuery(deleteIcon, [iconId])
+                    : Observable.of(void 0)))
+        .flatMap(() => (createSideEffect ? createSideEffect() : Observable.of(void 0))));
+};
+
 export interface IconDAFs {
     readonly createIcon: AddIcon;
     readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
+    readonly deleteIconFile: DeleteIconFile;
     readonly describeAllIcons: DescribeAllIcons;
     readonly describeIcon: DescribeIcon;
 }
@@ -229,6 +247,7 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
         createIcon: createIcon(pool),
         getIconFile: getIconFile(pool),
         addIconFileToIcon: addIconFileToIcon(pool),
+        deleteIconFile: deleteIconFile(pool),
         describeAllIcons: describeAllIcons(pool),
         describeIcon: describeIcon(pool)
     };
@@ -237,8 +256,6 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
 type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export const describeAllIcons: (pool: Pool) => DescribeAllIcons
 = pool => () => {
-    const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
-    const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +
@@ -246,7 +263,7 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
                     "icon_file.icon_size as icon_size " +
                 "FROM icon, icon_file " +
                     "WHERE icon.id = icon_file.icon_id " +
-                    "ORDER BY icon_id, icon_file_format, icon_size";
+                    "ORDER BY icon_name, icon_file_format, icon_size";
     return query(pool, sql, [])
     .map(result => result.rows.reduce(
         (iconInfoList: List<IconDescriptor>, row: any) => {
@@ -269,8 +286,6 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
 type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
 export const describeIcon: (pool: Pool) => DescribeIcon
 = pool => iconName => {
-    const iconTableCols: IconTableColumnsDef = iconTableSpec.columns as IconTableColumnsDef;
-    const iconFileTableCols: IconFileTableColumnsDef = iconFileTableSpec.columns as IconFileTableColumnsDef;
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +

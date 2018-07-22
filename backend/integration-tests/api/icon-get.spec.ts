@@ -1,5 +1,5 @@
 import { manageTestResourcesBeforeAfter, Session, uxAuth } from "./api-test-utils";
-import { getTestIconData, addTestData, testDataDescriptor, Icon } from "./icon-api-test-utils";
+import { getTestIconData, addTestData, getTestDataDescriptor, Icon } from "./icon-api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { IconDTO } from "../../src/iconsHandlers";
 import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
@@ -16,7 +16,7 @@ describe(allIconsPath, () => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testData)
             .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(actualReply => expect(new Set(actualReply.toArray())).toEqual(new Set(testDataDescriptor)))
+            .map(actualReply => expect(new Set(actualReply.toArray())).toEqual(new Set(getTestDataDescriptor())))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 

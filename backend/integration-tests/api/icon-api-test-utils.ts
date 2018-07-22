@@ -4,6 +4,7 @@ import { privilegeDictionary } from "../../src/security/authorization/privileges
 import { createIcon, setAuth, RequestBuilder, addIconFile } from "./api-client";
 import { List } from "immutable";
 import { IconFileData, IconFile } from "../../src/icon";
+import { clone } from "../../src/utils/clone";
 
 export interface Icon {
     readonly name: string;
@@ -53,32 +54,36 @@ export const getTestIconData: () => List<Icon> = () => List([
     }
 ]);
 
-export const testDataDescriptor = [
+const testDataDescriptor = [
     {
         name: "cartouche",
         paths: {
-            belge: {
-                large: "/icons/cartouche/formats/belge/sizes/large"
-            },
             french: {
                 great: "/icons/cartouche/formats/french/sizes/great",
                 large: "/icons/cartouche/formats/french/sizes/large"
+            },
+            belge: {
+                large: "/icons/cartouche/formats/belge/sizes/large"
             }
         }
     },
     {
         name: "flonflon",
         paths: {
-            belge: {
-              large: "/icons/flonflon/formats/belge/sizes/large"
-            },
             french: {
                 great: "/icons/flonflon/formats/french/sizes/great",
                 large: "/icons/flonflon/formats/french/sizes/large"
+            },
+            belge: {
+                large: "/icons/flonflon/formats/belge/sizes/large"
             }
-        }
+          }
     }
 ];
+
+type TestDataDescriptor = typeof testDataDescriptor;
+
+export const getTestDataDescriptor: () => TestDataDescriptor = () => clone(testDataDescriptor);
 
 export const createInitialIconFile: (requestBuilder: RequestBuilder, iconFile: IconFile) => Observable<number>
 = (requestBuilder, iconFile) => {

@@ -9,13 +9,13 @@ import { privilegeDictionary } from "../../src/security/authorization/privileges
 
 import {
     getCurrentCommit as getCurrentGitCommit,
-    assertGitStatus } from "../git/git-test-utils";
+    assertGitCleanStatus } from "../git/git-test-utils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { List } from "immutable";
 import { setAuth, createIcon, describeAllIcons, getFilePath, describeIcon } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
-import { getTestIconData, addTestData, testDataDescriptor, Icon } from "./icon-api-test-utils";
+import { getTestIconData, addTestData, getTestDataDescriptor, Icon } from "./icon-api-test-utils";
 import { IconFile, IconFileData } from "../../src/icon";
 
 describe(iconEndpointPath, () => {
@@ -88,9 +88,9 @@ describe(iconEndpointPath, () => {
             .flatMap(() => testData.toArray())
             .flatMap(() => getCheckIconFile(session, sampleIconFile1))
             .flatMap(() => getCheckIconFile(session, sampleIconFile2))
-            .flatMap(() => assertGitStatus())
+            .flatMap(() => assertGitCleanStatus())
             .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(iconDTOList => expect(new Set(iconDTOList.toArray())).toEqual(new Set(testDataDescriptor)))
+            .map(iconDTOList => expect(new Set(iconDTOList.toArray())).toEqual(new Set(getTestDataDescriptor())))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -123,11 +123,11 @@ describe(iconEndpointPath, () => {
                 .flatMap(() => getCheckIconFile(session, iconFileToFind1))
                 .flatMap(() => getCheckIconFile(session, iconFileToFind2));
             }))
-        .flatMap(() => assertGitStatus())
+        .flatMap(() => assertGitCleanStatus())
         .flatMap(() => describeAllIcons(session.requestBuilder()))
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
-            expect(iconInfoList.get(0)).toEqual(testDataDescriptor[0]);
+            expect(iconInfoList.get(0)).toEqual(getTestDataDescriptor()[0]);
         })
         .subscribe(boilerplateSubscribe(fail, done));
     });

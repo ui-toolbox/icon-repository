@@ -162,10 +162,14 @@ export const addIconFile: (
         .catch(error => observer.error(error))
 );
 
-export const deleteIconFile: (requestBuilder: RequestBuilder, iconFile: IconFile) => Observable<void>
-= (requestBuilder, iconFile) => Observable.create((observer: Observer<void>) => {
+export const deleteIconFile: (
+    requestBuilder: RequestBuilder,
+    iconName: string,
+    iconFileDesc: IconFileDescriptor
+) => Observable<void>
+= (requestBuilder, iconName, iconFileDesc) => Observable.create((observer: Observer<void>) => {
     requestBuilder
-    .del(`/icons/${iconFile.name}/formats/${iconFile.format}/sizes/${iconFile.size}`)
+    .del(`/icons/${iconName}/formats/${iconFileDesc.format}/sizes/${iconFileDesc.size}`)
     .then(
         result => {
             observer.next(void 0);
