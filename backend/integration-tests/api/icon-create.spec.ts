@@ -4,7 +4,7 @@ import { boilerplateSubscribe } from "../testUtils";
 import {
     iconEndpointPath,
     manageTestResourcesBeforeAfter,
-    getCheckIconFile} from "./api-test-utils";
+    getCheckIconFile } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
@@ -13,9 +13,9 @@ import {
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { List } from "immutable";
-import { setAuth, createIcon, describeAllIcons, getFilePath } from "./api-client";
+import { setAuth, createIcon, describeAllIcons, getFilePath, describeIcon } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
-import { getTestIconData, addTestData, testDataDescriptor } from "./icon-api-test-utils";
+import { getTestIconData, addTestData, testDataDescriptor, Icon } from "./icon-api-test-utils";
 import { IconFile, IconFileData } from "../../src/icon";
 
 describe(iconEndpointPath, () => {

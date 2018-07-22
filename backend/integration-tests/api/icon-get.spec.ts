@@ -1,48 +1,8 @@
-import {
-    manageTestResourcesBeforeAfter,
-    Session,
-    uxAuth
-} from "./api-test-utils";
+import { manageTestResourcesBeforeAfter, Session, uxAuth } from "./api-test-utils";
+import { getTestIconData, addTestData, testDataDescriptor, Icon } from "./icon-api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
-import { addTestData, getTestIconData, Icon, testDataDescriptor } from "./icon-api-test-utils";
-import { describeAllIcons, describeIcon, getFilePath } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
-
-const iconRepoConfigPath = "/icons/config";
-
-describe(iconRepoConfigPath, () => {
-    const agent = manageTestResourcesBeforeAfter();
-
-    it("should return the correct default", done => {
-        const session = agent();
-        session.requestBuilder()
-            .get(iconRepoConfigPath)
-            .ok(resp => resp.status === 200)
-            .then(
-                result => {
-                    expect(result.body).toEqual({
-                        allowedFileFormats: [
-                            "svg",
-                            "png"
-                        ],
-                        allowedIconSizes: [
-                            "18px", "24px", "48px", // for svg
-                            "18dp", "24dp", "36dp", "48dp", "144dp" // for png
-                        ]
-                    });
-                    done();
-                },
-                error => {
-                    fail(error);
-                    done();
-                }
-            )
-            .catch(error => {
-                fail(error);
-                done();
-            });
-    });
-});
+import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
 
 const allIconsPath = "/icons";
 

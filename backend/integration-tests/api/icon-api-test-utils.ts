@@ -1,4 +1,3 @@
-import { getCheckIconFile } from "./api-test-utils";
 import { Observable } from "rxjs";
 import { randomBytes } from "crypto";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
