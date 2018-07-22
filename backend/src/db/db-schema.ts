@@ -14,7 +14,6 @@ export const projectColumn: ProjectColumn = (tableSpec, columnName) => tableSpec
 const iconTableColumns = {
     id: "serial primary key",
     name: "text",
-    version: "int",
     modified_by: "text",
     modified_at: "timestamp DEFAULT now()"
 };
@@ -24,8 +23,7 @@ export const iconTableSpec: ITableSpec = {
     tableName: "icon",
     columns: iconTableColumns,
     col_constraints: [
-        "UNIQUE (name)",
-        "UNIQUE (name, version)"
+        "UNIQUE (name)"
     ]
 };
 

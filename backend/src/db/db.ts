@@ -165,10 +165,9 @@ type AddIcon = (
 ) => Observable<number>;
 type AddIconProvider = (pool: Pool) => AddIcon;
 export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
-    const iconVersion = 1;
-    const addIconSQL: string = "INSERT INTO icon(name, version, modified_by) " +
-                                "VALUES($1, $2, $3) RETURNING id";
-    const addIconParams = [iconInfo.name, iconVersion, modifiedBy];
+    const addIconSQL: string = "INSERT INTO icon(name, modified_by) " +
+                                "VALUES($1, $2) RETURNING id";
+    const addIconParams = [iconInfo.name, modifiedBy];
     return tx<number>(
         pool,
         executeQuery => executeQuery(addIconSQL, addIconParams)
@@ -207,19 +206,11 @@ type AddIconFile = (
 
 const addIconFileToIcon: (pool: Pool) => AddIconFile
 = pool => (iconFile, modifiedBy, createSideEffect) => {
-    const selectIconVersionForUpdateSQL = "SELECT version FROM icon WHERE name = $1 FOR UPDATE";
-    const updateIconVersionSQL = "UPDATE icon SET version = $1 WHERE name = $2";
     return tx(pool, (executeQuery: ExecuteQuery) => {
-        return executeQuery(selectIconVersionForUpdateSQL, [iconFile.name])
-        .flatMap(queryResult =>
-            addIconFileToTable(executeQuery, iconFile, modifiedBy)
-            .flatMap(iconFileId => {
-                const version = queryResult.rows[0].version;
-                return executeQuery(updateIconVersionSQL, [version + 1, iconFile.name])
-                .flatMap(() => createSideEffect ? createSideEffect() : Observable.of(void 0))
-                .map(() => iconFileId);
-            })
-        );
+        return addIconFileToTable(executeQuery, iconFile, modifiedBy)
+        .flatMap(iconFileId =>
+            (createSideEffect ? createSideEffect() : Observable.of(void 0))
+            .map(() => iconFileId));
     });
 };
 
@@ -251,7 +242,6 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +
-                    "icon.version as icon_version, " +
                     "icon_file.file_format as icon_file_format, " +
                     "icon_file.icon_size as icon_size " +
                 "FROM icon, icon_file " +
@@ -284,7 +274,6 @@ export const describeIcon: (pool: Pool) => DescribeIcon
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +
-                    "icon.version as icon_version, " +
                     "icon_file.file_format as icon_file_format, " +
                     "icon_file.icon_size as icon_size " +
                 "FROM icon, icon_file " +
