@@ -1,17 +1,18 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IconFile, IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconFile, IconDescriptor, IconFileDescriptor } from "./icon";
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
-import { Set } from "immutable";
 export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
     readonly describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly describeIcon: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
+    readonly deleteIcon: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
+    readonly deleteIconFile: (req: Request, res: Response) => void;
 }
 
 export interface IconPathsDTO {
@@ -95,24 +96,8 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     describeIcon: (iconPathRoot: string) => (req: Request, res: Response) =>
         describeIcon(iconService.describeIcon, iconPathRoot)(req, res),
 
-    getIconFile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("getIconFile");
-        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
-        .toPromise()
-        .then(
-            result => {
-                res.type(req.params.format).send(result);
-            },
-            error => {
-                ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
-                                req.params.id, req.params.format, req.params.size, error);
-                res.sendStatus(500).end();
-            }
-        );
-    },
-
     createIcon: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("createIcon");
+        const ctxLogger = logger.createChild("icon-create-requesthandler");
         ctxLogger.info("START");
         const iconData: IconFile = {
             name: req.body.name,
@@ -133,8 +118,28 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
         );
     },
 
+    deleteIcon: (req: Request, res: Response) => {
+        res.status(200).end();
+    },
+
+    getIconFile: (req: Request, res: Response) => {
+        const ctxLogger = logger.createChild("iconfile-get-requesthandler");
+        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
+        .toPromise()
+        .then(
+            result => {
+                res.type(req.params.format).send(result);
+            },
+            error => {
+                ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
+                                req.params.id, req.params.format, req.params.size, error);
+                res.sendStatus(500).end();
+            }
+        );
+    },
+
     addIconFile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("addIconFile");
+        const ctxLogger = logger.createChild("iconfile-add-requesthandler");
         const iconData: IconFile = {
             name: req.params.name,
             format: req.params.format,
@@ -155,6 +160,31 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                     res.status(500).end();
                 },
                 () => res.status(201).end()
+            );
+        }
+    },
+
+    deleteIconFile: (req: Request, res: Response) => {
+        const ctxLogger = logger.createChild("iconfile-delete-requesthandler");
+        if (!req.params || !req.params.name) {
+            ctxLogger.error("Missing icon name");
+            res.status(400).send({error: "Icon name must be specified"}).end();
+        } else if (!req.params.format || !req.params.size) {
+            ctxLogger.error("Missing format or size parameter %o",  req.params);
+            res.status(400).send({error: "Missing format or size parameter"}).end();
+        } else {
+            const iconName = req.params.name;
+            const iconFileDesc: IconFileDescriptor = {format: req.params.format, size: req.params.size};
+            iconService.deleteIconFile(
+                iconName,
+                iconFileDesc, getAuthentication(req.session).username)
+            .subscribe(
+                void 0,
+                error => {
+                    ctxLogger.error(error);
+                    res.status(500).end();
+                },
+                () => res.status(204).end()
             );
         }
     }

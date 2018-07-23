@@ -1,7 +1,6 @@
 import * as crypto from "crypto";
 
 import gitAccessFunctionsProvider, {
-    createGitCommandExecutor,
     GitAccessFunctions,
     GIT_COMMIT_FAIL_INTRUSIVE_TEST
 } from "../../src/git";
@@ -12,9 +11,9 @@ import {
     createTestGitRepo,
     deleteTestGitRepo,
     getCurrentCommit,
-    assertGitStatus,
+    assertGitCleanStatus,
     getTestRepoDir,
-    assertAddedFile} from "./git-test-utils";
+    assertFileAdded} from "./git-test-utils";
 
 describe("git access functions", () => {
 
@@ -47,14 +46,13 @@ describe("git access functions", () => {
             gitAFs.addIconFile(iconInfo, user)
             .flatMap(() => getCurrentCommit())
             .map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length))
-            .flatMap(() => assertGitStatus())
-            .flatMap(() => assertAddedFile(iconInfo, user))
+            .flatMap(() => assertGitCleanStatus())
+            .flatMap(() => assertFileAdded(iconInfo, user))
             .subscribe(boilerplateSubscribe(fail, done));
         });
 
         it("should throw an error, but preserve the last consistent git repo state, " +
                 "in case adding an icon file failse", done => {
-            const statusMessageTail = "nothing to commit, working tree clean";
             const iconInfo: IconFile = {
                 name: "pizza",
                 format: "thin-crust",
@@ -75,7 +73,7 @@ describe("git access functions", () => {
                 .map(() => fail("Expected an error to make exection skip this part"))
                 .catch(error => getCurrentCommit())
                 .map(currentSha1 => expect(currentSha1).toEqual(lastGoodSha1)))
-            .flatMap(() => assertGitStatus())
+            .flatMap(() => assertGitCleanStatus())
             .subscribe(boilerplateSubscribe(fail, done));
         });
     });

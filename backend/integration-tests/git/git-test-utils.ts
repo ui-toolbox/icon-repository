@@ -1,8 +1,8 @@
 import * as path from "path";
 import { Observable } from "rxjs";
 import { stat, rmdirMaybe, mkdirMaybe, mkdir, rmdir } from "../../src/utils/rx";
-import { createGitCommandExecutor } from "../../src/git";
-import { IconFile } from "../../src/icon";
+import { createGitCommandExecutor, getPathToIconFile } from "../../src/git";
+import { IconFile, IconFileDescriptor } from "../../src/icon";
 
 const SECONDS_IN_MILLIES = 1000;
 
@@ -29,18 +29,14 @@ export const getCurrentCommit: () => Observable<string> = () =>
 const getGitStatus: () => Observable<string> = () =>
     createGitCommandExecutor(repoDir)(["status"])
     .map(out => out.trim());
-const statusMessageTail = "nothing to commit, working tree clean";
-export const assertGitStatus = () => getGitStatus()
-.map(status => expect(status.substr(status.length - statusMessageTail.length))
-                .toEqual(statusMessageTail));
+const cleanStatusMessageTail = "nothing to commit, working tree clean";
+export const assertGitCleanStatus = () => getGitStatus()
+.map(status => expect(status.substr(status.length - cleanStatusMessageTail.length))
+                .toEqual(cleanStatusMessageTail));
 
-export const assertAddedFile: (iconFileInfo: IconFile, user: string) => Observable<void>
+export const assertFileAdded: (iconFileInfo: IconFile, user: string) => Observable<void>
 = (iconFileInfo, user) => {
-    const filePath = path.join(
-        repoDir,
-        iconFileInfo.format,
-        iconFileInfo.size,
-        `${iconFileInfo.name}@${iconFileInfo.size}.${iconFileInfo.format}`);
+    const filePath = getPathToIconFile(repoDir, iconFileInfo.name, iconFileInfo.format, iconFileInfo.size);
     return stat(filePath)
     .map(stats => {
         if (stats) {
@@ -51,4 +47,12 @@ export const assertAddedFile: (iconFileInfo: IconFile, user: string) => Observab
             throw Error(`File not found: ${filePath}`);
         }
     });
+};
+
+export const assertNoSuchFile: (iconName: string, iconFileDesc: IconFileDescriptor) => Observable<void>
+= (iconName, iconFileDesc) => {
+    const filePath = getPathToIconFile(repoDir, iconName, iconFileDesc.format, iconFileDesc.size);
+    return stat(filePath)
+    .map(stats => expect(stats).toBeNull())
+    .mapTo(void 0);
 };
