@@ -5,6 +5,7 @@ import * as Process from "process";
 import logger from "./utils/logger";
 import * as Rx from "rxjs";
 import { fileExists, readTextFile } from "./utils/rx";
+import { clone } from "./utils/clone";
 
 const ICON_REPO_HOME = path.resolve(Process.env.HOME, ".ui-toolbox/icon-repo");
 
@@ -44,8 +45,6 @@ const configurationDataProto = Object.freeze({
 });
 
 export type ConfigurationData = typeof configurationDataProto;
-
-const clone = (obj: any) => JSON.parse(JSON.stringify(obj));
 
 const defaultSettings = {
     server_hostname: "localhost",

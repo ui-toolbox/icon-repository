@@ -1,20 +1,14 @@
-import { List, Set } from "immutable";
+import { List } from "immutable";
 import { Observable } from "rxjs/Rx";
 
-import { IconFile, IconDescriptor } from "./icon";
+import { IconFile, IconDescriptor, IconFileDescriptor } from "./icon";
 import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
-import { fromBase64 } from "./utils/encodings";
 import csvSplitter from "./utils/csvSplitter";
 
 interface IconRepoConfig {
     readonly allowedFileFormats: List<string>;
     readonly allowedIconSizes: List<string>;
-}
-
-interface IconFileData {
-    readonly fileFormat: string;
-    readonly fileData: Buffer;
 }
 
 type GetIconRepoConfig = () => Observable<IconRepoConfig>;
@@ -27,6 +21,7 @@ type CreateIcon = (
 type AddIconFile = (
     iconFile: IconFile,
     modifiedBy: string) => Observable<number>;
+type DeleteIconFile = (iconName: string, iconFileDesc: IconFileDescriptor, modifiedBy: string) => Observable<void>;
 
 export interface IconService {
     readonly getRepoConfiguration: GetIconRepoConfig;
@@ -35,6 +30,7 @@ export interface IconService {
     readonly getIconFile: GetIconFile;
     readonly createIcon: CreateIcon;
     readonly addIconFile: AddIconFile;
+    readonly deleteIconFile: DeleteIconFile;
 }
 
 export const iconFormatListParser = csvSplitter;
@@ -78,7 +74,13 @@ const iconServiceProvider: (
             modifiedBy,
             () => gitAFs.addIconFile(iconFile, modifiedBy));
 
-    const decodeIconPath = (encodedIconPath: string) => fromBase64(encodedIconPath);
+    const deleteIconFile: DeleteIconFile = (iconName, iconFileDesc, modifiedBy) =>
+        iconDAFs.deleteIconFile(
+            iconName,
+            iconFileDesc,
+            modifiedBy,
+            () => gitAFs.deleteIconFile(iconName, iconFileDesc, modifiedBy)
+        );
 
     return {
         getRepoConfiguration,
@@ -86,7 +88,8 @@ const iconServiceProvider: (
         describeIcon,
         getIconFile,
         createIcon,
-        addIconFile
+        addIconFile,
+        deleteIconFile
     };
 };
 

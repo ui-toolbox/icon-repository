@@ -14,18 +14,15 @@ export const projectColumn: ProjectColumn = (tableSpec, columnName) => tableSpec
 const iconTableColumns = {
     id: "serial primary key",
     name: "text",
-    version: "int",
     modified_by: "text",
     modified_at: "timestamp DEFAULT now()"
 };
-export type IconTableColumnsDef = typeof iconTableColumns;
 
 export const iconTableSpec: ITableSpec = {
     tableName: "icon",
     columns: iconTableColumns,
     col_constraints: [
-        "UNIQUE (name)",
-        "UNIQUE (name, version)"
+        "UNIQUE (name)"
     ]
 };
 
@@ -36,7 +33,6 @@ export const iconFileTableColumns =  {
     icon_size: "text",
     content: "bytea"
 };
-export type IconFileTableColumnsDef = typeof iconFileTableColumns;
 
 export const iconFileTableSpec: ITableSpec = {
     tableName: "icon_file",

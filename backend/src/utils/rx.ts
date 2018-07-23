@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as rimraf from "rimraf";
 import { Observable, Observer } from "rxjs";
-import { pathMatch } from "tough-cookie";
 
 export const fileExists: (pathToFile: string) => Observable<boolean> = Observable.bindCallback(fs.exists);
 
@@ -96,6 +95,18 @@ export const appendFile: (pathToFile: string, data: Buffer, options: {
             observer.complete();
         }
     }));
+
+export const deleteFile: (pathToFile: string) => Observable<void>
+= pathToFile => Observable.create((observer: Observer<void>) =>
+    fs.unlink(pathToFile, (error: NodeJS.ErrnoException) => {
+        if (error) {
+            observer.error(error);
+        } else {
+            observer.next(void 0);
+            observer.complete();
+        }
+    })
+);
 
 export const moveFile: (
     source: string,

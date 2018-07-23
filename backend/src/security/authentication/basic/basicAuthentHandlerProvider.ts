@@ -1,11 +1,8 @@
 import { Request, Response, NextFunction, Handler } from "express";
 import { Observable } from "rxjs";
-import { List } from "immutable";
-import { ICredentials, AuthenticationDataSource } from "../common";
-import { ConfigurationDataProvider } from "../../../configuration";
+import { AuthenticationDataSource } from "../common";
 import logger from "../../../utils/logger";
 import { storeAuthentication, Authentication, GetAllPrivilegesForUser } from "../../common";
-import { filter } from "minimatch";
 
 const getAuthorizationHeader: (req: Request) => string
 = req => (req.headers.authorization as string) || "";

@@ -9,21 +9,17 @@ describe("makeCreateTableStatement", () => {
             tableName: "icons",
             columns: {
                 id: "serial primary key",
-                name: "text",
-                version: "int"
+                name: "text"
             },
             col_constraints: [
-                "UNIQUE (name)",
-                "UNIQUE (name, version)"
+                "UNIQUE (name)"
             ]
         };
 
         expect(makeCreateTableStatement(iconTable)).toEqual(`CREATE TABLE icons (
     id serial primary key,
     name text,
-    version int,
-    UNIQUE (name),
-    UNIQUE (name, version)
+    UNIQUE (name)
 )`);
     });
 });

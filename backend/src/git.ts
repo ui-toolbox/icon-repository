@@ -1,47 +1,86 @@
 import * as path from "path";
-import { spawn, exec, SpawnOptions } from "child_process";
-import { Observable, Observer } from "rxjs";
-import { mkdirMaybe, appendFile } from "./utils/rx";
+import { Observable } from "rxjs";
+import { mkdirMaybe, appendFile, deleteFile } from "./utils/rx";
 import {
     SerializableJobImpl,
     create as createSerializer
 } from "./utils/serializer";
-import logger, { ContextAbleLogger } from "./utils/logger";
-import { IconFile } from "./icon";
+import logger from "./utils/logger";
+import { IconFile, IconFileDescriptor } from "./icon";
 import { commandExecutor } from "./utils/command-executor";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
 export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 
-export const createGitCommandExecutor: (iconRepository: string) => GitCommandExecutor
-= iconRepository => spawnArgs => {
-    const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${iconRepository}`);
-    return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: iconRepository });
+export const createGitCommandExecutor: (pathToIconRepository: string) => GitCommandExecutor
+= pathToIconRepository => spawnArgs => {
+    const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${pathToIconRepository}`);
+    return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: pathToIconRepository });
 };
 
 const enqueueJob = createSerializer("G I T");
 
-const getFileName: (inconFileInfo: IconFile) => string
-    = inconFileInfo => `${inconFileInfo.name}@${inconFileInfo.size}.${inconFileInfo.format}`;
+const getFileName: (iconName: string, format: string, size: string) => string
+    = (iconName, format, size) => `${iconName}@${size}.${format}`;
 
-/*
- * @return an Observable for the path to the icon file relative to the local GIT repository's root.
- */
-const createIconFile: (inconFileInfo: IconFile, iconRepository: string) => Observable<string>
-= (inconFileInfo, iconRepository) =>
-    mkdirMaybe(path.join(iconRepository, inconFileInfo.format))
-    .flatMap(pathToFormatDir =>
-        mkdirMaybe(path.join(pathToFormatDir, inconFileInfo.size))
-        .flatMap(pathToSizeDir =>
-            appendFile(
-                path.join(
-                    pathToSizeDir,
-                    getFileName(inconFileInfo)
-                ),
-                inconFileInfo.content,
-                { flag: "w"})
-            ));
+interface IconFilePathComponents {
+    pathToFormatDir: string;
+    pathToSizeDir: string;
+    pathToIconFile: string;
+    pathToIconFileInRepo: string;
+}
+type GetPathComponents = (
+    pathToIconRepository: string,
+    iconName: string,
+    format: string,
+    size: string) => IconFilePathComponents;
+const getPathComponents: GetPathComponents = (repo, iconName, format, size) => {
+    const fileName = getFileName(iconName, format, size);
+    const pathToFormatDir: string = path.join(repo, format);
+    const pathToSizeDir: string = path.join(pathToFormatDir, size);
+    const pathToIconFile: string = path.join(pathToSizeDir, fileName);
+    const pathToIconFileInRepo: string = path.join(format, path.join(size, fileName));
+    return {
+        pathToFormatDir,
+        pathToSizeDir,
+        pathToIconFile,
+        pathToIconFileInRepo
+    };
+};
+
+export const getPathToIconFile: (pathToRepo: string, iconName: string, format: string, size: string) => string
+= (pathToRepo, iconName, format, size) => getPathComponents(pathToRepo, iconName, format, size).pathToIconFile;
+
+const createIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => Observable<string>
+= (pathToIconRepository, inconFileInfo) => {
+    const pathCompos = getPathComponents(
+        pathToIconRepository,
+        inconFileInfo.name,
+        inconFileInfo.format,
+        inconFileInfo.size
+    );
+    return mkdirMaybe(pathCompos.pathToFormatDir)
+    .flatMap(() => mkdirMaybe(pathCompos.pathToSizeDir))
+    .flatMap(() => appendFile(pathCompos.pathToIconFile, inconFileInfo.content, { flag: "w"}))
+    .mapTo(pathCompos.pathToIconFileInRepo);
+};
+
+const deleteIconFile: (
+    pathToIconRepository: string,
+    iconName: string,
+    iconFileDesc: IconFileDescriptor
+) => Observable<string>
+= (pathToIconRepository, iconName, iconFileDesc) => {
+    const pathCompos = getPathComponents(
+        pathToIconRepository,
+        iconName,
+        iconFileDesc.format,
+        iconFileDesc.size
+    );
+    return deleteFile(pathCompos.pathToIconFile)
+    .mapTo(pathCompos.pathToIconFileInRepo);
+};
 
 const addToIndex = (pathInRepo: string) => ["add", pathInRepo];
 
@@ -62,33 +101,32 @@ const rollback: () => string[][] = () => [
     ["clean", "-qfdx"]
 ];
 
-const createAddIconFileJob: (
-    inconFileInfo: IconFile,
+type CreateIconFileJob = (
+    iconFileOperation: () => Observable<string>,
+    operationName: string,
     userName: string,
-    gitExec: GitCommandExecutor,
-    iconRepository: string
-) => SerializableJobImpl
-= (inconFileInfo, userName, gitExec, iconRepository) => {
-    const ctxLogger = logger.createChild("git: add icon file");
-    ctxLogger.debug("BEGIN");
-    return () =>
-            createIconFile(inconFileInfo, iconRepository)
-            .flatMap(pathInRepo =>
-                gitExec(addToIndex(pathInRepo))
-                .flatMap(() =>
-                    gitExec(commit(pathInRepo, userName)))
-                .map(() => ctxLogger.debug("icon file added"))
-                .catch(error => {
-                    ctxLogger.error(`Adding file failed with ${error}`);
-                    gitExec(rollback()[0])
-                    .flatMap(() => gitExec(rollback()[1]))
-                    .catch(errorInRollback => {
-                        ctxLogger.error(errorInRollback);
-                        return "dummy return value";
-                    });
-                    return Observable.throw(error);
-                })
-                .mapTo(pathInRepo));
+    gitExec: GitCommandExecutor
+) => SerializableJobImpl;
+
+const createIconFileJob: CreateIconFileJob = (iconFileOperation, opName, userName, gitExec) => {
+    const ctxLogger = logger.createChild("git: " + opName);
+    return () => iconFileOperation()
+    .flatMap(pathInRepo =>
+        gitExec(addToIndex(pathInRepo))
+        .flatMap(() =>
+            gitExec(commit(pathInRepo, userName)))
+        .map(() => ctxLogger.debug("Succeeded"))
+        .catch(error => {
+            ctxLogger.error(`Failed: ${error}`);
+            gitExec(rollback()[0])
+            .flatMap(() => gitExec(rollback()[1]))
+            .catch(errorInRollback => {
+                ctxLogger.error(errorInRollback);
+                return "dummy return value";
+            });
+            return Observable.throw(error);
+        })
+        .mapTo(pathInRepo));
 };
 
 type AddIconFile = (
@@ -96,9 +134,16 @@ type AddIconFile = (
     userName: string
 ) => Observable<void>;
 
+type DeleteIconFile = (
+    iconName: string,
+    iconFileDesc: IconFileDescriptor,
+    modifiedBy: string
+) => Observable<void>;
+
 export interface GitAccessFunctions {
     readonly getRepoLocation: () => string;
     readonly addIconFile: AddIconFile;
+    readonly deleteIconFile: DeleteIconFile;
 }
 
 type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunctions;
@@ -107,12 +152,22 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
     getRepoLocation: () => localIconRepositoryLocation,
 
     addIconFile: (inconFileInfo, userName) => enqueueJob(
-            createAddIconFileJob(
-                inconFileInfo,
-                userName,
-                createGitCommandExecutor(localIconRepositoryLocation),
-                localIconRepositoryLocation
-            ))
+        createIconFileJob(
+            () => createIconFile(localIconRepositoryLocation, inconFileInfo),
+            "add icon file",
+            userName,
+            createGitCommandExecutor(localIconRepositoryLocation)
+        )
+    ),
+
+    deleteIconFile: (iconName, iconFileDesc, userName) => enqueueJob(
+        createIconFileJob(
+            () => deleteIconFile(localIconRepositoryLocation, iconName, iconFileDesc),
+            "delete icon file",
+            userName,
+            createGitCommandExecutor(localIconRepositoryLocation)
+        )
+    )
 });
 
 export default gitAccessFunctionsProvider;

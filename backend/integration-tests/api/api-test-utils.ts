@@ -1,27 +1,23 @@
-import * as util from "util";
-import * as crypto from "crypto";
 import * as http from "http";
-import * as request from "request";
-import { Observable, Observer, Subscription } from "rxjs";
+import { Observable } from "rxjs";
 import { Pool } from "pg";
 
-const req = request.defaults({
-    timeout: 4000
-});
-// request.debug = true;
-
-import { getDefaultConfiguration, ConfigurationData } from "../../src/configuration";
+import configuration from "../../src/configuration";
+import { ConfigurationData } from "../../src/configuration";
 import iconDAFsProvider, { createConnectionProperties } from "../../src/db/db";
 import gitProvider from "../../src/git";
 import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
-import iconHandlersProvider from "../../src/iconsHandlers";
-import { IconFile, IconDescriptor } from "../../src/icon";
+import iconHandlersProvider, { IconDTO } from "../../src/iconsHandlers";
 import logger from "../../src/utils/logger";
 import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
 import { createSchema } from "../../scripts/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
+import { createTestPool, terminateTestPool } from "../db/db-test-utils";
+import { Auth, getIconFile } from "./api-client";
+import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
+import { IconFile } from "../../src/icon";
 
 logger.setLevel("silly");
 
@@ -31,38 +27,42 @@ export const defaultTestServerconfig = Object.freeze({
     authentication_type: "basic"
 });
 
+let localServerRef: Server;
+
 export const startServer: StartServer = customConfig => {
-    const configData: ConfigurationData = Object.assign(
-        Object.assign(
-            getDefaultConfiguration(),
-            defaultTestServerconfig
-        ),
-        Object.assign(customConfig, {server_port: 0})
-    );
-    const iconService = iconServiceProvider(
-        {
-            allowedFormats: configData.icon_data_allowed_formats,
-            allowedSizes: configData.icon_data_allowed_sizes
-        },
-        iconDAFsProvider(createConnectionProperties(configData)),
-        gitProvider(configData.icon_data_location_git)
-    );
-    const iconHandlers = iconHandlersProvider(iconService);
-    return serverProvider(() => configData, iconHandlers);
+    return configuration
+    .flatMap(configurationProvider => {
+        const configData: ConfigurationData = Object.assign(
+            Object.assign(
+                configurationProvider(),
+                defaultTestServerconfig
+            ),
+            Object.assign(customConfig, {server_port: 0})
+        );
+        const iconService = iconServiceProvider(
+            {
+                allowedFormats: configData.icon_data_allowed_formats,
+                allowedSizes: configData.icon_data_allowed_sizes
+            },
+            iconDAFsProvider(createConnectionProperties(configData)),
+            gitProvider(configData.icon_data_location_git)
+        );
+        const iconHandlers = iconHandlersProvider(iconService);
+        return serverProvider(() => configData, iconHandlers)
+        .map(server => {
+            localServerRef = server;
+            return server;
+        });
+    });
 };
 
 export const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
-export const setUpGitRepoAndDbSchemaAndServer = (
-    pool: Pool,
-    assignServer: (sourceServer: Server) => void,
-    done: () => void
-) => {
+export const setUpGitRepoAndDbSchemaAndServer = (pool: Pool, done: () => void) => {
     createTestGitRepo()
         .flatMap(() => createSchema(pool))
         .flatMap(() => startServerWithBackdoors({icon_data_location_git: getTestRepoDir()}))
-        .map(testServer => assignServer(testServer))
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
@@ -73,132 +73,83 @@ export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
-export const getURL = (server: http.Server, path: string) => `http://localhost:${server.address().port}${path}`;
-export const getURLBasicAuth = (
-    server: http.Server,
-    auth: string,
-    path: string) => `http://${auth}@localhost:${server.address().port}${path}`;
+export class Session {
+    private static readonly defaultResponseValidator = (resp: Response) => resp.status < 400;
+    private readonly baseUrl: string;
+    private readonly session: SuperAgent<SuperAgentRequest>;
+    private readonly authInfo: Auth;
+    private readonly responseValidator: (resp: Response) => boolean;
 
-interface IUploadRequestBuffer {
-    readonly value: Buffer;
-    readonly options: {
-        readonly filename: string
-    };
-}
-export const createUploadBuffer: (size: number, filename?: string) => IUploadRequestBuffer
-= (size, filename = "a-file") => ({
-    value: crypto.randomBytes(4096),
-    options: {
-        filename: "a-filename"
+    constructor(
+        baseUrl: string,
+        session: SuperAgent<SuperAgentRequest>,
+        authInfo: Auth,
+        responseValidator: (resp: Response) => boolean
+    ) {
+        this.baseUrl = baseUrl;
+        this.session = session;
+        this.authInfo = authInfo || defaultAuth;
+        this.responseValidator = responseValidator || Session.defaultResponseValidator;
     }
-});
 
-interface IRequestResult {
-    readonly response: request.Response;
-    readonly body: any;
-}
-type TestRequest = (
-    options: any
-) => Observable<IRequestResult>;
-
-export const authUX = Object.freeze({
-    auth: {
-        user: "ux",
-        pass: "ux",
-        sendImmediately: true
+    public auth(auth: Auth) {
+        return new Session(this.baseUrl, this.session, auth, this.responseValidator);
     }
-});
 
-export const authDEV = Object.freeze({
-    auth: {
-        user: "dev",
-        pass: "dev",
-        sendImmediately: true
+    public responseOK(validator: (resp: Response) => boolean) {
+        return new Session(this.baseUrl, this.session, this.authInfo, validator);
     }
-});
 
-export const testRequest: TestRequest = options =>
-    Observable.create((observer: Observer<IRequestResult>) => {
-        req(Object.assign(options, authDEV),
-            (error: any, response: request.Response, body: any) => {
-                logger.info("Reqest for %s is back: %o", options.url, {hasError: !!error});
-                if (error) {
-                    observer.error(util.format("error in request: %o", error));
-                } else {
-                    observer.next({ response, body });
-                    observer.complete();
-                }
-            }
-        );
-    });
+    public requestBuilder() {
+        return ({
+            get: (path: string) => this.addConfig(this.session.get(`${this.baseUrl}${path}`)),
+            post: (path: string) => this.addConfig(this.session.post(`${this.baseUrl}${path}`).ok(() => true)),
+            put: (path: string) => this.addConfig(this.session.put(`${this.baseUrl}${path}`).ok(() => true)),
+            del: (path: string) => this.addConfig(this.session.del(`${this.baseUrl}${path}`).ok(() => true))
+        });
+    }
 
-export const authenticationBackdoorPath = "/backdoor/authentication";
-
-export const setAuthentication = (
-    server: http.Server,
-    username: string,
-    privileges: string[],
-    jar: any
-) => testRequest({
-    url: getURL(server, authenticationBackdoorPath),
-    method: "PUT",
-    json: {username, privileges},
-    jar
-})
-.map(
-    result => {
-        if (result.response.statusCode !== 200) {
-            throw Error("Failed to set test authentication: " + result.response.statusCode);
+    private addConfig(req: SuperAgentRequest) {
+        if (this.authInfo) {
+            req = req.auth(this.authInfo.user, this.authInfo.password);
         }
-        return server;
+        if (this.responseValidator) {
+            req = req.ok(this.responseValidator);
+        }
+        return req;
     }
-)
-.catch(error => {
-    fail(error);
-    return Observable.throw(error);
-});
-
-export interface IUploadFormData {
-    readonly iconFile: IUploadRequestBuffer;
 }
 
-export interface ICreateIconFormData extends IUploadFormData {
-    readonly name: string;
-    readonly format: string;
-    readonly size: string;
-}
+export const manageTestResourcesBeforeAfter: () => () => Session = () => {
+    let localPoolRef: Pool;
+    beforeAll(createTestPool((p: Pool) => {
+        localPoolRef = p;
+    }, fail));
+    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, done));
+    afterAll(terminateTestPool(localPoolRef));
+    afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
+    return () => new Session(getBaseUrl(), agent(), void 0, void 0);
+};
 
-export const createAddIconFormData: (name: string, format: string, size: string) => ICreateIconFormData
-= (name, format, size) => ({ name, format, size, iconFile: createUploadBuffer(4096) });
+export const getBaseUrl = () => `http://localhost:${localServerRef.address().port}`;
+export const getBaseURLBasicAuth = (
+    server: http.Server,
+    auth: string) => `http://${auth}@localhost:${server.address().port}`;
 
-export const convertToAddIconRequest: (formData: ICreateIconFormData) => IconFile = formData => ({
-    name: formData.name,
-    format: formData.format,
-    size: formData.size,
-    content: formData.iconFile.value
-});
+export const uxAuth: Auth = {user: "ux", password: "ux"};
+export const devAuth: Auth = {user: "dev", password: "dev"};
 
-export const convertToIconInfo: (iconFormData: ICreateIconFormData, id: number) => IconDescriptor
-= (iconFormData, id) => new IconDescriptor(
-    iconFormData.name,
-    null).addIconFile({
-        format: iconFormData.format,
-        size: iconFormData.size
-    });
+export const defaultAuth: Auth = {user: "ux", password: "ux"};
 
-export const createAddIconFileFormData: () => IUploadFormData = () => ({
-    iconFile: createUploadBuffer(4096)
-});
-
-interface TestUploadRequestData {
-    url: string;
-    method: string;
-    formData: IUploadFormData;
-    jar: request.CookieJar;
-}
-type TestUploadRequest = (requestData: TestUploadRequestData) => Observable<IRequestResult>;
-export const testUploadRequest: TestUploadRequest
-    = uploadRequestData => testRequest({...uploadRequestData, json: true});
+export const getCheckIconFile: (session: Session, iconFile: IconFile) => Observable<any>
+    = (session, iconFile) => getIconFile(
+        session.requestBuilder(),
+        iconFile.name,
+        {
+            format: iconFile.format, size: iconFile.size
+        }
+    )
+    .map(buffer => expect(Buffer.compare(iconFile.content, buffer)).toEqual(0));
 
 export const iconEndpointPath = "/icons";
 export const iconFileEndpointPath = "/icons/:id/formats/:format/sizes/:size";
