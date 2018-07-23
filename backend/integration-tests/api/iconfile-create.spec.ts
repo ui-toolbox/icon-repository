@@ -2,11 +2,12 @@ import { randomBytes } from "crypto";
 import { boilerplateSubscribe } from "../testUtils";
 import {
     iconFileEndpointPath,
-    manageTestResourcesBeforeAfter
+    manageTestResourcesBeforeAfter,
+    getCheckIconFile
 } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { getTestIconData, addTestData } from "./icon-api-test-utils";
-import { getIconFile, addIconFile, setAuth } from "./api-client";
+import { addIconFile, setAuth } from "./api-client";
 import { IconFileDescriptor, IconFile, IconFileData } from "../../src/icon";
 
 describe(iconFileEndpointPath, () => {
@@ -55,7 +56,7 @@ describe(iconFileEndpointPath, () => {
         addTestData(session.requestBuilder(), testData)
             .flatMap(() => setAuth(session.requestBuilder(), privileges))
             .flatMap(() => addIconFile(session.requestBuilder(), newIconFile))
-            .flatMap(() => getIconFile(session.requestBuilder(), testData.get(0).name, newIconFileDesc))
+            .flatMap(() => getCheckIconFile(session, newIconFile))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -72,7 +73,7 @@ describe(iconFileEndpointPath, () => {
         addTestData(session.requestBuilder(), testData)
             .flatMap(() => setAuth(session.requestBuilder(), privileges))
             .flatMap(() => addIconFile(session.requestBuilder(), newIconFile))
-            .flatMap(() => getIconFile(session.requestBuilder(), testData.get(0).name, newIconFileDesc))
+            .flatMap(() => getCheckIconFile(session, newIconFile))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 

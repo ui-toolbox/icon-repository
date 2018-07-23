@@ -12,6 +12,7 @@ export interface IconHanlders {
     readonly createIcon: (req: Request, res: Response) => void;
     readonly deleteIcon: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
+    readonly updateIconFile: (req: Request, res: Response) => void;
     readonly deleteIconFile: (req: Request, res: Response) => void;
 }
 
@@ -175,6 +176,32 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                     res.status(500).end();
                 },
                 () => res.status(201).end()
+            );
+        }
+    },
+
+    updateIconFile: (req: Request, res: Response) => {
+        const ctxLogger = logger.createChild("iconfile-add-requesthandler");
+        const iconData: IconFile = {
+            name: req.params.name,
+            format: req.params.format,
+            size: req.params.size,
+            content: (req.files as any)[0].buffer
+        };
+        if (!iconData.name ||
+                !iconData.format || iconData.format === ":format" ||
+                !iconData.size || iconData.size === ":size" ||
+                !iconData.content) {
+            res.status(400).end();
+        } else {
+            iconService.updateIconFile(iconData, getAuthentication(req.session).username)
+            .subscribe(
+                void 0,
+                error => {
+                    ctxLogger.error(error);
+                    res.status(500).end();
+                },
+                () => res.status(204).end()
             );
         }
     },

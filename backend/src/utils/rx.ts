@@ -87,7 +87,7 @@ export const appendFile: (pathToFile: string, data: Buffer, options: {
     flag?: string
 }) => Observable<string>
 = (pathToFile, data, options) => Observable.create((observer: Observer<string>) =>
-    fs.appendFile(pathToFile, data, (err: NodeJS.ErrnoException) => {
+    fs.appendFile(pathToFile, data, options, (err: NodeJS.ErrnoException) => {
         if (err) {
             observer.error(err);
         } else {

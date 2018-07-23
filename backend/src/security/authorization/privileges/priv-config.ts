@@ -4,7 +4,9 @@ import { GetAllPrivilegesForUser } from "../../common";
 
 export const privilegeDictionary = Object.freeze({
     CREATE_ICON: "CREATE_ICON",
+    UPDATE_ICON: "UPDATE_ICON",
     ADD_ICON_FILE: "ADD_ICON_FILE",
+    UPDATE_ICON_FILE: "UPDATE_ICON_FILE",
     REMOVE_ICON_FILE: "REMOVE_ICON_FILE",
     REMOVE_ICON: "REMOVE_ICON"
 });
@@ -12,7 +14,9 @@ export const privilegeDictionary = Object.freeze({
 const privilegesByRoles: Map<string, Set<string>> = Map({
     ICON_EDITOR: Set([
         privilegeDictionary.CREATE_ICON,
+        privilegeDictionary.UPDATE_ICON,
         privilegeDictionary.ADD_ICON_FILE,
+        privilegeDictionary.UPDATE_ICON_FILE,
         privilegeDictionary.REMOVE_ICON_FILE,
         privilegeDictionary.REMOVE_ICON
     ])

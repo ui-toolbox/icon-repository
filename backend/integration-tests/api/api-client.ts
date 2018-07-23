@@ -145,8 +145,7 @@ export const deleteIcon: (
 export const addIconFile: (
     requestBuilder: RequestBuilder,
     iconFile: IconFile
-)
-=> Observable<number>
+) => Observable<number>
 = (requestBuilder, iconFile) =>
     Observable.create((observer: Observer<number>) =>
         requestBuilder
@@ -159,8 +158,25 @@ export const addIconFile: (
             },
             error => observer.error(error)
         )
-        .catch(error => observer.error(error))
-);
+        .catch(error => observer.error(error)));
+
+export const updateIconFile: (
+    requestBuilder: RequestBuilder,
+    iconFile: IconFile
+) => Observable<void>
+= (requestBuilder, iconFile) =>
+    Observable.create((observer: Observer<number>) =>
+    requestBuilder
+    .put(`/icons/${iconFile.name}/formats/${iconFile.format}/sizes/${iconFile.size}`)
+    .attach("icon", iconFile.content, `${iconFile.name}-${iconFile.size}.${iconFile.format}`)
+    .then(
+        result => {
+            observer.next(result.body.id);
+            observer.complete();
+        },
+        error => observer.error(error)
+    )
+    .catch(error => observer.error(error)));
 
 export const deleteIconFile: (
     requestBuilder: RequestBuilder,
