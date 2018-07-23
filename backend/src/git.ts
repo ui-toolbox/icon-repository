@@ -50,20 +50,30 @@ const getPathComponents: GetPathComponents = (repo, iconName, format, size) => {
     };
 };
 
+const getPathComponents1 = (pathToIconRepository: string, iconFileInfo: IconFile) =>
+    getPathComponents(
+        pathToIconRepository,
+        iconFileInfo.name,
+        iconFileInfo.format,
+        iconFileInfo.size
+    );
+
 export const getPathToIconFile: (pathToRepo: string, iconName: string, format: string, size: string) => string
 = (pathToRepo, iconName, format, size) => getPathComponents(pathToRepo, iconName, format, size).pathToIconFile;
 
 const createIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => Observable<string>
-= (pathToIconRepository, inconFileInfo) => {
-    const pathCompos = getPathComponents(
-        pathToIconRepository,
-        inconFileInfo.name,
-        inconFileInfo.format,
-        inconFileInfo.size
-    );
+= (pathToIconRepository, iconFileInfo) => {
+    const pathCompos = getPathComponents1(pathToIconRepository, iconFileInfo);
     return mkdirMaybe(pathCompos.pathToFormatDir)
     .flatMap(() => mkdirMaybe(pathCompos.pathToSizeDir))
-    .flatMap(() => appendFile(pathCompos.pathToIconFile, inconFileInfo.content, { flag: "w"}))
+    .flatMap(() => appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"}))
+    .mapTo(pathCompos.pathToIconFileInRepo);
+};
+
+const updateIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => Observable<string>
+= (pathToIconRepository, iconFileInfo) => {
+    const pathCompos = getPathComponents1(pathToIconRepository, iconFileInfo);
+    return appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"})
     .mapTo(pathCompos.pathToIconFileInRepo);
 };
 
@@ -135,7 +145,12 @@ const createIconFileJob: CreateIconFileJob = (iconFileOperation, messages, userN
 };
 
 type AddIconFile = (
-    inconFileInfo: IconFile,
+    iconFileInfo: IconFile,
+    userName: string
+) => Observable<void>;
+
+type UpdateIconFile = (
+    iconFileInfo: IconFile,
     userName: string
 ) => Observable<void>;
 
@@ -154,6 +169,7 @@ type DeleteIcon = (
 export interface GitAccessFunctions {
     readonly getRepoLocation: () => string;
     readonly addIconFile: AddIconFile;
+    readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
     readonly deleteIcon: DeleteIcon;
 }
@@ -163,10 +179,19 @@ type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunction
 const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => ({
     getRepoLocation: () => localIconRepositoryLocation,
 
-    addIconFile: (inconFileInfo, userName) => enqueueJob(
+    addIconFile: (iconFileInfo, userName) => enqueueJob(
         createIconFileJob(
-            () => createIconFile(localIconRepositoryLocation, inconFileInfo),
+            () => createIconFile(localIconRepositoryLocation, iconFileInfo),
             { operationName: "add icon file", commitMessageBase: "icon file(s) added"},
+            userName,
+            createGitCommandExecutor(localIconRepositoryLocation)
+        )
+    ),
+
+    updateIconFile: (iconFileInfo, userName) => enqueueJob(
+        createIconFileJob(
+            () => updateIconFile(localIconRepositoryLocation, iconFileInfo),
+            { operationName: "update icon file", commitMessageBase: "icon file(s) updated"},
             userName,
             createGitCommandExecutor(localIconRepositoryLocation)
         )
