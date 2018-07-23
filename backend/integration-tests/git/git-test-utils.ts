@@ -3,12 +3,15 @@ import { Observable } from "rxjs";
 import { stat, rmdirMaybe, mkdirMaybe, mkdir, rmdir } from "../../src/utils/rx";
 import { createGitCommandExecutor, getPathToIconFile } from "../../src/git";
 import { IconFile, IconFileDescriptor } from "../../src/icon";
+import logger from "../../src/utils/logger";
 
 const SECONDS_IN_MILLIES = 1000;
 
 const homeTmpDir = path.join(process.env.HOME, "tmp");
 const testTmpDir = path.join(homeTmpDir, "tmp-icon-repo-test");
 const repoDir = path.join(testTmpDir, process.pid.toString());
+
+const ctxLogger = logger.createChild("get-test-utils");
 
 export const getTestRepoDir = () => repoDir;
 
@@ -19,8 +22,10 @@ export const createTestGitRepo: () => Observable<string> = () =>
     .flatMap(() => mkdir(repoDir))
     .flatMap(() => createGitCommandExecutor(repoDir)(["init"]));
 
-export const deleteTestGitRepo: () => Observable<string> = () =>
-    rmdir(testTmpDir);
+export const deleteTestGitRepo: () => Observable<string> = () => {
+    ctxLogger.debug("deleting test git repo %s", testTmpDir);
+    return rmdir(testTmpDir);
+};
 
 export const getCurrentCommit: () => Observable<string> = () =>
     createGitCommandExecutor(repoDir)(["rev-parse", "HEAD"])
