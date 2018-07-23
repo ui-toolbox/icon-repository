@@ -224,12 +224,30 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile
     });
 };
 
+type UpdateIconFile = (
+    iconFile: IconFile,
+    modifiedBy: string,
+    createSideEffect?: () => Observable<void>) => Observable<void>;
+
+const updateIconFile: (pool: Pool) => UpdateIconFile
+= pool => (iconFile, modifiedBy, createSideEffect) => {
+    return tx(pool, (executeQuery: ExecuteQuery) => {
+        const updateSQL = "UPDATE icon_file SET content = $1 " +
+                            "WHERE icon_id = (SELECT id FROM icon WHERE name = $2) AND " +
+                                "file_format = $3 AND icon_size = $4 ";
+        return executeQuery(updateSQL, [iconFile.content, iconFile.name, iconFile.format, iconFile.size])
+        .flatMap(() =>
+            (createSideEffect ? createSideEffect() : Observable.of(void 0)));
+    });
+};
+
 type DeleteIconFileBare = (
     executeQuery: ExecuteQuery,
     iconName: string,
     iconFileDesc: IconFileDescriptor,
     modifiedBy: string
 ) => Observable<void>;
+
 const deleteIconFileBare: DeleteIconFileBare
 = (executeQuery, iconName, iconFileDesc, modifiedBy) => {
     const getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE";
@@ -264,6 +282,7 @@ export interface IconDAFs {
     readonly getIconFile: GetIconFile;
     readonly deleteIcon: DeleteIcon;
     readonly addIconFileToIcon: AddIconFile;
+    readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
     readonly describeAllIcons: DescribeAllIcons;
     readonly describeIcon: DescribeIcon;
@@ -277,6 +296,7 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
         deleteIcon: deleteIcon(pool),
         getIconFile: getIconFile(pool),
         addIconFileToIcon: addIconFileToIcon(pool),
+        updateIconFile: updateIconFile(pool),
         deleteIconFile: deleteIconFile(pool),
         describeAllIcons: describeAllIcons(pool),
         describeIcon: describeIcon(pool)
