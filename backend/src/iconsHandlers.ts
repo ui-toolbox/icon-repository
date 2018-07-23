@@ -119,7 +119,22 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     },
 
     deleteIcon: (req: Request, res: Response) => {
-        res.status(200).end();
+        const ctxLogger = logger.createChild("icon-delete-requesthandler");
+        if (!req.params || !req.params.name) {
+            ctxLogger.error("Missing icon name");
+            res.status(400).send({error: "Icon name must be specified"}).end();
+        } else {
+            const iconName = req.params.name;
+            iconService.deleteIcon(iconName, getAuthentication(req.session).username)
+            .subscribe(
+                void 0,
+                error => {
+                    ctxLogger.error(error);
+                    res.status(500).end();
+                },
+                () => res.status(204).end()
+            );
+        }
     },
 
     getIconFile: (req: Request, res: Response) => {

@@ -18,6 +18,10 @@ type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => O
 type CreateIcon = (
     initialIconFileInfo: IconFile,
     modifiedBy: string) => Observable<number>;
+type DeleteIcon = (
+    iconName: string,
+    modifiedBy: string
+) => Observable<void>;
 type AddIconFile = (
     iconFile: IconFile,
     modifiedBy: string) => Observable<number>;
@@ -29,6 +33,7 @@ export interface IconService {
     readonly describeIcon: DescribeIcon;
     readonly getIconFile: GetIconFile;
     readonly createIcon: CreateIcon;
+    readonly deleteIcon: DeleteIcon;
     readonly addIconFile: AddIconFile;
     readonly deleteIconFile: DeleteIconFile;
 }
@@ -68,6 +73,13 @@ const iconServiceProvider: (
             modifiedBy,
             () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
 
+    const deleteIcon: DeleteIcon = (iconName: string, modifiedBy: string) =>
+        iconDAFs.deleteIcon(
+            iconName,
+            modifiedBy,
+            iconFileDescSet => gitAFs.deleteIcon(iconName, iconFileDescSet, modifiedBy)
+        );
+
     const addIconFile: AddIconFile = (iconFile, modifiedBy) =>
         iconDAFs.addIconFileToIcon(
             iconFile,
@@ -84,12 +96,13 @@ const iconServiceProvider: (
 
     return {
         getRepoConfiguration,
+        createIcon,
+        deleteIcon,
+        addIconFile,
+        deleteIconFile,
         describeAllIcons,
         describeIcon,
-        getIconFile,
-        createIcon,
-        addIconFile,
-        deleteIconFile
+        getIconFile
     };
 };
 
