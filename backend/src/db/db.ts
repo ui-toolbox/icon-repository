@@ -91,7 +91,7 @@ const createClient: (pool: Pool) => Observable<IConnection> = pool => Observable
             observer.next({
                 executeQuery: (queryText, values) => Observable.create(
                     (qryObserver: Observer<QueryResult>) => {
-                        ctxLogger.debug("Executing %s, %o", queryText);
+                        ctxLogger.debug("Executing %s", queryText);
                         client.query(queryText, values)
                         .then(
                             queryResult => {
@@ -178,6 +178,23 @@ export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, create
     );
 };
 
+type DeleteIcon = (
+    iconName: string,
+    modifiedBy: string,
+    createSideEffect?: (iconFileDescList: Set<IconFileDescriptor>) => Observable<void>
+) => Observable<void>;
+export const deleteIcon: (pool: Pool) => DeleteIcon
+= pool => (iconName, modifiedBy, createSideEffect) =>
+    tx(pool, executeQuery =>
+        describeIconBare(executeQuery, iconName, true)
+        .flatMap(iconDesc => iconDesc.iconFiles.toArray())
+        .flatMap(iconFileDesc =>
+            deleteIconFileBare(executeQuery, iconName, iconFileDesc, modifiedBy)
+            .mapTo(iconFileDesc))
+        .reduce((acc, iconFileDesc) => acc.add(iconFileDesc), Set())
+        .flatMap((iconFileDescSet: Set<IconFileDescriptor>) =>
+            createSideEffect ? createSideEffect(iconFileDescSet) : Observable.of(void 0)));
+
 export type GetIconFile = (
     iconName: string,
     format: string,
@@ -207,6 +224,29 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile
     });
 };
 
+type DeleteIconFileBare = (
+    executeQuery: ExecuteQuery,
+    iconName: string,
+    iconFileDesc: IconFileDescriptor,
+    modifiedBy: string
+) => Observable<void>;
+const deleteIconFileBare: DeleteIconFileBare
+= (executeQuery, iconName, iconFileDesc, modifiedBy) => {
+    const getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE";
+    const deleteFile = "DELETE FROM icon_file WHERE icon_id = $1 and file_format = $2 and icon_size = $3";
+    const countIconFilesLeftForIcon = "SELECT count(*) as icon_file_count FROM icon_file WHERE icon_id = $1";
+    const deleteIconSQL = "DELETE FROM icon WHERE id = $1";
+    return executeQuery(getIdAndLockIcon, [iconName])
+    .map(iconIdQueryResult => iconIdQueryResult.rows[0].id)
+    .flatMap(iconId => executeQuery(deleteFile, [iconId, iconFileDesc.format, iconFileDesc.size])
+        .flatMap(() => executeQuery(countIconFilesLeftForIcon, [iconId]))
+        .map(countQueryResult => countQueryResult.rows[0].icon_file_count)
+        .flatMap(countOfLeftIconFiles =>
+            countOfLeftIconFiles === 0
+                ? executeQuery(deleteIconSQL, [iconId])
+                : Observable.of(void 0)));
+};
+
 type DeleteIconFile = (
     iconName: string,
     iconFileDesc: IconFileDescriptor,
@@ -214,26 +254,15 @@ type DeleteIconFile = (
     createSideEffect?: () => Observable<void>) => Observable<void>;
 const deleteIconFile: (pool: Pool) => DeleteIconFile
 = pool => (iconName, iconFileDesc, modifiedBy, createSideEffect) => {
-    const getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE";
-    const deleteFile = "DELETE FROM icon_file WHERE icon_id = $1 and file_format = $2 and icon_size = $3";
-    const countIconFilesLeftForIcon = "SELECT count(*) as icon_file_count FROM icon_file WHERE icon_id = $1";
-    const deleteIcon = "DELETE FROM icon WHERE id = $1";
     return tx(pool, (executeQuery: ExecuteQuery) =>
-        executeQuery(getIdAndLockIcon, [iconName])
-        .map(iconIdQueryResult => iconIdQueryResult.rows[0].id)
-        .flatMap(iconId => executeQuery(deleteFile, [iconId, iconFileDesc.format, iconFileDesc.size])
-            .flatMap(() => executeQuery(countIconFilesLeftForIcon, [iconId]))
-            .map(countQueryResult => countQueryResult.rows[0].icon_file_count)
-            .flatMap(countOfLeftIconFiles =>
-                countOfLeftIconFiles === 0
-                    ? executeQuery(deleteIcon, [iconId])
-                    : Observable.of(void 0)))
-        .flatMap(() => (createSideEffect ? createSideEffect() : Observable.of(void 0))));
+            deleteIconFileBare(executeQuery, iconName, iconFileDesc, modifiedBy)
+            .flatMap(() => (createSideEffect ? createSideEffect() : Observable.of(void 0))));
 };
 
 export interface IconDAFs {
     readonly createIcon: AddIcon;
     readonly getIconFile: GetIconFile;
+    readonly deleteIcon: DeleteIcon;
     readonly addIconFileToIcon: AddIconFile;
     readonly deleteIconFile: DeleteIconFile;
     readonly describeAllIcons: DescribeAllIcons;
@@ -245,6 +274,7 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
     const pool = createPoolUsing(connectionProperties);
     return {
         createIcon: createIcon(pool),
+        deleteIcon: deleteIcon(pool),
         getIconFile: getIconFile(pool),
         addIconFileToIcon: addIconFileToIcon(pool),
         deleteIconFile: deleteIconFile(pool),
@@ -283,9 +313,9 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
     ));
 };
 
-type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
-export const describeIcon: (pool: Pool) => DescribeIcon
-= pool => iconName => {
+type DescribeIconBare = (executeQuery: ExecuteQuery, iconName: string, forUpdate?: boolean)
+=> Observable<IconDescriptor>;
+const describeIconBare: DescribeIconBare = (executeQuery, iconName, forUpdate = false) => {
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +
@@ -294,8 +324,9 @@ export const describeIcon: (pool: Pool) => DescribeIcon
                 "FROM icon, icon_file " +
                     "WHERE icon.id = icon_file.icon_id AND " +
                         "icon.name = $1 " +
-                    "ORDER BY icon_id, icon_file_format, icon_size";
-    return query(pool, sql, [iconName])
+                    "ORDER BY icon_id, icon_file_format, icon_size" +
+                (forUpdate ? " FOR UPDATE" : "");
+    return executeQuery(sql, [iconName])
     .map(result => result.rows.reduce(
         (iconInfoList: List<IconDescriptor>, row: any) => {
             const iconFile: IconFileDescriptor = {
@@ -314,5 +345,9 @@ export const describeIcon: (pool: Pool) => DescribeIcon
     ))
     .map(list => list.get(0));
 };
+
+type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
+export const describeIcon: (pool: Pool) => DescribeIcon
+= pool => iconName => tx(pool, executeQuery => describeIconBare(executeQuery, iconName));
 
 export default dbAccessProvider;
