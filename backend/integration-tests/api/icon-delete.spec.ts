@@ -4,7 +4,7 @@ import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { addTestData, getTestIconData, getTestDataDescriptor } from "./icon-api-test-utils";
 import { IconFileDescriptor } from "../../src/icon";
-import { assertNoSuchFile } from "../git/git-test-utils";
+import { assertFileNotInRepo } from "../git/git-test-utils";
 
 describe("DEL /icons", () => {
 
@@ -62,9 +62,9 @@ describe("DEL /icons", () => {
         .flatMap(() => describeAllIcons(session.requestBuilder()))
         .map(iconsDesc =>
             expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor))
-        .flatMap(() => assertNoSuchFile(iconToDelete.name, getIconFileDescToDelete(0)))
-        .flatMap(() => assertNoSuchFile(iconToDelete.name, getIconFileDescToDelete(1)))
-        .flatMap(() => assertNoSuchFile(iconToDelete.name, getIconFileDescToDelete(2)))
+        .flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconFileDescToDelete(0)))
+        .flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconFileDescToDelete(1)))
+        .flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconFileDescToDelete(2)))
         .subscribe(boilerplateSubscribe(fail, done));
     });
 

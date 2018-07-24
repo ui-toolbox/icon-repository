@@ -108,6 +108,18 @@ export const deleteFile: (pathToFile: string) => Observable<void>
     })
 );
 
+export const renameFile: (oldPath: string, newPath: string) => Observable<void>
+= (oldPath, newPath) => Observable.create((observer: Observer<void>) => {
+    fs.rename(oldPath, newPath, error => {
+        if (error) {
+            observer.error(error);
+        } else {
+            observer.next(void 0);
+            observer.complete();
+        }
+    });
+});
+
 export const moveFile: (
     source: string,
     target: string
