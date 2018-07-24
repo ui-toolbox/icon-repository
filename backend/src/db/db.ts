@@ -2,7 +2,7 @@ import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult } from "pg";
 
-import { IconDescriptor, IconFile, IconFileDescriptor } from "../icon";
+import { IconDescriptor, IconFile, IconFileDescriptor, IconAttributes } from "../icon";
 import logger from "../utils/logger";
 
 const ctxLogger = logger.createChild("db");
@@ -83,6 +83,7 @@ interface IConnection {
     readonly executeQuery: ExecuteQuery;
     readonly release: () => void;
 }
+
 const createClient: (pool: Pool) => Observable<IConnection> = pool => Observable.create(
     (observer: Observer<IConnection>) => pool.connect((err, client, done) => {
         if (err) {
@@ -139,6 +140,7 @@ type AddIconFileToTable = (
     iconFile: IconFile,
     modifiedBy: string
 ) => Observable<number>;
+
 const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modifiedBy) => {
     const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
                                 "SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
@@ -156,6 +158,7 @@ type AddIcon = (
     modifiedBy: string,
     createSideEffect?: () => Observable<void>
 ) => Observable<number>;
+
 type AddIconProvider = (pool: Pool) => AddIcon;
 export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
     const addIconSQL: string = "INSERT INTO icon(name, modified_by) " +
@@ -178,11 +181,28 @@ export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, create
     );
 };
 
+type UpdateIcon = (
+    oldIconName: string,
+    newIcon: IconAttributes,
+    modifiedBy: string,
+    createSideEffect?: (oldIcon: IconDescriptor) => Observable<void>
+) => Observable<void>;
+
+export const updateIcon: (pool: Pool) => UpdateIcon
+= pool => (oldIconName, newIcon, modifiedBy, createSideEffect) => {
+    const updateIconSQL = "UPDATE icon SET name = $1 WHERE name = $2";
+    return tx(pool, (executeQuery: ExecuteQuery) =>
+        describeIconBare(executeQuery, oldIconName, true)
+        .flatMap(iconDesc => executeQuery(updateIconSQL, [newIcon.name, oldIconName])
+            .flatMap(() => createSideEffect(iconDesc))));
+};
+
 type DeleteIcon = (
     iconName: string,
     modifiedBy: string,
     createSideEffect?: (iconFileDescList: Set<IconFileDescriptor>) => Observable<void>
 ) => Observable<void>;
+
 export const deleteIcon: (pool: Pool) => DeleteIcon
 = pool => (iconName, modifiedBy, createSideEffect) =>
     tx(pool, executeQuery =>
@@ -270,6 +290,7 @@ type DeleteIconFile = (
     iconFileDesc: IconFileDescriptor,
     modifiedBy: string,
     createSideEffect?: () => Observable<void>) => Observable<void>;
+
 const deleteIconFile: (pool: Pool) => DeleteIconFile
 = pool => (iconName, iconFileDesc, modifiedBy, createSideEffect) => {
     return tx(pool, (executeQuery: ExecuteQuery) =>
@@ -278,28 +299,30 @@ const deleteIconFile: (pool: Pool) => DeleteIconFile
 };
 
 export interface IconDAFs {
+    readonly describeIcon: DescribeIcon;
     readonly createIcon: AddIcon;
-    readonly getIconFile: GetIconFile;
+    readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
+    readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
     readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
     readonly describeAllIcons: DescribeAllIcons;
-    readonly describeIcon: DescribeIcon;
 }
 
 const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
 = connectionProperties => {
     const pool = createPoolUsing(connectionProperties);
     return {
+        describeIcon: describeIcon(pool),
+        updateIcon: updateIcon(pool),
         createIcon: createIcon(pool),
         deleteIcon: deleteIcon(pool),
         getIconFile: getIconFile(pool),
         addIconFileToIcon: addIconFileToIcon(pool),
         updateIconFile: updateIconFile(pool),
         deleteIconFile: deleteIconFile(pool),
-        describeAllIcons: describeAllIcons(pool),
-        describeIcon: describeIcon(pool)
+        describeAllIcons: describeAllIcons(pool)
     };
 };
 
@@ -323,7 +346,7 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
             };
             let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
-            if (!lastIconInfo || row.icon_name !== lastIconInfo.iconName) {
+            if (!lastIconInfo || row.icon_name !== lastIconInfo.name) {
                 lastIconInfo = new IconDescriptor(row.icon_name, Set());
                 lastIndex++;
             }
@@ -355,7 +378,7 @@ const describeIconBare: DescribeIconBare = (executeQuery, iconName, forUpdate = 
             };
             let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
-            if (!lastIconInfo || row.icon_name !== lastIconInfo.iconName) {
+            if (!lastIconInfo || row.icon_name !== lastIconInfo.name) {
                 lastIconInfo = new IconDescriptor(row.icon_name, Set());
                 lastIndex++;
             }

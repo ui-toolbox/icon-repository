@@ -2,7 +2,7 @@ import { SuperAgentRequest } from "superagent";
 import { Observable, Observer } from "rxjs";
 import { IconDTO } from "../../src/iconsHandlers";
 import { List } from "immutable";
-import { IconFile, IconFileDescriptor } from "../../src/icon";
+import { IconFile, IconFileDescriptor, IconAttributes } from "../../src/icon";
 
 export const authenticationBackdoorPath = "/backdoor/authentication";
 
@@ -103,27 +103,43 @@ export const createIcon: (
     requestBuilder: RequestBuilder,
     initialIconFile: IconFile)
 => Observable<number>
-= (requestBuilder, initialIconFile) =>
-    Observable.create((observer: Observer<number>) =>
-        requestBuilder
-            .post("/icons")
-            .field({name: initialIconFile.name})
-            .field({format: initialIconFile.format})
-            .field({size: initialIconFile.size})
-            .attach(
-                "icon",
-                initialIconFile.content,
-                `${initialIconFile.name}-${initialIconFile.size}.${initialIconFile.format}`
-            )
-            .then(
-                result => {
-                    observer.next(result.body.id);
-                    observer.complete();
-                },
-                error => observer.error(error)
-            )
-            .catch(error => observer.error(error))
-);
+= (requestBuilder, initialIconFile) => Observable.create((observer: Observer<number>) =>
+    requestBuilder
+        .post("/icons")
+        .field({name: initialIconFile.name})
+        .field({format: initialIconFile.format})
+        .field({size: initialIconFile.size})
+        .attach(
+            "icon",
+            initialIconFile.content,
+            `${initialIconFile.name}-${initialIconFile.size}.${initialIconFile.format}`
+        )
+        .then(
+            result => {
+                observer.next(result.body.id);
+                observer.complete();
+            },
+            error => observer.error(error)
+        )
+        .catch(error => observer.error(error)));
+
+export const updateIcon: (
+    requestBuilder: RequestBuilder,
+    oldIconName: string,
+    newIcon: IconAttributes
+) => Observable<void>
+= (requestBuilder, oldIconName, newIcon) => Observable.create((observer: Observer<void>) =>
+    requestBuilder
+    .put(`/icons/${oldIconName}`)
+    .send(newIcon)
+    .then(
+        result => {
+            observer.next(void 0);
+            observer.complete();
+        },
+        error => observer.error(error)
+    )
+    .catch(error => observer.error(error)));
 
 export const deleteIcon: (
     requestBuilder: RequestBuilder,

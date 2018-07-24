@@ -5,6 +5,7 @@ import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { getTestIconData, addTestData, getTestDataDescriptor } from "./icon-api-test-utils";
 import { IconFile } from "../../src/icon";
+import { assertFileInRepo } from "../git/git-test-utils";
 
 describe("PUT icons/:name/<file>", () => {
 
@@ -69,7 +70,7 @@ describe("PUT icons/:name/<file>", () => {
         const session: Session = agent();
 
         addTestData(session.requestBuilder(), testData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON_FILE ]))
+        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON ]))
         .flatMap(() => updateIconFile(
             session
                 .auth(uxAuth)
@@ -81,6 +82,8 @@ describe("PUT icons/:name/<file>", () => {
         .map(iconsDesc =>
             expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor))
         .flatMap(() => getCheckIconFile(session, newIconFile))
+        // Assert GIT status
+        .flatMap(() => assertFileInRepo(newIconFile))
         .subscribe(boilerplateSubscribe(fail, done));
     });
 

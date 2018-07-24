@@ -4,7 +4,7 @@ import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { getTestIconData, addTestData, getTestDataDescriptor } from "./icon-api-test-utils";
 import { IconFileDescriptor, IconFile } from "../../src/icon";
-import { assertFileAdded, assertNoSuchFile } from "../git/git-test-utils";
+import { assertFileInRepo, assertFileNotInRepo } from "../git/git-test-utils";
 
 describe("DEL icons/:name/<file>", () => {
 
@@ -59,7 +59,7 @@ describe("DEL icons/:name/<file>", () => {
         const session: Session = agent();
 
         addTestData(session.requestBuilder(), testData)
-        .flatMap(() => assertFileAdded(expectedIconFile, defaultAuth.user))
+        .flatMap(() => assertFileInRepo(expectedIconFile))
         .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON ]))
         .flatMap(() => deleteIconFile(
             session.auth(uxAuth).requestBuilder(),
@@ -69,7 +69,7 @@ describe("DEL icons/:name/<file>", () => {
         .flatMap(() => describeAllIcons(session.requestBuilder()))
         .map(iconsDesc =>
             expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor))
-        .flatMap(() => assertNoSuchFile(iconToDeleteFrom.name, descOfIconFileToDelete))
+        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, descOfIconFileToDelete))
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -106,9 +106,9 @@ describe("DEL icons/:name/<file>", () => {
         .flatMap(() => describeAllIcons(session.requestBuilder()))
         .map(iconsDesc =>
             expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor))
-        .flatMap(() => assertNoSuchFile(iconToDeleteFrom.name, getIconFileDescToDelete(0)))
-        .flatMap(() => assertNoSuchFile(iconToDeleteFrom.name, getIconFileDescToDelete(1)))
-        .flatMap(() => assertNoSuchFile(iconToDeleteFrom.name, getIconFileDescToDelete(2)))
+        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(0)))
+        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(1)))
+        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(2)))
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
