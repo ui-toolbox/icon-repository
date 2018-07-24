@@ -36,6 +36,7 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconH
     router.get("/icons", iconHandlers.describeAllIcons("/icons"));
     router.post("/icons", upload.any(), iconHandlers.createIcon);
     router.get("/icons/:name", iconHandlers.describeIcon("/icons"));
+    router.put("/icons/:name", iconHandlers.updateIcon);
     router.delete("/icons/:name", iconHandlers.deleteIcon);
     router.get("/icons/:name/formats/:format/sizes/:size", iconHandlers.getIconFile);
     router.post("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);

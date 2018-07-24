@@ -1,16 +1,17 @@
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IconFile, IconDescriptor, IconFileDescriptor } from "./icon";
+import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes } from "./icon";
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IconHanlders {
     readonly getIconRepoConfig: (req: Request, res: Response) => void;
     readonly describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly describeIcon: (iconPathRoot: string) => (req: Request, res: Response) => void;
-    readonly getIconFile: (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
     readonly deleteIcon: (req: Request, res: Response) => void;
+    readonly updateIcon: (req: Request, res: Response) => void;
+    readonly getIconFile: (req: Request, res: Response) => void;
     readonly addIconFile: (req: Request, res: Response) => void;
     readonly updateIconFile: (req: Request, res: Response) => void;
     readonly deleteIconFile: (req: Request, res: Response) => void;
@@ -32,7 +33,7 @@ const createIconFilePaths: CreateIconFilePaths = (baseUrl, iconDesc) => iconDesc
             [format]: fileDescCollection.reduce(
                 (sizeToPath, fdescItem) => ({
                     ...sizeToPath,
-                    [fdescItem.size]: `${baseUrl}/${iconDesc.iconName}/formats/${format}/sizes/${fdescItem.size}`
+                    [fdescItem.size]: `${baseUrl}/${iconDesc.name}/formats/${format}/sizes/${fdescItem.size}`
                 }),
                 {}
             )
@@ -45,7 +46,7 @@ export class IconDTO {
     public readonly paths: IconPathsDTO;
 
     constructor(iconPathRoot: string, iconDesc: IconDescriptor) {
-        this.name = iconDesc.iconName;
+        this.name = iconDesc.name;
         this.paths = createIconFilePaths(iconPathRoot, iconDesc);
     }
 }
@@ -115,6 +116,29 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             error => {
                 ctxLogger.error("An error occurred while creating icon %o: %o", iconData, error);
                 res.status(500).end("An error occurred while creating icon");
+            }
+        );
+    },
+
+    updateIcon: (req: Request, res: Response) => {
+        const ctxLogger = logger.createChild("icon-update-requesthandler");
+        ctxLogger.info("START");
+        const oldIconName: string = req.params.name;
+        const newIcon: IconAttributes = { name: req.body.name };
+        if (!newIcon.name) {
+            const errmsg = "Missing new icon data";
+            ctxLogger.error(errmsg);
+            res.status(400).send({ error: errmsg }).end();
+        }
+        iconService.updateIcon(oldIconName, newIcon, getAuthentication(req.session).username)
+        .subscribe(
+            result => {
+                ctxLogger.info("Icon #%d updated: %o", result, newIcon);
+                res.status(204).send({iconId: result}).end();
+            },
+            error => {
+                ctxLogger.error("An error occurred while updating icon %o: %o", oldIconName, error);
+                res.status(500).end("An error occurred while updating icon");
             }
         );
     },
@@ -208,7 +232,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
 
     deleteIconFile: (req: Request, res: Response) => {
         const ctxLogger = logger.createChild("iconfile-delete-requesthandler");
-        if (!req.params || !req.params.name) {
+        if (!req.params.name) {
             ctxLogger.error("Missing icon name");
             res.status(400).send({error: "Icon name must be specified"}).end();
         } else if (!req.params.format || !req.params.size) {

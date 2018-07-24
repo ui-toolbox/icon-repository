@@ -13,20 +13,24 @@ export interface IconFile extends IconFileData {
     readonly name: string;
 }
 
-export class IconDescriptor {
-    public readonly iconName: string;
+export interface IconAttributes {
+    name: string;
+}
+
+export class IconDescriptor implements IconAttributes {
+    public readonly name: string;
     public readonly iconFiles: Set<IconFileDescriptor>;
 
-    constructor(iconName: string, iconFiles: Set<IconFileDescriptor>) {
-        this.iconName = iconName;
+    constructor(name: string, iconFiles: Set<IconFileDescriptor>) {
+        this.name = name;
         this.iconFiles = iconFiles || Set();
     }
 
     public addIconFile(iconFile: IconFileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.iconName, this.iconFiles.add(iconFile));
+        return new IconDescriptor(this.name, this.iconFiles.add(iconFile));
     }
 
     public removeIconFile(iconFile: IconFileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.iconName, this.iconFiles.remove(iconFile));
+        return new IconDescriptor(this.name, this.iconFiles.remove(iconFile));
     }
 }

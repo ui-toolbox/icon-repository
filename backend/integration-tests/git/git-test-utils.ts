@@ -34,13 +34,15 @@ export const getCurrentCommit: () => Observable<string> = () =>
 const getGitStatus: () => Observable<string> = () =>
     createGitCommandExecutor(repoDir)(["status"])
     .map(out => out.trim());
+
 const cleanStatusMessageTail = "nothing to commit, working tree clean";
+
 export const assertGitCleanStatus = () => getGitStatus()
 .map(status => expect(status.substr(status.length - cleanStatusMessageTail.length))
                 .toEqual(cleanStatusMessageTail));
 
-export const assertFileAdded: (iconFileInfo: IconFile, user: string) => Observable<void>
-= (iconFileInfo, user) => {
+export const assertFileInRepo: (iconFileInfo: IconFile) => Observable<void>
+= iconFileInfo => {
     const filePath = getPathToIconFile(repoDir, iconFileInfo.name, iconFileInfo.format, iconFileInfo.size);
     return stat(filePath)
     .map(stats => {
@@ -54,7 +56,7 @@ export const assertFileAdded: (iconFileInfo: IconFile, user: string) => Observab
     });
 };
 
-export const assertNoSuchFile: (iconName: string, iconFileDesc: IconFileDescriptor) => Observable<void>
+export const assertFileNotInRepo: (iconName: string, iconFileDesc: IconFileDescriptor) => Observable<void>
 = (iconName, iconFileDesc) => {
     const filePath = getPathToIconFile(repoDir, iconName, iconFileDesc.format, iconFileDesc.size);
     return stat(filePath)

@@ -13,7 +13,7 @@ import {
     getCurrentCommit,
     assertGitCleanStatus,
     getTestRepoDir,
-    assertFileAdded} from "./git-test-utils";
+    assertFileInRepo} from "./git-test-utils";
 
 describe("git access functions", () => {
 
@@ -47,7 +47,7 @@ describe("git access functions", () => {
             .flatMap(() => getCurrentCommit())
             .map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length))
             .flatMap(() => assertGitCleanStatus())
-            .flatMap(() => assertFileAdded(iconInfo, user))
+            .flatMap(() => assertFileInRepo(iconInfo))
             .subscribe(boilerplateSubscribe(fail, done));
         });
 

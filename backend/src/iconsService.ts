@@ -1,7 +1,7 @@
 import { List } from "immutable";
 import { Observable } from "rxjs/Rx";
 
-import { IconFile, IconDescriptor, IconFileDescriptor } from "./icon";
+import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes } from "./icon";
 import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
 import csvSplitter from "./utils/csvSplitter";
@@ -18,6 +18,10 @@ type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => O
 type CreateIcon = (
     initialIconFileInfo: IconFile,
     modifiedBy: string) => Observable<number>;
+type UpdateIcon = (
+    oldIconName: string,
+    newIcon: IconAttributes,
+    modifiedBy: string) => Observable<void>;
 type DeleteIcon = (
     iconName: string,
     modifiedBy: string
@@ -36,6 +40,7 @@ export interface IconService {
     readonly describeIcon: DescribeIcon;
     readonly getIconFile: GetIconFile;
     readonly createIcon: CreateIcon;
+    readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
     readonly addIconFile: AddIconFile;
     readonly updateIconFile: UpdateIconFile;
@@ -77,6 +82,13 @@ const iconServiceProvider: (
             modifiedBy,
             () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
 
+    const updateIcon: UpdateIcon = (oldIconName, newIcon, modifiedBy) =>
+        iconDAFs.updateIcon(
+            oldIconName,
+            newIcon,
+            modifiedBy,
+            (oldIconDescriptor: IconDescriptor) => gitAFs.updateIcon(oldIconDescriptor, newIcon, modifiedBy));
+
     const deleteIcon: DeleteIcon = (iconName: string, modifiedBy: string) =>
         iconDAFs.deleteIcon(
             iconName,
@@ -106,14 +118,15 @@ const iconServiceProvider: (
 
     return {
         getRepoConfiguration,
+        describeIcon,
         createIcon,
+        updateIcon,
         deleteIcon,
+        getIconFile,
         addIconFile,
         updateIconFile,
         deleteIconFile,
-        describeAllIcons,
-        describeIcon,
-        getIconFile
+        describeAllIcons
     };
 };
 
