@@ -5,8 +5,21 @@ import App from './App'
 import router from './router'
 import VueResource from 'vue-resource'
 
+import ElementUI from 'element-ui';
+import locale from 'element-ui/lib/locale/lang/en';
+import 'element-ui/lib/theme-chalk/index.css';
+
 Vue.config.productionTip = false
 Vue.use(VueResource)
+
+Vue.use(ElementUI, { locale });
+
+Vue.prototype.$showErrorMessage = error => Vue.prototype.$message({
+    duration: 0,
+    showClose: true,
+    message: error.message || error,
+    type: 'error'
+});
 
 /* eslint-disable no-new */
 new Vue({

@@ -1,24 +1,23 @@
 <template>
   <div class="icon-cell animated fadeIn zoomIn">
     <div class="icon-preview">
-      <img v-bind:src="baseUrl + firstPath" height="30">
+      <img v-bind:src="firstPath" height="30">
     </div>
     <div class="icon-name">{{icon.name}}</div>
   </div>
 </template>
 
 <script>
+import getEndpointUrl from '@/services/url';
+
 export default {
   name: 'IconCell',
   props: ['icon'],
-  data () {
-    return {
-        baseUrl: this.$config.baseUrl
-    }
-  },
   computed: {
-    firstPath: function () {
-        return this.icon.paths.svg[Object.keys(this.icon.paths.svg)[0]];
+    firstPath() {
+        // If the icon has SVG format, prefer that
+        const format = this.icon.paths.svg ? "svg" : Object.keys(this.icon.paths)[0];
+        return getEndpointUrl(this.icon.paths[format][Object.keys(this.icon.paths[format])[0]]);
     }
   }
 }

@@ -1,3 +1,4 @@
+import * as util from "util";
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
@@ -60,7 +61,7 @@ const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req
         iconDTOArray => res.send(iconDTOArray),
         error => {
             log.error("Failed to retrieve icons", error);
-            res.status(500).send(error.message);
+            res.status(500).send({error: error.message});
         },
         void 0
     );
@@ -75,7 +76,7 @@ const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Reques
         iconDTO => iconDTO ? res.send(iconDTO) : res.status(404).end(),
         error => {
             log.error("Failed to retrieve icon description", error);
-            res.status(500).send(error.message);
+            res.status(500).send({error: error.message});
         },
         void 0
     );
@@ -86,9 +87,9 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
     getIconRepoConfig: (req: Request, res: Response) => iconService.getRepoConfiguration().toPromise()
     .then(
         config => res.send(config),
-        err => {
-            logger.createChild("icon-formats service").error("Failed to retrieve icons formats", err);
-            res.status(500).send(err.message);
+        error => {
+            logger.createChild("icon-formats service").error("Failed to retrieve icons formats", error);
+            res.status(500).send({error: error.message});
         }
     ),
 
@@ -107,6 +108,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             size: req.body.size,
             content: (req.files as any)[0].buffer
         };
+        ctxLogger.debug("iconData: %o", iconData);
         iconService.createIcon(iconData, getAuthentication(req.session).username)
         .subscribe(
             result => {
@@ -115,7 +117,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             },
             error => {
                 ctxLogger.error("An error occurred while creating icon %o: %o", iconData, error);
-                res.status(500).end("An error occurred while creating icon");
+                res.status(500).send({error: error.message});
             }
         );
     },
@@ -138,7 +140,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             },
             error => {
                 ctxLogger.error("An error occurred while updating icon %o: %o", oldIconName, error);
-                res.status(500).end("An error occurred while updating icon");
+                res.status(500).send({error: error.message});
             }
         );
     },
@@ -155,7 +157,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 void 0,
                 error => {
                     ctxLogger.error(error);
-                    res.status(500).end();
+                    res.status(500).send({error: error.message});
                 },
                 () => res.status(204).end()
             );
@@ -171,9 +173,11 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 res.type(req.params.format).send(result);
             },
             error => {
-                ctxLogger.error("Failed to retrieve icon file for %d, %s, %s: %o",
-                                req.params.id, req.params.format, req.params.size, error);
-                res.sendStatus(500).end();
+                const logMessage = util.format(
+                    "Failed to retrieve icon file for %s, %s, %s: %o",
+                    req.params.name, req.params.format, req.params.size, error);
+                ctxLogger.error(logMessage);
+                res.sendStatus(500).send({error: error.message});
             }
         );
     },
@@ -197,7 +201,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 void 0,
                 error => {
                     ctxLogger.error(error);
-                    res.status(500).end();
+                    res.status(500).send({error: error.message});
                 },
                 () => res.status(201).end()
             );
@@ -223,7 +227,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 void 0,
                 error => {
                     ctxLogger.error(error);
-                    res.status(500).end();
+                    res.status(500).send({error: error.message});
                 },
                 () => res.status(204).end()
             );
@@ -248,7 +252,7 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 void 0,
                 error => {
                     ctxLogger.error(error);
-                    res.status(500).end();
+                    res.status(500).send({error: error.message});
                 },
                 () => res.status(204).end()
             );

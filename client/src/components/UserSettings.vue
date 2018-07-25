@@ -14,6 +14,7 @@
 </template>
 
 <script>
+import getEndpointUrl from '@/services/url';
 import * as user from '@/services/user';
 
 export default {
@@ -34,7 +35,7 @@ export default {
                 mode: "no-cors",
                 credentials: "include"
             }).then(response => {
-                window.location = this.$config.baseUrl;
+                window.location = getEndpointUrl("");
             });
         }
     }
