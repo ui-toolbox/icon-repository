@@ -24,7 +24,7 @@
 
     <div class="action-bar">
       <div class="upload" v-if="hasAddIconPrivilege">
-        <el-button type="primary" icon="el-icon-plus" @click="dialogVisible = true">ADD NEW</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="createDialogVisible = true">ADD NEW</el-button>
       </div>
       <div class="switch-view">
         <img class="grid-view" src="@/assets/grid-view.svg" height="28">
@@ -35,11 +35,15 @@
     <create-icon-dialog
             :formats="allowedIconFileFormats"
             :sizes="allowedIconSizes"
-            :dialogVisible="dialogVisible"
-            @finished="dialogVisibleUpdate"/>
+            :dialogVisible="createDialogVisible"
+            @finished="dialogClosed"/>
+    <modify-icon-dialog
+            :iconName="selectedIcon"
+            :dialogVisible="modifyDialogVisible"
+            @finished="dialogClosed"/>
 
     <section class="inner-wrapper icon-grid">
-      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path" class="grid-cell"></icon-cell>
+      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path" @iconSelected="iconSelected" class="grid-cell"></icon-cell>
     </section>
 
   </div>
@@ -53,15 +57,18 @@ import UserSettings from '@/components/UserSettings';
 import fetchIconRepoConfig from '@/services/fetch-iconrepo-config';
 import IconCell from '@/components/IconCell';
 import CreateIconDialog from '@/components/CreateIconDialog';
-import testIconData from '@/resources/test-icon-data';
+import ModifyIconDialog from '@/components/ModifyIconDialog';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
+
+import testIconData from '@/resources/test-icon-data';
 
 export default {
   name: 'SearchPage',
   components: {
     'user-settings': UserSettings,
     'icon-cell': IconCell,
-    'create-icon-dialog': CreateIconDialog
+    'create-icon-dialog': CreateIconDialog,
+    'modify-icon-dialog': ModifyIconDialog
   },
   computed: {
     allowedIconFileFormats() {
@@ -111,7 +118,9 @@ export default {
       iconRepoConfig: {},
       icons: [],
       searchQuery: '',
-      dialogVisible: false
+      createDialogVisible: false,
+      selectedIcon: '',
+      modifyDialogVisible: false
     }
   },
   methods: {
@@ -127,8 +136,13 @@ export default {
             }
         })
       },
-      dialogVisibleUpdate(result) {
-          this.dialogVisible = false;
+      iconSelected(iconName) {
+          this.selectedIcon = iconName;
+          this.modifyDialogVisible = true;
+      },
+      dialogClosed(result) {
+          this.createDialogVisible = false;
+          this.modifyDialogVisible = false;
           if (result.status === SUCCESSFUL) {
               this.loadIcons();
           } else if (result.status === FAILED) {
