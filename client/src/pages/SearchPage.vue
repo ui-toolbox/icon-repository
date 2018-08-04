@@ -38,7 +38,8 @@
             :dialogVisible="createDialogVisible"
             @finished="dialogClosed"/>
     <modify-icon-dialog
-            :iconName="selectedIcon"
+            v-if="selectedIcon"
+            :icon="selectedIcon"
             :dialogVisible="modifyDialogVisible"
             @finished="dialogClosed"/>
 
@@ -119,7 +120,7 @@ export default {
       icons: [],
       searchQuery: '',
       createDialogVisible: false,
-      selectedIcon: '',
+      selectedIcon: null,
       modifyDialogVisible: false
     }
   },
@@ -143,6 +144,7 @@ export default {
       dialogClosed(result) {
           this.createDialogVisible = false;
           this.modifyDialogVisible = false;
+          this.selectedIcon = null;
           if (result.status === SUCCESSFUL) {
               this.loadIcons();
           } else if (result.status === FAILED) {

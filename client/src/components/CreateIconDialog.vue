@@ -24,7 +24,7 @@
 import Vue from 'vue';
 import IconFileAttributes from '@/components/IconFileAttributes';
 import SelectFileToUpload from '@/components/SelectFileToUpload';
-import createIcon from '@/services/create-icon';
+import { createIcon } from '@/services/icon';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 
 export default {
