@@ -1,6 +1,7 @@
 <template>
     <el-table
         :data="iconfiles"
+        height="360"
         style="width: 100%">
         <el-table-column
             label="Image"

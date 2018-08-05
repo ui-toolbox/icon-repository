@@ -6,7 +6,7 @@
                 v-if="!isFileSelected"
                 :uploadFieldName="'iconFile'"
                 @change='changes => filesChange(changes)'/>
-        <icon-file-attributes
+        <create-icon-attributes
                 v-if="isFileSelected"
                 :formats='formats'
                 :sizes='sizes'
@@ -22,7 +22,7 @@
 
 <script>
 import Vue from 'vue';
-import IconFileAttributes from '@/components/IconFileAttributes';
+import CreateIconAttributes from '@/components/CreateIconAttributes';
 import SelectFileToUpload from '@/components/SelectFileToUpload';
 import { createIcon } from '@/services/icon';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
@@ -34,7 +34,7 @@ export default {
         "dialogVisible"
     ],
     components: {
-        'icon-file-attributes': IconFileAttributes,
+        'create-icon-attributes': CreateIconAttributes,
         'select-file-to-upload': SelectFileToUpload
     },
     computed: {
@@ -52,14 +52,6 @@ export default {
             inUpload: false
         };
     },
-    watch: { // "props" seem to be really "scope.props" in Vue:
-        formats: function() {
-            this.format = this.initialFormat();
-        },
-        sizes: function(newSizes) {
-            this.size = this.initialSize();
-        }
-    },
     methods: {
         resetData() {
             this.iconName = '';
@@ -74,26 +66,14 @@ export default {
         initialSize() {
             return Vue.util.extend({}, this.sizes)[0];
         },
-        onAttributeChange(newAttributes) {
-            this.iconName = newAttributes.iconName;
-            this.format = newAttributes.format;
-            this.size = newAttributes.size;
+        onAttributeChange(newAttrib) {
+            this.iconName = newAttrib.iconName || this.iconName;
+            this.format = newAttrib.format || this.format;
+            this.size = newAttrib.size || this.size;
         },
-        filesChange({fieldName, fileList}) {
-            // handle file changes
-            this.fileName = fileList[0].name;
-            this.iconName = this.fileName;
-
-            const formData = new FormData();
-
-            if (!fileList.length) return;
-
-            // append the files to FormData
-            Array
-            .from(Array(fileList.length).keys())
-            .map(x => {
-                formData.append(fieldName, fileList[x], fileList[x].name);
-            });
+        filesChange({iconfileName, formData}) {
+            this.fileName = iconfileName;
+            this.iconName = iconfileName;
             this.formData = formData;
         },
         cancel() {
@@ -106,7 +86,10 @@ export default {
 
             createIcon(this.formData)
             .then(
-                () => this.hideDialog(SUCCESSFUL),
+                () => {
+                    this.hideDialog(SUCCESSFUL);
+                    this.$showSuccessMessage("Icon added");
+                },
                 error => {
                     console.log("Upload failed", error.message);
                     this.hideDialog(FAILED, error);

@@ -1,7 +1,11 @@
 import getEndpointUrl from '@/services/url';
 import { throwError } from '@/services/errors';
 
-export default () => {
+let serverConfig;
+
+export const getConfig = () => JSON.parse(JSON.stringify(serverConfig));
+
+export const fetchConfig =  () => {
     return fetch(getEndpointUrl('/icons/config'), {
         method: 'GET',
         credentials: 'include',
@@ -12,5 +16,8 @@ export default () => {
         } else {
             return response.json();
         }
-    });
+    })
+    .then(
+        config => serverConfig = config
+    );
 }

@@ -34,6 +34,20 @@ export const deleteIcon = iconName => fetch(getEndpointUrl(`/icons/${iconName}`)
     }
 });
 
+export const addIconfile = (iconName, format, size, formData) => fetch(
+    getEndpointUrl(`/icons/${iconName}/formats/${format}/sizes/${size}`),
+    {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+    }
+)
+.then(response => {
+    if (response.status !== 201) {
+        return throwError('Failed to add icon-file', response);
+    }
+})
+
 export const deleteIconfile = iconfilePath => fetch(getEndpointUrl(iconfilePath), {
     method: 'DELETE',
     credentials: 'include'

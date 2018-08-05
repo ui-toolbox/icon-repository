@@ -2,17 +2,29 @@
     <el-dialog :title="dialogTitle" :visible="dialogVisible" :before-close="close" width="30%">
         <el-row>
             <el-col>
-                <el-button icon="el-icon-delete" type="danger" @click="deleteIcon">Delete icon</el-button>
+                <el-collapse v-model="activeOperation" accordion>
+                    <el-collapse-item title="Add icon-file" name="addfile">
+                            <add-iconfile
+                                :formats="formats"
+                                :sizes="sizes"
+                                :iconName="icon.name"
+                                @iconfileAdded="iconfileAdded"
+                                />
+                    </el-collapse-item>
+                    <el-collapse-item title="List/remove icon-file(s)" name="listfiles">
+                            <iconfile-list
+                                :iconfiles="iconfileList"
+                                @removeIconfile="removeIconfile"/>
+                            <span slot="footer" class="dialog-footer">
+                                <el-button type="primary" @click="close">Close</el-button>
+                            </span>
+                    </el-collapse-item>
+                </el-collapse>
             </el-col>
         </el-row>
-        <el-row>
+        <el-row id="delete-icon-container">
             <el-col>
-                <iconfile-list
-                    :iconfiles="iconfileList"
-                    @removeIconfile="removeIconfile"/>
-                <span slot="footer" class="dialog-footer">
-                    <el-button type="primary" @click="close">Close</el-button>
-                </span>
+                <el-button icon="el-icon-delete" type="danger" @click="deleteIcon">Delete icon</el-button>
             </el-col>
         </el-row>
     </el-dialog>
@@ -22,16 +34,20 @@
 import { List } from 'immutable';
 import { describeIcon, deleteIcon, deleteIconfile } from '@/services/icon';
 import IconfileList from '@/components/IconfileList'
+import AddIconfile from '@/components/AddIconfile';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 import getEndpointUrl from '@/services/url';
 
 export default {
     props: [
         "icon",
+        "formats",
+        "sizes",
         "dialogVisible"
     ],
     components: {
-        'iconfile-list': IconfileList
+        'iconfile-list': IconfileList,
+        'add-iconfile': AddIconfile
     },
     computed: {
         dialogTitle() {
@@ -43,7 +59,8 @@ export default {
     },
     data() {
         return {
-            iconInfo: this.icon
+            iconInfo: this.icon,
+            activeOperation: "listfiles"
         }
     },
     methods: {
@@ -56,6 +73,17 @@ export default {
                     return { format, size, path, url };
                 }))
             .toArray();
+        },
+        refreshIconfileList() {
+            return describeIcon(this.iconInfo.name)
+                    .then(info => this.iconInfo = info)
+
+        },
+        iconfileAdded() {
+            this.refreshIconfileList()
+            .then(
+                () => this.activeOperation = 'listfiles'
+            );
         },
         isLastIconfile() {
             return this.createIconfileList(this.iconInfo).length === 1;
@@ -79,8 +107,7 @@ export default {
                     if (this.isLastIconfile()) {
                         this.hideDialog();
                     } else {
-                        describeIcon(this.iconInfo.name)
-                            .then(info => this.iconInfo = info)
+                        this.refreshIconfileList()
                     }
                 }
             )
@@ -116,9 +143,12 @@ export default {
 
 <style lang="postcss" scoped>
     .el-row {
-        margin-bottom: 40px;
+        margin-bottom: 20px;
         &:last-child {
             margin-bottom: 0;
         }
+    }
+    #delete-icon-container {
+        margin-top: 40px;
     }
 </style>
