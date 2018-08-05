@@ -2,7 +2,7 @@ import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult } from "pg";
 
-import { IconDescriptor, IconFile, IconFileDescriptor, IconAttributes } from "../icon";
+import { IconDescriptor, IconFile, IconFileDescriptor, IconAttributes, IconNotFound } from "../icon";
 import logger from "../utils/logger";
 
 const ctxLogger = logger.createChild("db");
@@ -226,7 +226,13 @@ export const getIconFile: (pool: Pool) => GetIconFile = pool => (iconName, forma
                                 "icon_size = $3 AND " +
                                 "icon.name = $1";
     return query(pool, getIconFileSQL, [iconName, format, iconSize])
-        .map(result => result.rows[0].content);
+        .map(result => {
+            if (result.rows[0]) {
+                return result.rows[0].content;
+            } else {
+                throw new IconNotFound(iconName);
+            }
+        });
 };
 
 type AddIconFile = (

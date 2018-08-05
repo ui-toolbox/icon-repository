@@ -34,3 +34,10 @@ export class IconDescriptor implements IconAttributes {
         return new IconDescriptor(this.name, this.iconFiles.remove(iconFile));
     }
 }
+
+export class IconNotFound {
+    public readonly message: string;
+    constructor(m: string) {
+        this.message = m;
+    }
+}

@@ -24,8 +24,7 @@ Vue.prototype.$showErrorMessage = error => Vue.prototype.$message({
 });
 
 Vue.prototype.$showSuccessMessage = message => Vue.prototype.$message({
-    duration: 5000,
-    showClose: true,
+    duration: 3000,
     message,
     type: 'success'
 });

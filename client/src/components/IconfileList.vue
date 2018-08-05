@@ -4,7 +4,7 @@
         height="360"
         style="width: 100%">
         <el-table-column
-            label="Image"
+            label=""
             width="230">
             <template slot-scope="scope">
                 <img :src="iconfiles[scope.$index].url"/>
@@ -20,7 +20,7 @@
             width="80"/>
         <el-table-column
             fixed="right"
-            label="Operations"
+            label=""
             width="120">
             <template slot-scope="scope">
                 <el-button

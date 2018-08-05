@@ -24,6 +24,20 @@ export const createIcon = formData => fetch(getEndpointUrl("/icons"), {
     }
 });
 
+export const renameIcon = (oldName, newName) => fetch(getEndpointUrl(`/icons/${oldName}`), {
+    method: 'PUT',
+    headers: {
+        "Content-Type": "application/json; charset=utf-8"
+    },
+    credentials: 'include',
+    body: JSON.stringify({name: newName})
+})
+.then(response => {
+    if (response.status !== 204) {
+        return throwError('Failed to rename icon', response);
+    }
+});
+
 export const deleteIcon = iconName => fetch(getEndpointUrl(`/icons/${iconName}`), {
     method: 'DELETE',
     credentials: 'include'
