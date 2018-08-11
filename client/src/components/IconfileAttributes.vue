@@ -1,15 +1,6 @@
 <template>
     <div>
         <el-row class="attribute-label">
-        <el-col :span="5"><span>Icon name: </span></el-col>
-        </el-row>
-        <el-row>
-        <el-col class="text-value" :span="24">
-            <el-input placeholder="Please specify the icon name" v-model="iconName"/>
-        </el-col>
-        </el-row>
-
-        <el-row class="attribute-label">
         <el-col :span="5"><span>File name: </span></el-col>
         </el-row>
         <el-row>
@@ -48,17 +39,12 @@
 
 <script>
 export default {
-    name: 'IconFileAttributes',
+    name: 'IconfileAttributes',
     props: [
         "formats",
         "sizes",
         "attributes"
     ],
-    watch: {
-        iconName(newValue) {
-            this.onAttributeChange({iconName: newValue});
-        }
-    },
     computed: {
         formatOptions() {
             return this.formats.map(f => ({value: f, label: f}));
@@ -71,13 +57,22 @@ export default {
         return {
             iconName: this.attributes.fileName,
             fileName: this.attributes.fileName,
-            format: this.attributes.format,
+            format: this.initialFormat(),
             size: this.attributes.size
         };
     },
     methods: {
         onAttributeChange(delta) {
-            this.$emit('change', Object.assign(this.$data, delta))  ;
+            this.$emit('change', delta);
+        },
+        initialFormat() {
+            const filenameExtension = this.attributes.fileName.split('.').pop();
+            if (this.formats.includes(filenameExtension)) {
+                this.onAttributeChange({format: filenameExtension});
+                return filenameExtension;
+            } else {
+                return this.attributes.format;
+            }
         }
     }
 }

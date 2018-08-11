@@ -21,7 +21,7 @@ export default {
     },
     methods: {
         iconSelected() {
-            this.$emit('iconSelected', this.icon.name);
+            this.$emit('iconSelected', this.icon);
         }
     }
 }

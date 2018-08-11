@@ -9,6 +9,8 @@ import ElementUI from 'element-ui';
 import locale from 'element-ui/lib/locale/lang/en';
 import 'element-ui/lib/theme-chalk/index.css';
 
+import { fetchConfig } from '@/services/server-config';
+
 Vue.config.productionTip = false
 Vue.use(VueResource)
 
@@ -21,10 +23,19 @@ Vue.prototype.$showErrorMessage = error => Vue.prototype.$message({
     type: 'error'
 });
 
-/* eslint-disable no-new */
-new Vue({
-  el: '#app',
-  router,
-  components: { App },
-  template: '<App/>'
-})
+Vue.prototype.$showSuccessMessage = message => Vue.prototype.$message({
+    duration: 5000,
+    showClose: true,
+    message,
+    type: 'success'
+});
+
+fetchConfig()
+.then(
+    () => new Vue({
+        el: '#app',
+        router,
+        components: { App },
+        template: '<App/>'
+      })
+)

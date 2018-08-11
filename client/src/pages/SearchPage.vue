@@ -38,7 +38,10 @@
             :dialogVisible="createDialogVisible"
             @finished="dialogClosed"/>
     <modify-icon-dialog
-            :iconName="selectedIcon"
+            v-if="selectedIcon"
+            :formats="allowedIconFileFormats"
+            :sizes="allowedIconSizes"
+            :icon="selectedIcon"
             :dialogVisible="modifyDialogVisible"
             @finished="dialogClosed"/>
 
@@ -50,11 +53,11 @@
 </template>
 
 <script>
+import { getConfig } from '@/services/server-config';
 import * as userService from '@/services/user';
 import getEndpointUrl from '@/services/url';
 import fetchUserInfo from '@/services/fetch-user-info';
 import UserSettings from '@/components/UserSettings';
-import fetchIconRepoConfig from '@/services/fetch-iconrepo-config';
 import IconCell from '@/components/IconCell';
 import CreateIconDialog from '@/components/CreateIconDialog';
 import ModifyIconDialog from '@/components/ModifyIconDialog';
@@ -72,10 +75,10 @@ export default {
   },
   computed: {
     allowedIconFileFormats() {
-        return this.iconRepoConfig.allowedFileFormats
+        return getConfig().allowedFileFormats
     },
     allowedIconSizes() {
-        return this.iconRepoConfig.allowedIconSizes;
+        return getConfig().allowedIconSizes;
     },
     hasAddIconPrivilege: function() {
       return userService.hasAddIconPrivilege(this.user);
@@ -103,13 +106,7 @@ export default {
         userinfo => this.user = userinfo,
         error => this.$showErrorMessage(error)
     )
-    .then(() => {
-      fetchIconRepoConfig()
-      .then(config => {
-        this.iconRepoConfig = config
-        this.loadIcons();
-      });
-    });
+    .then(() => this.loadIcons())
   },
   data () {
     return {
@@ -119,7 +116,7 @@ export default {
       icons: [],
       searchQuery: '',
       createDialogVisible: false,
-      selectedIcon: '',
+      selectedIcon: null,
       modifyDialogVisible: false
     }
   },
@@ -143,6 +140,7 @@ export default {
       dialogClosed(result) {
           this.createDialogVisible = false;
           this.modifyDialogVisible = false;
+          this.selectedIcon = null;
           if (result.status === SUCCESSFUL) {
               this.loadIcons();
           } else if (result.status === FAILED) {
