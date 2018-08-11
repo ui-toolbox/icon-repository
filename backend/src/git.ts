@@ -254,7 +254,9 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
                 () => renameIconFiles(localIconRepositoryLocation, oldIcon, newIcon),
                 createIconFileJobTextProviders(
                     `update icon files for icon "${oldIcon.name}"`,
-                    defaultCommitMsgProvider(`icon file(s) for icon ${oldIcon.name} updated to ${newIcon}`)
+                    defaultCommitMsgProvider(
+                        `icon file(s) for icon ${oldIcon.name} updated to ${JSON.stringify(newIcon)}`
+                    )
                 ),
                 modifiedBy,
                 gitCommandExecutor

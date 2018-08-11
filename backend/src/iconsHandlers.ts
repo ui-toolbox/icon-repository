@@ -2,7 +2,7 @@ import * as util from "util";
 import { Request, Response } from "express";
 import logger from "./utils/logger";
 
-import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes } from "./icon";
+import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes, IconNotFound } from "./icon";
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IconHanlders {
@@ -131,18 +131,19 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
             const errmsg = "Missing new icon data";
             ctxLogger.error(errmsg);
             res.status(400).send({ error: errmsg }).end();
+        } else {
+            iconService.updateIcon(oldIconName, newIcon, getAuthentication(req.session).username)
+            .subscribe(
+                result => {
+                    ctxLogger.info("Icon #%d updated: %o", result, newIcon);
+                    res.status(204).send({iconId: result}).end();
+                },
+                error => {
+                    ctxLogger.error("An error occurred while updating icon %o: %o", oldIconName, error);
+                    res.status(500).send({error: error.message});
+                }
+            );
         }
-        iconService.updateIcon(oldIconName, newIcon, getAuthentication(req.session).username)
-        .subscribe(
-            result => {
-                ctxLogger.info("Icon #%d updated: %o", result, newIcon);
-                res.status(204).send({iconId: result}).end();
-            },
-            error => {
-                ctxLogger.error("An error occurred while updating icon %o: %o", oldIconName, error);
-                res.status(500).send({error: error.message});
-            }
-        );
     },
 
     deleteIcon: (req: Request, res: Response) => {
@@ -173,11 +174,15 @@ const iconHandlersProvider: (iconService: IconService) => IconHanlders
                 res.type(req.params.format).send(result);
             },
             error => {
-                const logMessage = util.format(
-                    "Failed to retrieve icon file for %s, %s, %s: %o",
-                    req.params.name, req.params.format, req.params.size, error);
-                ctxLogger.error(logMessage);
-                res.sendStatus(500).send({error: error.message});
+                if (error instanceof IconNotFound) {
+                    res.status(404).end();
+                } else {
+                    const logMessage = util.format(
+                        "Failed to retrieve icon file for %s, %s, %s: %o",
+                        req.params.name, req.params.format, req.params.size, error);
+                    ctxLogger.error(logMessage);
+                    res.status(500).send({error: error.message});
+                }
             }
         );
     },
