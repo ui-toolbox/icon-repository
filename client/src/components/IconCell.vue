@@ -1,7 +1,7 @@
 <template>
   <div class="icon-cell animated fadeIn zoomIn">
     <div class="icon-preview">
-      <img v-bind:src="firstPath" height="30">
+      <img v-bind:src="firstPath" height="30" @click="iconSelected">
     </div>
     <div class="icon-name">{{icon.name}}</div>
   </div>
@@ -9,17 +9,21 @@
 
 <script>
 import getEndpointUrl from '@/services/url';
-
 export default {
-  name: 'IconCell',
-  props: ['icon'],
-  computed: {
-    firstPath() {
-        // If the icon has SVG format, prefer that
-        const format = this.icon.paths.svg ? "svg" : Object.keys(this.icon.paths)[0];
-        return getEndpointUrl(this.icon.paths[format][Object.keys(this.icon.paths[format])[0]]);
+    name: 'IconCell',
+    props: ['icon'],
+    computed: {
+        firstPath() {
+            // If the icon has SVG format, prefer that
+            const format = this.icon.paths.svg ? "svg" : Object.keys(this.icon.paths)[0];
+            return getEndpointUrl(this.icon.paths[format][Object.keys(this.icon.paths[format])[0]]);
+        }
+    },
+    methods: {
+        iconSelected() {
+            this.$emit('iconSelected', this.icon.name);
+        }
     }
-  }
 }
 </script>
 
