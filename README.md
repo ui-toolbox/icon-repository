@@ -48,13 +48,6 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
     `npm run dev`
 
-1. Start the frontend
+1. Start the frontend in the `client` subdirectory by executing:
 
-    1. Replace your company npm configuration with a blank one:
-
-        `test ! -f ~/.npmrc-saved && mv ~/.npmrc ~/.npmrc-saved && touch ~/.npmrc`
-
-    1. Start the fronted in the `client` subdirectory by
-       executing:
-
-        `npm install && npm run dev`
+    `npm install && npm run dev`

@@ -1,14 +1,16 @@
-const fetchIconRepositorConfig = (baseUrl) => {
-    return fetch(`${baseUrl}/icons/config`, {
+import getEndpointUrl from '@/services/url';
+import { throwError } from '@/services/errors';
+
+export default () => {
+    return fetch(getEndpointUrl('/icons/config'), {
         method: 'GET',
         credentials: 'include',
     })
     .then(response => {
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error('Failed to get the icon repository configuration');
+        if (response.status !== 200) {
+            return throwError('Failed to get the icon repository configuration', response);
+        } else {
+            return response.json();
         }
-        return response.json();
     });
 }
-
-module.exports = fetchIconRepositorConfig;
