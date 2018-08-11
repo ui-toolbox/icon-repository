@@ -122,7 +122,7 @@ const commit: (messageBase: string, userName: string) => string[]
 = (messageBase, userName) => [
     commitCommand(),
     "-m", `${messageBase} by ${userName}`,
-    `--author=CXN Icon Repository Server <${userName}>`
+    `--author=${userName}@IconRepoServer <${userName}>`
 ];
 
 const rollback: () => string[][] = () => [
@@ -201,11 +201,13 @@ export interface GitAccessFunctions {
 
 type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunctions;
 
+const addPathInRepo: (fiText: string, pathInRepo: string) => string
+= (fileListText, pathInRepo) => fileListText + (fileListText.length > 0 ? "\n" : "") + pathInRepo;
+const fileListAsText = (fileList: List<string>) =>
+    fileList.reduce((fileListText, filePath) => addPathInRepo(fileListText, filePath), "");
+
 const defaultCommitMsgProvider = (messageBase: string) => (fileList: List<string>) => {
-    const addPathInRepo: (fiText: string, pathInRepo: string) => string
-        = (fileListText, pathInRepo) => fileListText + (fileListText.length > 0 ? "\n" : "") + pathInRepo;
-    const fileListAsText = fileList.reduce((fileListText, filePath) => addPathInRepo(fileListText, filePath), "");
-    return fileListAsText + " " + messageBase;
+    return fileListAsText(fileList) + " " + messageBase;
 };
 
 const createIconFileJobTextProviders: (
@@ -251,8 +253,10 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
             createIconFileJob(
                 () => renameIconFiles(localIconRepositoryLocation, oldIcon, newIcon),
                 createIconFileJobTextProviders(
-                    `update icon files for icon ${oldIcon.name}`,
-                    defaultCommitMsgProvider(`icon file(s) for icon ${oldIcon.name} updated to ${newIcon}`)
+                    `update icon files for icon "${oldIcon.name}"`,
+                    defaultCommitMsgProvider(
+                        `icon file(s) for icon ${oldIcon.name} updated to ${JSON.stringify(newIcon)}`
+                    )
                 ),
                 modifiedBy,
                 gitCommandExecutor
@@ -265,8 +269,9 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
                     .flatMap(() => iconFileDescSet.toArray())
                     .flatMap(iconFileDesc => deleteIconFile(localIconRepositoryLocation, iconName, iconFileDesc)),
                 createIconFileJobTextProviders(
-                    "delete all files for icon ${iconName}",
-                    defaultCommitMsgProvider(`all file(s) for icon ${iconName} deleted`)
+                    `delete all files for icon "${iconName}"`,
+                    (fileList: List<string>) =>
+                            `all file(s) for icon "${iconName}" deleted:\n\n${fileListAsText(fileList)}`
                 ),
                 modifiedBy,
                 gitCommandExecutor

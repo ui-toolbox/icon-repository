@@ -1,48 +1,60 @@
 ## Configuration for local dev testing with OIDC in the "/icons" context
 
+(This description assumes Mac OS. Differences are marked for Ubuntu 18.04 where appropriate.)
+
 ### 1. Configure dnsmasq
-`/usr/local/etc/dnsmasq.conf`:
+`/usr/local/etc/dnsmasq.conf` (Ubuntu 18.04: `/etc/NetworkManager/dnsmasq.d/test.conf`):
 ```
 address=/.test/127.0.0.1
 ```
 
 ### 2. Configure Apache
-`/etc/apache2/extra/httpd-vhosts.conf`:
-```
-<VirtualHost *:80>
-    ServerAdmin webmaster@dummy-host.example.com
-    DocumentRoot "/usr/docs/dummy-host.example.com"
-    ServerName dev.test
-    ServerAlias www.dev.test
-    ErrorLog "/private/var/log/apache2/dev.test-error_log"
-    CustomLog "/private/var/log/apache2/dev.test-access_log" common
+1. `/etc/apache2/extra/httpd-vhosts.conf` (Ubuntu 18.04: `/etc/apache2/sites-available/icon-repo-test.conf`)
+    ```
+    <VirtualHost *:80>
+        ServerAdmin webmaster@dummy-host.example.com
+        DocumentRoot "/usr/docs/dummy-host.example.com"
+        ServerName dev.test
+        ServerAlias www.dev.test
+        ErrorLog "/private/var/log/apache2/dev.test-error_log"
+        CustomLog "/private/var/log/apache2/dev.test-access_log" common
 
-#    ProxyRequests Off
-#    ProxyHTMLEnable On
-    <Location /icons>
-        ProxyPass        http://localhost:49160/icons
-        ProxyPassReverse http://localhost:49160/icons
-        RequestHeader set X-Forwarded-Proto "http"
-#        ProxyHTMLURLMap ^/(.*)$ /icons/$1 R
-    </Location>
+    #    ProxyRequests Off
+    #    ProxyHTMLEnable On
+        <Location /icons>
+            ProxyPass        http://localhost:49160/icons
+            ProxyPassReverse http://localhost:49160/icons
+            RequestHeader set X-Forwarded-Proto "http"
+    #        ProxyHTMLURLMap ^/(.*)$ /icons/$1 R
+        </Location>
 
-</VirtualHost>
+    </VirtualHost>
 
-<VirtualHost *:8080>
-    ServerAdmin webmaster@dummy-host.example.com
-    DocumentRoot "/usr/docs/dummy-host.example.com"
-    ServerName id-server.test
-    ServerAlias www.id-server.test
-    ErrorLog "/private/var/log/apache2/id-server.test-error_log"
-    CustomLog "/private/var/log/apache2/id-server.test-access_log" common
+    <VirtualHost *:8080>
+        ServerAdmin webmaster@dummy-host.example.com
+        DocumentRoot "/usr/docs/dummy-host.example.com"
+        ServerName id-server.test
+        ServerAlias www.id-server.test
+        ErrorLog "/private/var/log/apache2/id-server.test-error_log"
+        CustomLog "/private/var/log/apache2/id-server.test-access_log" common
 
-    <Location />
-        ProxyPass        http://localhost:9001/
-        ProxyPassReverse http://localhost:9001/
-        RequestHeader set X-Forwarded-Proto "http"
-    </Location>
-</VirtualHost>
-```
+        <Location />
+            ProxyPass        http://localhost:9001/
+            ProxyPassReverse http://localhost:9001/
+            RequestHeader set X-Forwarded-Proto "http"
+        </Location>
+    </VirtualHost>
+    ```
+2. Add `Listen 8080` (in `/etc/apache2/ports.conf` on Ubuntu 18.04)
+
+
+Notes for Ubuntu 18.04:
+- Replace `/private/var/log/apache2/` with `${APACHE_LOG_DIR}`
+- `$ sudo a2enmod proxy`
+- `$ sudo a2enmod proxy_http`
+- `$ sudo a2enmod headers`
+- `$ sudo a2ensite icon-repo-test`
+- `$ sudo systemctl reload apache2`
 
 ### 3. Start the test Identity Provider (IP)
 1. Download the code from https://github.com/pdkovacs/oauth2-in-action
@@ -51,7 +63,7 @@ address=/.test/127.0.0.1
 npm run dev:authrzn
 ```
 
-### 5. Start the application in "oidc mode"
+### 5. Start the icon-repository application to use "oidc" authentication
 ```
 npm run dev:oidc
 ```

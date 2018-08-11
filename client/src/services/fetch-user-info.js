@@ -1,23 +1,22 @@
 import { List } from 'immutable';
-import * as user from '@/services/user';
+import getEndpointUrl from '@/services/url';
+import { throwError } from '@/services/errors';
 
-export default userInfoUrl => fetch(userInfoUrl, {
+export default () => fetch(getEndpointUrl('/user'), {
     method: 'GET',
     credentials: 'include'
 })
 .then(response => {
-    if (response.status < 200 || response.status >= 300) {
-        throw new Error('Failed to get user info');
+    if (response.status !== 200) {
+        return throwError('Failed to get user info', response);
+    } else {
+        return response.json();
     }
-    return response.json();
 })
 .then(
     json => {
         json.privileges = List(json.privileges);
         json.authenticated = true;
         return json;
-    },
-    error => {
-        throw new Error('Failed to get user info: ', error);
     }
 );

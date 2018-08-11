@@ -17,15 +17,14 @@
               <input type="text" class="search-input" v-model="searchQuery">
             </div>
           </div>
-          <user-settings :user="user" :logoutUrl="logoutUrl"/>
+          <user-settings :user="user"/>
         </div>
       </div>
     </header>
 
     <div class="action-bar">
       <div class="upload" v-if="hasAddIconPrivilege">
-        <img class="add-new" src="@/assets/Plus.svg" height="34">
-        <span>ADD NEW</span>
+        <el-button type="primary" icon="el-icon-plus" @click="createDialogVisible = true">ADD NEW</el-button>
       </div>
       <div class="switch-view">
         <img class="grid-view" src="@/assets/grid-view.svg" height="28">
@@ -33,27 +32,54 @@
       </div>
     </div>
 
+    <create-icon-dialog
+            :formats="allowedIconFileFormats"
+            :sizes="allowedIconSizes"
+            :dialogVisible="createDialogVisible"
+            @finished="dialogClosed"/>
+    <modify-icon-dialog
+            v-if="selectedIcon"
+            :formats="allowedIconFileFormats"
+            :sizes="allowedIconSizes"
+            :icon="selectedIcon"
+            :dialogVisible="modifyDialogVisible"
+            @finished="dialogClosed"/>
+
     <section class="inner-wrapper icon-grid">
-      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path" class="grid-cell"></icon-cell>
+      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path" @iconSelected="iconSelected" class="grid-cell"></icon-cell>
     </section>
+
   </div>
 </template>
 
 <script>
+import { getConfig } from '@/services/server-config';
 import * as userService from '@/services/user';
+import getEndpointUrl from '@/services/url';
 import fetchUserInfo from '@/services/fetch-user-info';
 import UserSettings from '@/components/UserSettings';
-import fetchIconRepoConfig from '@/services/fetch-iconrepo-config';
 import IconCell from '@/components/IconCell';
+import CreateIconDialog from '@/components/CreateIconDialog';
+import ModifyIconDialog from '@/components/ModifyIconDialog';
+import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
+
 import testIconData from '@/resources/test-icon-data';
 
 export default {
   name: 'SearchPage',
   components: {
     'user-settings': UserSettings,
-    'icon-cell': IconCell
+    'icon-cell': IconCell,
+    'create-icon-dialog': CreateIconDialog,
+    'modify-icon-dialog': ModifyIconDialog
   },
   computed: {
+    allowedIconFileFormats() {
+        return getConfig().allowedFileFormats
+    },
+    allowedIconSizes() {
+        return getConfig().allowedIconSizes;
+    },
     hasAddIconPrivilege: function() {
       return userService.hasAddIconPrivilege(this.user);
     },
@@ -70,40 +96,57 @@ export default {
     }
   },
   created () {
-    this.$http.get(this.$config.baseUrl + '/branding')
+    this.$http.get(getEndpointUrl('/branding'))
     .then(response => {
         this.branding = response.body
     });
 
-    const iconListUrl = this.$config.baseUrl + '/icons';
-    fetchUserInfo(this.userInfoUrl)
-    .then(userinfo => this.user = userinfo)
-    .then(() => {
-      fetchIconRepoConfig(this.$config.baseUrl)
-      .then(config => {
-        this.iconRepoConfig = config
-        this.$http.get(iconListUrl).then(function(response) {
-          this.icons = response.body;
-        }, response => {
-          if (process.env.NODE_ENV === 'development') {
-            this.icons = testIconData;
-          } else {
-            throw new Error(response);
-          }
-        })
-      });
-    });
+    fetchUserInfo()
+    .then(
+        userinfo => this.user = userinfo,
+        error => this.$showErrorMessage(error)
+    )
+    .then(() => this.loadIcons())
   },
   data () {
     return {
       branding: {},
-      userInfoUrl: this.$config.baseUrl + '/user',
       user: userService.initialUserInfo(),
-      logoutUrl: this.$config.baseUrl + '/logout',
-      searchQuery: '',
-      icons: [],
       iconRepoConfig: {},
+      icons: [],
+      searchQuery: '',
+      createDialogVisible: false,
+      selectedIcon: null,
+      modifyDialogVisible: false
     }
+  },
+  methods: {
+      loadIcons() {
+        const iconListUrl = getEndpointUrl('/icons');
+        this.$http.get(iconListUrl).then(function(response) {
+            this.icons = response.body;
+        }, response => {
+            if (process.env.NODE_ENV === 'development') {
+                this.icons = testIconData;
+            } else {
+                throw new Error(response);
+            }
+        })
+      },
+      iconSelected(iconName) {
+          this.selectedIcon = iconName;
+          this.modifyDialogVisible = true;
+      },
+      dialogClosed(result) {
+          this.createDialogVisible = false;
+          this.modifyDialogVisible = false;
+          this.selectedIcon = null;
+          if (result.status === SUCCESSFUL) {
+              this.loadIcons();
+          } else if (result.status === FAILED) {
+              this.$showErrorMessage(result.error);
+          }
+      }
   }
 }
 </script>
