@@ -28,17 +28,9 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
             --pg-db-name iconrepo \
             --pg-log-statements
         ```
-1. Install the backend npm dependencies:
+1. Install the backend npm dependencies. In the `backend` subdirectory of the local code repository:
 
-    1. In case you have a private (e.g. your company's) `npm` configuration in place, replace it with a blank one:
-
-        `test ! -f ~/.npmrc-saved && mv ~/.npmrc ~/.npmrc-saved && touch ~/.npmrc`
-
-        (The above command saves the original config as `~/.npmrc-saved`)
-
-    1. Go to the `backend` subdirectory of the local code repository and install/update the `npm` packages:
-
-        `cd backend && npm install && npm upgrade`
+    `npm install`
 
 1. Import the demo data (optional, but recommended for frontend development)
 
