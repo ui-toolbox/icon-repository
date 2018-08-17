@@ -38,9 +38,14 @@
             :dialogVisible="createDialogVisible"
             @finished="dialogClosed"/>
     <modify-icon-dialog
-            v-if="selectedIcon"
+            v-if="selectedIcon && hasUpdateIconPrivilege"
             :formats="allowedIconFileFormats"
             :sizes="allowedIconSizes"
+            :icon="selectedIcon"
+            :dialogVisible="modifyDialogVisible"
+            @finished="dialogClosed"/>
+    <icon-details-dialog
+            v-if="selectedIcon && !hasUpdateIconPrivilege"
             :icon="selectedIcon"
             :dialogVisible="modifyDialogVisible"
             @finished="dialogClosed"/>
@@ -56,11 +61,11 @@
 import { getConfig } from '@/services/server-config';
 import * as userService from '@/services/user';
 import getEndpointUrl from '@/services/url';
-import fetchUserInfo from '@/services/fetch-user-info';
 import UserSettings from '@/components/UserSettings';
 import IconCell from '@/components/IconCell';
 import CreateIconDialog from '@/components/CreateIconDialog';
 import ModifyIconDialog from '@/components/ModifyIconDialog';
+import IconDetailsDialog from '@/components/IconDetailsDialog';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 
 import testIconData from '@/resources/test-icon-data';
@@ -70,6 +75,7 @@ export default {
   components: {
     'user-settings': UserSettings,
     'icon-cell': IconCell,
+    'icon-details-dialog': IconDetailsDialog,
     'create-icon-dialog': CreateIconDialog,
     'modify-icon-dialog': ModifyIconDialog
   },
@@ -80,8 +86,11 @@ export default {
     allowedIconSizes() {
         return getConfig().allowedIconSizes;
     },
-    hasAddIconPrivilege: function() {
-      return userService.hasAddIconPrivilege(this.user);
+    hasAddIconPrivilege() {
+        return userService.hasAddIconPrivilege(this.user);
+    },
+    hasUpdateIconPrivilege() {
+        return userService.hasUpdateIconPrivilege(this.user);
     },
     filteredIcons: function () {
       var self = this;
@@ -101,7 +110,7 @@ export default {
         this.branding = response.body
     });
 
-    fetchUserInfo()
+    userService.fetchUserInfo()
     .then(
         userinfo => this.user = userinfo,
         error => this.$showErrorMessage(error)

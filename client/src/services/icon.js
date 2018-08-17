@@ -1,3 +1,4 @@
+import { List } from 'immutable';
 import getEndpointUrl from '@/services/url';
 import { throwError } from '@/services/errors';
 
@@ -71,3 +72,13 @@ export const deleteIconfile = iconfilePath => fetch(getEndpointUrl(iconfilePath)
         return throwError('Failed to delete icon file', response);
     }
 });
+
+export const createIconfileList = iconPaths =>
+    List(Object.keys(iconPaths))
+    .flatMap(format => Object.keys(iconPaths[format])
+        .map(size => {
+            const path = iconPaths[format][size];
+            const url = getEndpointUrl(path);
+            return { format, size, path, url };
+        }))
+    .toArray();
