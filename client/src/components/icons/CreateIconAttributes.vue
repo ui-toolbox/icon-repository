@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import IconfileAttributes from '@/components/IconfileAttributes';
+import IconfileAttributes from '@/components/icons/IconfileAttributes';
 
 export default {
     components: {

@@ -27,8 +27,8 @@
 
 <script>
 import Vue from 'vue';
-import IconfileAttributes from '@/components/IconfileAttributes';
-import SelectFileToUpload from '@/components/SelectFileToUpload';
+import IconfileAttributes from '@/components/icons/IconfileAttributes';
+import SelectFileToUpload from '@/components/icons/SelectFileToUpload';
 import { addIconfile } from '@/services/icon';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 

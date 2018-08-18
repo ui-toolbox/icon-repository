@@ -41,8 +41,8 @@
 <script>
 import { List } from 'immutable';
 import { describeIcon, renameIcon, deleteIcon, deleteIconfile, createIconfileList } from '@/services/icon';
-import IconfileList from '@/components/IconfileList'
-import AddIconfile from '@/components/AddIconfile';
+import IconfileList from '@/components/icons/IconfileList'
+import AddIconfile from '@/components/icons/AddIconfile';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 import getEndpointUrl from '@/services/url';
 
