@@ -12,7 +12,8 @@ clean_dist() {
 dist_backend() {
     cd "${repo_root}/backend"
     mkdir -p "$dist_dir/backend/"
-    npm run build:backend && \
+    npm install && \
+        npm run build:backend && \
         cp -a package*.json "$dist_dir/backend/" && \
         cp -a build/src/* "$dist_dir/backend/"
     cd -
@@ -21,7 +22,8 @@ dist_backend() {
 dist_frontend() {
     cd "${repo_root}/client"
     mkdir -p "$dist_dir/frontend/" 
-    rm -rf dist && \
+    npm install && \
+        rm -rf dist && \
         npm run build && \
         cp -a "${repo_root}"/client/dist/* "$dist_dir/frontend/"
     cd -
