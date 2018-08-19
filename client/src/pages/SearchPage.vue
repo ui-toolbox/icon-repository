@@ -3,17 +3,15 @@
     <header class="top-header">
       <div class="inner-wrapper">
         <div class="branding">
-          <div class="app-title">
-            <span>Icons</span>
-          </div>
-          <div class="app-description">
-            <span>{{branding.appDescription}}</span>
-          </div>
+            <app-settings class="app-title"/>
+            <div class="app-description">
+                <span>{{branding.appDescription}}</span>
+            </div>
         </div>
         <div class="right-control-group">
           <div class="search">
             <div class="search-input-wrapper">
-              <img class="search-icon" src="@/assets/Search.svg" height="36">
+              <i class="material-icons md-36 search-icon">search</i>
               <input type="text" class="search-input" v-model="searchQuery">
             </div>
           </div>
@@ -23,12 +21,8 @@
     </header>
 
     <div class="action-bar">
-      <div class="upload" v-if="hasAddIconPrivilege">
+      <div class="add-icon" v-if="hasAddIconPrivilege">
         <el-button type="primary" icon="el-icon-plus" @click="createDialogVisible = true">ADD NEW</el-button>
-      </div>
-      <div class="switch-view">
-        <img class="grid-view" src="@/assets/grid-view.svg" height="28">
-        <img class="list-view" src="@/assets/list-view.svg" height="34">
       </div>
     </div>
 
@@ -58,14 +52,15 @@
 </template>
 
 <script>
-import { getConfig } from '@/services/server-config';
+import { getAppInfo, getConfig } from '@/services/config';
 import * as userService from '@/services/user';
 import getEndpointUrl from '@/services/url';
+import AppSettings from '@/components/AppSettings';
 import UserSettings from '@/components/UserSettings';
-import IconCell from '@/components/IconCell';
-import CreateIconDialog from '@/components/CreateIconDialog';
-import ModifyIconDialog from '@/components/ModifyIconDialog';
-import IconDetailsDialog from '@/components/IconDetailsDialog';
+import IconCell from '@/components/icons/IconCell';
+import CreateIconDialog from '@/components/icons/CreateIconDialog';
+import ModifyIconDialog from '@/components/icons/ModifyIconDialog';
+import IconDetailsDialog from '@/components/icons/IconDetailsDialog';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 
 import testIconData from '@/resources/test-icon-data';
@@ -73,6 +68,7 @@ import testIconData from '@/resources/test-icon-data';
 export default {
   name: 'SearchPage',
   components: {
+    'app-settings': AppSettings,
     'user-settings': UserSettings,
     'icon-cell': IconCell,
     'icon-details-dialog': IconDetailsDialog,
@@ -105,10 +101,9 @@ export default {
     }
   },
   created () {
-    this.$http.get(getEndpointUrl('/branding'))
-    .then(response => {
-        this.branding = response.body
-    });
+    this.branding = {
+        appDescription: getAppInfo().appDescription
+    };
 
     userService.fetchUserInfo()
     .then(
@@ -184,7 +179,6 @@ $ic-color-text: #455156;
   margin: 10px 0;
   .app-title {
     margin-bottom: 10px;
-    font-size: 24px;
   }
 }
 .right-control-group {
@@ -207,9 +201,9 @@ $ic-color-text: #455156;
     }
     .search-icon {
       position: absolute;
-      top: 22px;
+      top: 18px;
       left: 10px;
-      height: 30px;
+      font-size: 36px;
     }
     .search-input {
       width: 100%;
@@ -235,14 +229,11 @@ $ic-color-text: #455156;
 .action-bar {
   margin: 50px 60px 50px 30px;
 
-  .upload {
-    float: left;
+  .add-icon {
+    float: right;
     span {
         vertical-align: middle;
     }
-  }
-  .switch-view {
-    float: right;
   }
 }
 

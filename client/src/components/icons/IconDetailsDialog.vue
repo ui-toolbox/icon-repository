@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import IconfileList from '@/components/IconfileList'
+import IconfileList from '@/components/icons/IconfileList'
 import { createIconfileList } from '@/services/icon';
 import { CANCELLED } from '@/services/constants';
 

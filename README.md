@@ -34,7 +34,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
 1. Import the demo data (optional, but recommended for frontend development)
 
-   `export CREATE_NEW_DB=yes; npm run dev:import`
+   `npm run dev:import`
 
 1. Start the backend
 

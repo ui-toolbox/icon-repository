@@ -41,7 +41,8 @@ const configurationDataProto = Object.freeze({
     conn_password: "",
     conn_database: "",
     enable_backdoors: false,
-    logger_level: ""
+    logger_level: "",
+    package_root_dir: ""
 });
 
 export type ConfigurationData = typeof configurationDataProto;
@@ -61,7 +62,8 @@ const defaultSettings = {
     conn_database: "iconrepo",
     icon_data_allowed_formats: "svg, png",
     icon_data_allowed_sizes: "18px, 24px, 48px, 18dp, 24dp, 36dp, 48dp, 144dp",
-    enable_backdoors: false
+    enable_backdoors: false,
+    package_root_dir: path.resolve(path.dirname(__filename), "..")
 };
 
 export const getDefaultConfiguration: () => ConfigurationData = () => Object.assign(
