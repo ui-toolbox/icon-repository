@@ -2,7 +2,7 @@ import { randomBytes } from "crypto";
 import { boilerplateSubscribe } from "../testUtils";
 import {
     iconFileEndpointPath,
-    manageTestResourcesBeforeAfter,
+    manageTestResourcesBeforeAndAfter,
     getCheckIconFile
 } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
@@ -12,7 +12,7 @@ import { IconFileDescriptor, IconFile, IconFileData } from "../../src/icon";
 
 describe(iconFileEndpointPath, () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it ("POST should fail with 403 without either of CREATE_ICON or ADD_ICON_FILE privilege", done => {
 

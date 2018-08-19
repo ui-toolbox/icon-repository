@@ -3,7 +3,7 @@ import { boilerplateSubscribe } from "../testUtils";
 
 import {
     iconEndpointPath,
-    manageTestResourcesBeforeAfter,
+    manageTestResourcesBeforeAndAfter,
     getCheckIconFile } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
@@ -20,7 +20,7 @@ import { IconFile, IconFileData } from "../../src/icon";
 
 describe(iconEndpointPath, () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it ("POST should fail with 403 without CREATE_ICON privilege", done => {
         const testIcon = {

@@ -4,6 +4,7 @@ import { Pool, QueryResult } from "pg";
 
 import { IconDescriptor, IconFile, IconFileDescriptor, IconAttributes, IconNotFound } from "../icon";
 import logger from "../utils/logger";
+import { createSchema, CreateSchema } from "./create-schema";
 
 const ctxLogger = logger.createChild("db");
 
@@ -305,6 +306,7 @@ const deleteIconFile: (pool: Pool) => DeleteIconFile
 };
 
 export interface IconDAFs {
+    readonly createSchema: CreateSchema;
     readonly describeIcon: DescribeIcon;
     readonly createIcon: AddIcon;
     readonly updateIcon: UpdateIcon;
@@ -320,6 +322,7 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
 = connectionProperties => {
     const pool = createPoolUsing(connectionProperties);
     return {
+        createSchema: createSchema(pool),
         describeIcon: describeIcon(pool),
         updateIcon: updateIcon(pool),
         createIcon: createIcon(pool),

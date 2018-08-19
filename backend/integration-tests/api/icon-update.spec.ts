@@ -2,7 +2,7 @@ import { boilerplateSubscribe } from "../testUtils";
 
 import {
     iconEndpointPath,
-    manageTestResourcesBeforeAfter } from "./api-test-utils";
+    manageTestResourcesBeforeAndAfter } from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import { setAuth, describeAllIcons, updateIcon } from "./api-client";
@@ -12,7 +12,7 @@ import { assertGitCleanStatus, assertFileInRepo, assertFileNotInRepo } from "../
 
 describe(iconEndpointPath, () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it ("POST should fail with 403 without UPDATE_ICON privilege", done => {
         const testData = getTestIconData();

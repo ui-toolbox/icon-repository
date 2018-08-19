@@ -9,10 +9,7 @@ import {
 } from "../integration-tests/api/api-test-utils";
 import logger from "../src/utils/logger";
 import { readdir, readFile } from "../src/utils/rx";
-import configuration, { ConfigurationDataProvider } from "../src/configuration";
-import { createConnectionProperties, createPool } from "../src/db/db";
-import { createSchema } from "./create-schema";
-import { commandExecutor } from "../src/utils/command-executor";
+import configuration from "../src/configuration";
 import { create as createSerializer } from "../src/utils/serializer";
 import { Set } from "immutable";
 import { describeIcon } from "../integration-tests/api/api-client";
@@ -23,7 +20,6 @@ const defaultSourceDir = path.resolve(
     ".." /* exit "build" dir */,
     "demo-data");
 const sourceDir = process.env.ICON_IMPORT_SOURCE_DIR || defaultSourceDir;
-const createNewDB: string = process.env.CREATE_NEW_DB;
 
 delete process.env.ICON_DATA_LOCATION_GIT;
 
@@ -133,30 +129,7 @@ const importIcons: () => Observable<any> = () => {
     .flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(iconFileData)));
 };
 
-// @WindowsUnfriendly
-const createNewGitRepo: (location: string) => Observable<string>
-= location => {
-    const newGitRepoLogger = logger.createChild("create-new-git-repo");
-    return commandExecutor(newGitRepoLogger, "rm", [ "-rf", location])
-    .flatMap(() => commandExecutor(newGitRepoLogger, "mkdir", [ "-p", location ]))
-    .flatMap(() => commandExecutor(newGitRepoLogger, "git", [ "init" ], { cwd: location }));
-};
-
-const createNewDBMaybe: (configProvider: ConfigurationDataProvider) => Observable<ConfigurationDataProvider>
-= configProvider => {
-    if (createNewDB) {
-        return createPool(createConnectionProperties(configProvider()))
-        .flatMap(pool => createSchema(pool)
-            .finally(() => pool.end()))
-        .flatMap(() => createNewGitRepo(configProvider().icon_data_location_git))
-        .map(() => configProvider);
-    } else {
-        return Observable.of(configProvider);
-    }
-};
-
 configuration
-.flatMap(createNewDBMaybe)
 .flatMap(configProvider => startServer(configProvider()))
 .flatMap(server => {
     return importIcons()

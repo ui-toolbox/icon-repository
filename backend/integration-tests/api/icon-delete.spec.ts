@@ -1,4 +1,4 @@
-import { manageTestResourcesBeforeAfter, Session, uxAuth } from "./api-test-utils";
+import { manageTestResourcesBeforeAndAfter, Session, uxAuth } from "./api-test-utils";
 import { setAuth, deleteIcon, describeAllIcons } from "./api-client";
 import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
@@ -8,7 +8,7 @@ import { assertFileNotInRepo } from "../git/git-test-utils";
 
 describe("DEL /icons", () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it("should fail with 403 without proper privilege", done => {
         const session: Session = agent();

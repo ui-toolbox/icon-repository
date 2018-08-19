@@ -61,7 +61,7 @@
     "compile": "rm -rf build && tsc && cp -r configurations build/ && npm run add-version",
     "watch:tests": "export ICON_REPO_CONFIG_PROFILE=dev; npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build run-tests.js\"",
     "import": "npm run compile && node build/scripts/import.js",
-    "dev:import": "export CREATE_NEW_DB=yes; export ICON_REPO_CONFIG_PROFILE=dev; npm run import",
+    "dev:import": "export ICON_REPO_CONFIG_PROFILE=dev; export ICON_DATA_CREATE_NEW=always; npm run import",
     "dev": "export ICON_REPO_CONFIG_PROFILE=dev; npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build build/src/app.js\"",
     "dev:oidc": "export ICON_REPO_CONFIG_PROFILE=dev-oidc-wcontext npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build build/src/app.js\"",
     "test": "export ICON_REPO_CONFIG_PROFILE=dev; npm run lint && npm run compile && node run-tests.js",

@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as path from "path";
 import * as rimraf from "rimraf";
 import { Observable, Observer } from "rxjs";
 
@@ -50,6 +51,18 @@ export const rmdir: (pathToDir: string) => Observable<string>
         }
     });
 });
+
+export const hasSubDirectory: (pathToParentDir: string, childDir: string) => Observable<boolean>
+= (pathToParentDir, childDir) =>
+    stat(pathToParentDir)
+    .flatMap(parentStats =>
+        !parentStats || !parentStats.isDirectory()
+            ? Observable.of(false)
+            : stat(path.resolve(pathToParentDir, childDir))
+                .map(childStats =>
+                    childStats
+                        ? childStats.isDirectory()
+                        : false));
 
 /*
  * @return an Observable for path to the directory at issue

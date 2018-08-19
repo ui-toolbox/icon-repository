@@ -1,7 +1,7 @@
 import * as path from "path";
 import { Observable } from "rxjs";
-import { stat, rmdirMaybe, mkdirMaybe, mkdir, rmdir } from "../../src/utils/rx";
-import { createGitCommandExecutor, getPathToIconFile } from "../../src/git";
+import { stat, rmdirMaybe, rmdir } from "../../src/utils/rx";
+import { createNewGitRepo, createGitCommandExecutor, getPathToIconFile } from "../../src/git";
 import { IconFile, IconFileDescriptor } from "../../src/icon";
 import logger from "../../src/utils/logger";
 
@@ -17,10 +17,7 @@ export const getTestRepoDir = () => repoDir;
 
 export const createTestGitRepo: () => Observable<string> = () =>
     rmdirMaybe(testTmpDir)
-    .flatMap(() => mkdirMaybe(homeTmpDir))
-    .flatMap(() => mkdir(testTmpDir))
-    .flatMap(() => mkdir(repoDir))
-    .flatMap(() => createGitCommandExecutor(repoDir)(["init"]));
+    .flatMap(createNewGitRepo(repoDir));
 
 export const deleteTestGitRepo: () => Observable<string> = () => {
     ctxLogger.debug("deleting test git repo %s", testTmpDir);
