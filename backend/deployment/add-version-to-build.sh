@@ -1,4 +1,4 @@
-build_root=$(dirname $0)/../build
+build_root=$(dirname $0)/../build/src
 version=$(git describe --tags || :)
 commit=$(git rev-parse HEAD)
 

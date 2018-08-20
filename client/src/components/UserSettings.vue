@@ -3,7 +3,7 @@
         <div class="account-settings-head" :class="{ 'authenticated-user': user.authenticated }">
             <el-dropdown type="info" @command="itemSelected">
                 <span class="el-dropdown-link">
-                    <i class="material-icons md-36 account-button-element">account_circle</i>
+                    <i class="material-icons account-button-element">account_circle</i>
                     <span class="account-button-element">{{ user.username }}</span>
                     <i class="el-icon-arrow-down el-icon--right account-button-element"/>
                 </span>
@@ -46,10 +46,6 @@ $highlighted: #ffbd4d;
 
         .account-button-element {
             vertical-align: middle;
-        }
-
-        .md-36 {
-            font-size: 36px;
         }
     }
 

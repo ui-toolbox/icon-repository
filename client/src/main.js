@@ -38,3 +38,4 @@ fetchConfig()
         template: '<App/>'
       })
 )
+.catch(error => Vue.prototype.$showErrorMessage(error));

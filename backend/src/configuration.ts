@@ -65,7 +65,7 @@ const defaultSettings = {
     icon_data_allowed_formats: "svg, png",
     icon_data_allowed_sizes: "18px, 24px, 48px, 18dp, 24dp, 36dp, 48dp, 144dp",
     enable_backdoors: false,
-    package_root_dir: path.resolve(path.dirname(__filename), "..")
+    package_root_dir: path.resolve(path.dirname(__filename))
 };
 
 export const getDefaultConfiguration: () => ConfigurationData = () => Object.assign(
