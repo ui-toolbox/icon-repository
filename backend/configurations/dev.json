@@ -8,5 +8,6 @@
             "ux"
         ]
     },
+    "icon_data_create_new": "init",
     "logger_level": "debug"
 }

@@ -52,16 +52,34 @@ export const iconFormatListParser = csvSplitter;
 export const iconSizeListParser = csvSplitter;
 
 export interface IconRepoSettings {
-    allowedFormats: string;
-    allowedSizes: string;
+    readonly resetData: string;
+    readonly allowedFormats: string;
+    readonly allowedSizes: string;
 }
+
+const isNewRepoNeeded: (resetData: string, gitAFs: GitAccessFunctions) => Observable<boolean>
+= (resetData, gitAFs) =>
+    resetData === "always"
+        ? Observable.of(true)
+        : resetData === "init"
+            ? gitAFs.isRepoInitialized().map(initialized => !initialized)
+            : Observable.of(false);
+
+const createNewRepoMaybe = (resetData: string, iconDAFs: IconDAFs, gitAFs: GitAccessFunctions) => {
+    return isNewRepoNeeded(resetData, gitAFs)
+    .flatMap(needed => needed
+        ? iconDAFs.createSchema()
+            .flatMap(gitAFs.createNewGitRepo)
+        : Observable.of(undefined));
+};
 
 const iconServiceProvider: (
     iconRepoSettings: IconRepoSettings,
     iconDAFs: IconDAFs,
     gitAFs: GitAccessFunctions
-) => IconService
+) => Observable<IconService>
 = (iconRepoConfig, iconDAFs, gitAFs) => {
+
     const getRepoConfiguration: GetIconRepoConfig = () => {
         return Observable.of({
             allowedFileFormats: iconFormatListParser(iconRepoConfig.allowedFormats),
@@ -116,7 +134,8 @@ const iconServiceProvider: (
             () => gitAFs.deleteIconFile(iconName, iconFileDesc, modifiedBy)
         );
 
-    return {
+    return createNewRepoMaybe(iconRepoConfig.resetData, iconDAFs, gitAFs)
+    .mapTo({
         getRepoConfiguration,
         describeIcon,
         createIcon,
@@ -127,7 +146,7 @@ const iconServiceProvider: (
         updateIconFile,
         deleteIconFile,
         describeAllIcons
-    };
+    });
 };
 
 export default iconServiceProvider;

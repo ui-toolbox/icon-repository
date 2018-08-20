@@ -1,4 +1,4 @@
-import { manageTestResourcesBeforeAfter, Session, uxAuth } from "./api-test-utils";
+import { manageTestResourcesBeforeAndAfter, Session, uxAuth } from "./api-test-utils";
 import { getTestIconData, addTestData, getTestDataDescriptor, Icon } from "./icon-api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { IconDTO } from "../../src/iconsHandlers";
@@ -8,7 +8,7 @@ const allIconsPath = "/icons";
 
 describe(allIconsPath, () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it("GET should return the description of all icons in the repository", done => {
         const testData = getTestIconData();
@@ -25,7 +25,7 @@ describe(allIconsPath, () => {
 const singleIconPath = allIconsPath + "/:name";
 describe(singleIconPath, () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it ("GET should describe the icon", done => {
         const testData = getTestIconData();

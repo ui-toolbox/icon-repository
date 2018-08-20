@@ -1,15 +1,13 @@
-import { createPool, query, getIconFile, GetIconFile, createConnectionProperties } from "../../src/db/db";
+import { createPool, query, GetIconFile, createConnectionProperties } from "../../src/db/db";
 import { Pool } from "pg";
 import { Observable } from "rxjs";
-import { createSchema } from "../../scripts/create-schema";
-import { boilerplateSubscribe } from "../testUtils";
 import { iconTableSpec } from "../../src/db/db-schema";
 import { IconFile } from "../../src/icon";
 import { getDefaultConfiguration } from "../../src/configuration";
 
 export const assertIconCount = (pool: Pool, expectedCount: number) =>
-query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
-    .map(countResult => expect(parseInt(countResult.rows[0].count, 10)).toEqual(expectedCount));
+    query(pool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])
+        .map(countResult => expect(parseInt(countResult.rows[0].count, 10)).toEqual(expectedCount));
 
 export const getCheckIconFile: (
     getIconFileFromDB: GetIconFile,
@@ -39,7 +37,3 @@ export const terminateTestPool = (pool: Pool) => (done: () => void) => {
     }
     done();
 };
-
-export const createTestSchema = (pp: () => Pool, fail: (error: any) => void) => (done: () => void) =>
-    createSchema(pp())
-    .subscribe(boilerplateSubscribe(fail, done));

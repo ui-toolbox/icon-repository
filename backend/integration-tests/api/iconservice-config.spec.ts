@@ -1,9 +1,9 @@
-import { manageTestResourcesBeforeAfter } from "./api-test-utils";
+import { manageTestResourcesBeforeAndAfter } from "./api-test-utils";
 
 const iconRepoConfigPath = "/icons/config";
 
 describe(iconRepoConfigPath, () => {
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it("should return the correct default", done => {
         const session = agent();

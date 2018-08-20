@@ -11,7 +11,7 @@
         <div class="right-control-group">
           <div class="search">
             <div class="search-input-wrapper">
-              <i class="material-icons md-36 search-icon">search</i>
+              <i class="material-icons search-icon">search</i>
               <input type="text" class="search-input" v-model="searchQuery">
             </div>
           </div>
