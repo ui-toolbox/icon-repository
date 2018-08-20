@@ -17,6 +17,8 @@ dist_backend() {
     cd "${repo_root}/backend"
     mkdir -p "$dist_dir/backend/"
     npm install && \
+        tsc --version && \
+        ls node_modules/\@types/ && \
         npm run build:backend && \
         cp -a package*.json "$dist_dir/backend/" && \
         cp -a build/src/* "$dist_dir/backend/" \
