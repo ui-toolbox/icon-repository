@@ -80,13 +80,13 @@ export const query: (pool: Pool, statement: string, parameters: any[]) => Observ
 
 type ExecuteQuery = (queryText: string, values?: any[]) => Observable<QueryResult>;
 
-interface IConnection {
+interface Connection {
     readonly executeQuery: ExecuteQuery;
     readonly release: () => void;
 }
 
-const createClient: (pool: Pool) => Observable<IConnection> = pool => Observable.create(
-    (observer: Observer<IConnection>) => pool.connect((err, client, done) => {
+const getPooledConnection: (pool: Pool) => Observable<Connection> = pool => Observable.create(
+    (observer: Observer<Connection>) => pool.connect((err, client, done) => {
         if (err) {
             observer.error(err);
         } else {
@@ -115,7 +115,7 @@ const createClient: (pool: Pool) => Observable<IConnection> = pool => Observable
 type Transactable<R> = (executeQuery: ExecuteQuery) => Observable<R>;
 
 function tx<R>(pool: Pool, transactable: Transactable<R>) {
-    return createClient(pool)
+    return getPooledConnection(pool)
     .flatMap(conn =>
         conn.executeQuery("BEGIN", [])
         .flatMap(() => transactable(conn.executeQuery))
@@ -136,13 +136,13 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
     );
 }
 
-type AddIconFileToTable = (
+type InsertIconFileIntoTable = (
     executeQuery: ExecuteQuery,
     iconFile: IconFile,
     modifiedBy: string
 ) => Observable<number>;
 
-const addIconFileToTable: AddIconFileToTable = (executeQuery, iconFileInfo, modifiedBy) => {
+const insertIconFileIntoTable: InsertIconFileIntoTable = (executeQuery, iconFileInfo, modifiedBy) => {
     const addIconFile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
                                 "SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
     return executeQuery(addIconFile, [
@@ -170,7 +170,7 @@ export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, create
         executeQuery => executeQuery(addIconSQL, addIconParams)
                 .flatMap(addIconResult => {
                     const iconId = addIconResult.rows[0].id;
-                    return addIconFileToTable(executeQuery, {
+                    return insertIconFileIntoTable(executeQuery, {
                         name: iconInfo.name,
                         format: iconInfo.format,
                         size: iconInfo.size,
@@ -244,7 +244,7 @@ type AddIconFile = (
 const addIconFileToIcon: (pool: Pool) => AddIconFile
 = pool => (iconFile, modifiedBy, createSideEffect) => {
     return tx(pool, (executeQuery: ExecuteQuery) => {
-        return addIconFileToTable(executeQuery, iconFile, modifiedBy)
+        return insertIconFileIntoTable(executeQuery, iconFile, modifiedBy)
         .flatMap(iconFileId =>
             (createSideEffect ? createSideEffect() : Observable.of(void 0))
             .map(() => iconFileId));
