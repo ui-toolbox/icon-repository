@@ -16,18 +16,25 @@ const logServerStart = (server: http.Server) => {
     logger.log("info", "The CXN Icon Repository server is listening at http://%s:%s", host, port);
 };
 
-configuration.subscribe(
-    configProvider => {
-        const iconService = iconServiceProvider(
-            {
-                allowedFormats: configProvider().icon_data_allowed_formats,
-                allowedSizes: configProvider().icon_data_allowed_sizes
-            },
-            iconDAFsProvider(createConnectionProperties(configProvider())),
-            gitAFsProvider(configProvider().icon_data_location_git)
-        );
+configuration
+.flatMap(configProvider => {
+    return iconServiceProvider(
+        {
+            resetData: configProvider().icon_data_create_new,
+            allowedFormats: configProvider().icon_data_allowed_formats,
+            allowedSizes: configProvider().icon_data_allowed_sizes
+        },
+        iconDAFsProvider(createConnectionProperties(configProvider())),
+        gitAFsProvider(configProvider().icon_data_location_git)
+    )
+    .flatMap(iconService => {
         const iconHandlers = iconHandlersProvider(iconService);
-        serverProvider(configProvider, iconHandlers).subscribe(logServerStart);
-    },
-    error => logger.error(error)
+        return serverProvider(configProvider, iconHandlers)
+        .map(logServerStart);
+    });
+})
+.subscribe(
+    undefined,
+    error => logger.error(error),
+    undefined
 );

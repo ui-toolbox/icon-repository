@@ -12,10 +12,8 @@
             <el-tab-pane label="List/delete icon-file(s)" name="listfiles">
                     <iconfile-list
                         :iconfiles="iconfileList"
+                        :mutable="true"
                         @removeIconfile="removeIconfile"/>
-                    <span slot="footer" class="dialog-footer">
-                        <el-button type="primary" @click="close">Close</el-button>
-                    </span>
             </el-tab-pane>
             <el-tab-pane label="Rename or delete icon" name="rename-delete-icon">
                 <div>
@@ -42,9 +40,9 @@
 
 <script>
 import { List } from 'immutable';
-import { describeIcon, renameIcon, deleteIcon, deleteIconfile } from '@/services/icon';
-import IconfileList from '@/components/IconfileList'
-import AddIconfile from '@/components/AddIconfile';
+import { describeIcon, renameIcon, deleteIcon, deleteIconfile, createIconfileList } from '@/services/icon';
+import IconfileList from '@/components/icons/IconfileList'
+import AddIconfile from '@/components/icons/AddIconfile';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 import getEndpointUrl from '@/services/url';
 
@@ -64,7 +62,7 @@ export default {
             return `Edit icon: ${this.iconInfo.name}`;
         },
         iconfileList() {
-            return this.createIconfileList(this.iconInfo);
+            return createIconfileList(this.iconInfo.paths);
         }
     },
     data() {
@@ -75,16 +73,6 @@ export default {
         }
     },
     methods: {
-        createIconfileList() {
-            return List(Object.keys(this.iconInfo.paths))
-            .flatMap(format => Object.keys(this.iconInfo.paths[format])
-                .map(size => {
-                    const path = this.iconInfo.paths[format][size];
-                    const url = getEndpointUrl(path);
-                    return { format, size, path, url };
-                }))
-            .toArray();
-        },
         refreshIconfileList() {
             return describeIcon(this.iconInfo.name)
                     .then(info => this.iconInfo = info)
@@ -122,7 +110,7 @@ export default {
             .catch(error => this.hideDialog(FAILED, error));
         },
         isLastIconfile() {
-            return this.createIconfileList(this.iconInfo).length === 1;
+            return createIconfileList(this.iconInfo.paths).length === 1;
         },
         deleteIconfile(iconfileToDelete) {
             deleteIconfile(iconfileToDelete.path)
@@ -135,7 +123,8 @@ export default {
                         this.$showSuccessMessage("Icon-file deleted");
                         this.refreshIconfileList()
                     }
-                }
+                },
+                error => this.$showErrorMessage(error)
             )
         },
         createRemoveIconfileConfirmationMessage(iconfileToDelete) {

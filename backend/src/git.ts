@@ -1,6 +1,6 @@
 import * as path from "path";
 import { Observable } from "rxjs";
-import { mkdirMaybe, appendFile, deleteFile, renameFile } from "./utils/rx";
+import { mkdirMaybe, appendFile, deleteFile, renameFile, hasSubDirectory } from "./utils/rx";
 import {
     SerializableJobImpl,
     create as createSerializer
@@ -18,6 +18,31 @@ export const createGitCommandExecutor: (pathToIconRepository: string) => GitComm
 = pathToIconRepository => spawnArgs => {
     const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${pathToIconRepository}`);
     return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: pathToIconRepository });
+};
+
+type IsRepoInitialized = () => Observable<boolean>;
+
+const isRepoInitialized: (location: string) => IsRepoInitialized
+= location => () => hasSubDirectory(location, ".git");
+
+type CreateNewGitRepo = () => Observable<string>;
+
+export const createNewGitRepo: (location: string) => CreateNewGitRepo
+= location => () => {
+    const newGitRepoLogger = logger.createChild("create-new-git-repo");
+    return commandExecutor(newGitRepoLogger, "rm", [ "-rf", location])
+    .flatMap(() => commandExecutor(newGitRepoLogger, "mkdir", [ "-p", location ]))
+    .flatMap(() => commandExecutor(newGitRepoLogger, "git", [ "init" ], { cwd: location }))
+    .flatMap(() => commandExecutor(
+        newGitRepoLogger,
+        "git", [ "config", "user.name", "Icon Repo Server"],
+        { cwd: location }
+    ))
+    .flatMap(() => commandExecutor(
+        newGitRepoLogger,
+        "git", [ "config", "user.email", "IconRepoServer@UIToolBox"],
+        { cwd: location }
+    ));
 };
 
 const enqueueJob = createSerializer("G I T");
@@ -192,6 +217,8 @@ type DeleteIcon = (
 
 export interface GitAccessFunctions {
     readonly getRepoLocation: () => string;
+    readonly isRepoInitialized: IsRepoInitialized;
+    readonly createNewGitRepo: CreateNewGitRepo;
     readonly addIconFile: AddIconFile;
     readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
@@ -221,6 +248,10 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
 
     return {
         getRepoLocation: () => localIconRepositoryLocation,
+
+        isRepoInitialized: isRepoInitialized(localIconRepositoryLocation),
+
+        createNewGitRepo: createNewGitRepo(localIconRepositoryLocation),
 
         addIconFile: (iconFileInfo, modifiedBy) => enqueueJob(
             createIconFileJob(

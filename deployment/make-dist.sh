@@ -1,6 +1,10 @@
-set -xe
+#!/bin/bash -xe
 
-repo_root=$(readlink -f $(dirname $0)/..)
+# Mac OS: the following assumes you have executed
+#     brew install coreutils
+READLINK=$(greadlink --help >/dev/null 2>&1 && echo greadlink || echo readlink)
+
+repo_root=$($READLINK -f $(dirname $0)/..)
 
 dist_dir="${repo_root}/dist"
 
@@ -12,18 +16,22 @@ clean_dist() {
 dist_backend() {
     cd "${repo_root}/backend"
     mkdir -p "$dist_dir/backend/"
-    npm run build:backend && \
+    npm install && \
+        npm run build:backend && \
         cp -a package*.json "$dist_dir/backend/" && \
-        cp -a build/src/* "$dist_dir/backend/"
+        cp -a build/src/* "$dist_dir/backend/" \
+    || exit 1
     cd -
 }
 
 dist_frontend() {
     cd "${repo_root}/client"
     mkdir -p "$dist_dir/frontend/" 
-    rm -rf dist && \
+    npm install && \
+        rm -rf dist && \
         npm run build && \
-        cp -a "${repo_root}"/client/dist/* "$dist_dir/frontend/"
+        cp -a "${repo_root}"/client/dist/* "$dist_dir/frontend/" \
+    || exit 1
     cd -
 }
 

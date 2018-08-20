@@ -1,6 +1,4 @@
-import {
-    IColumnsDefinition,
-    ITableSpec } from "../src/db/db-schema";
+import { ITableSpec } from "./db-schema";
 import { makeCreateTableStatement } from "./create-schema";
 
 describe("makeCreateTableStatement", () => {

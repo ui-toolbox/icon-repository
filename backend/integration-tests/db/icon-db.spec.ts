@@ -4,7 +4,6 @@ import { Observable } from "rxjs";
 
 import { createTestPool,
     terminateTestPool,
-    createTestSchema,
     getCheckIconFile,
     assertIconCount
  } from "./db-test-utils";
@@ -13,13 +12,14 @@ import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { createIcon, getIconFile } from "../../src/db/db";
+import { createSchema } from "../../src/db/create-schema";
 
 describe("addIconToDBProvider", () => {
     let pool: Pool;
 
     beforeAll(createTestPool(p => pool = p, fail));
     afterAll(terminateTestPool((pool)));
-    beforeEach(createTestSchema(() => pool, fail));
+    beforeEach(done => createSchema(pool)().subscribe(boilerplateSubscribe(fail, done)));
     afterEach(() => delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST);
 
     it("should be capable to add a first icon", done => {

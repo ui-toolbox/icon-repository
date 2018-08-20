@@ -5,7 +5,7 @@
         style="width: 100%">
         <el-table-column
             label=""
-            width="230">
+            width="imageColumnWidth">
             <template slot-scope="scope">
                 <img :src="iconfiles[scope.$index].url"/>
             </template>
@@ -13,12 +13,13 @@
         <el-table-column
             prop="format"
             label="Format"
-            width="80"/>
+            width="formatColumnWidth"/>
         <el-table-column
             prop="size"
             label="Size"
-            width="80"/>
+            width="sizeColumnWidth"/>
         <el-table-column
+            v-if="mutable"
             fixed="right"
             label=""
             width="120">
@@ -37,8 +38,16 @@
 <script>
 export default {
     props: [
-        'iconfiles'
+        'iconfiles',
+        'mutable'
     ],
+    data() {
+        return {
+            imageColumnWidth: this.mutable ? 270 : 230,
+            formatColumnWidth: this.mutable ? 80 : 120,
+            sizeColumnWidth: this.mutable ? 80 : 120
+        };
+    },
     methods: {
         deleteIconfile(index) {
             this.$emit('removeIconfile', this.iconfiles[index]);

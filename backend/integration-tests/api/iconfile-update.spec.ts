@@ -1,5 +1,5 @@
 import * as crypto from "crypto";
-import { manageTestResourcesBeforeAfter, Session, uxAuth, getCheckIconFile } from "./api-test-utils";
+import { manageTestResourcesBeforeAndAfter, Session, uxAuth, getCheckIconFile } from "./api-test-utils";
 import { setAuth, updateIconFile, describeAllIcons } from "./api-client";
 import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
@@ -9,7 +9,7 @@ import { assertFileInRepo } from "../git/git-test-utils";
 
 describe("PUT icons/:name/<file>", () => {
 
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it("should fail with 403 without proper privilege", done => {
         const newIconFile: IconFile = {

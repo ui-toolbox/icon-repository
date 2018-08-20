@@ -1,10 +1,9 @@
 import { Observable } from "rxjs";
 import { Pool } from "pg";
 
-import configuration from "../src/configuration";
-import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "../src/db/db-schema";
-import { createPool, query, createConnectionProperties } from "../src/db/db";
-import logger from "../src/utils/logger";
+import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "./db-schema";
+import { query } from "./db";
+import logger from "../utils/logger";
 
 const ctxLogger = logger.createChild("db/create-schema");
 
@@ -24,8 +23,7 @@ const colConstraintsToSQL = (colConstraints: string[]) =>
         ? ""
         : ",\n    " + colConstraints.join(",\n    ");
 
-export const makeCreateTableStatement = (tableDefinition: ITableSpec) =>
-`CREATE TABLE ${tableDefinition.tableName} (
+export const makeCreateTableStatement = (tableDefinition: ITableSpec) => `CREATE TABLE ${tableDefinition.tableName} (
     ${columnDefinitionToSQL(tableDefinition.columns)}${colConstraintsToSQL(tableDefinition.col_constraints)}
 )`;
 
@@ -41,21 +39,16 @@ const dropCreateTable = (pool: Pool, tableDefinition: ITableSpec) =>
     dropTableIfExists(pool, tableDefinition.tableName)
     .flatMap(() => createTable(pool, tableDefinition));
 
-export const createSchema: (pool: Pool) => Observable<Pool>
-= pool => dropCreateTable(pool, iconTableSpec)
-    .flatMap(() => dropCreateTable(pool, iconFileTableSpec))
-    .map(() => pool);
+export type CreateSchema = () => Observable<Pool>;
 
-export default () => configuration
-    .flatMap(configProvider => {
-        return createPool(createConnectionProperties(configProvider()));
-    })
-    .flatMap(pool => createSchema(pool)
-        .map(() => pool.end())
-        .finally(() => pool.end())
-    )
-    .subscribe(
-        () => ctxLogger.info("script OK"),
-        error => ctxLogger.error("Error: %o", error),
-        () => ctxLogger.info("Script completed")
-    );
+export const createSchema: (pool: Pool) => CreateSchema
+= pool => () => dropCreateTable(pool, iconTableSpec)
+    .flatMap(() => dropCreateTable(pool, iconFileTableSpec))
+    .mapTo(pool)
+    .catch(error => {
+        ctxLogger.error(error);
+        process.exit(1);
+        return Observable.throw(error);
+    });
+
+export default createSchema;

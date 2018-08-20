@@ -9,7 +9,7 @@ import { IconHanlders } from "./iconsHandlers";
 
 import { ConfigurationDataProvider } from "./configuration";
 import securityManagerProvider from "./security/securityManager";
-import brandingHandlerProvider from "./brandingHandler";
+import appInfoHandlerProvider from "./appInfoHandler";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -42,7 +42,7 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconH
     router.post("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);
     router.put("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.updateIconFile);
     router.delete("/icons/:name/formats/:format/sizes/:size", iconHandlers.deleteIconFile);
-    router.get("/branding", brandingHandlerProvider(appConfig().app_description));
+    router.get("/app-info", appInfoHandlerProvider(appConfig().app_description, appConfig().package_root_dir));
 
     return Rx.Observable.create((observer: Rx.Observer<http.Server>) => {
         const server = app.listen(appConfig().server_port, appConfig().server_hostname, () => {

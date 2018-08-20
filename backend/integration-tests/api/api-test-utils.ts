@@ -1,6 +1,5 @@
 import * as http from "http";
 import { Observable } from "rxjs";
-import { Pool } from "pg";
 
 import configuration from "../../src/configuration";
 import { ConfigurationData } from "../../src/configuration";
@@ -9,12 +8,10 @@ import gitProvider from "../../src/git";
 import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
-import iconHandlersProvider, { IconDTO } from "../../src/iconsHandlers";
+import iconHandlersProvider from "../../src/iconsHandlers";
 import logger from "../../src/utils/logger";
-import { getTestRepoDir, createTestGitRepo, deleteTestGitRepo } from "../git/git-test-utils";
-import { createSchema } from "../../scripts/create-schema";
+import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
-import { createTestPool, terminateTestPool } from "../db/db-test-utils";
 import { Auth, getIconFile } from "./api-client";
 import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
 import { IconFile } from "../../src/icon";
@@ -39,16 +36,19 @@ export const startServer: StartServer = customConfig => {
             ),
             Object.assign(customConfig, {server_port: 0})
         );
-        const iconService = iconServiceProvider(
+        return iconServiceProvider(
             {
+                resetData: "always",
                 allowedFormats: configData.icon_data_allowed_formats,
                 allowedSizes: configData.icon_data_allowed_sizes
             },
             iconDAFsProvider(createConnectionProperties(configData)),
             gitProvider(configData.icon_data_location_git)
-        );
-        const iconHandlers = iconHandlersProvider(iconService);
-        return serverProvider(() => configData, iconHandlers)
+        )
+        .flatMap(iconService => {
+            const iconHandlers = iconHandlersProvider(iconService);
+            return serverProvider(() => configData, iconHandlers);
+        })
         .map(server => {
             localServerRef = server;
             return server;
@@ -59,12 +59,9 @@ export const startServer: StartServer = customConfig => {
 export const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
-export const setUpGitRepoAndDbSchemaAndServer = (pool: Pool, done: () => void) => {
-    createTestGitRepo()
-        .flatMap(() => createSchema(pool))
-        .flatMap(() => startServerWithBackdoors({icon_data_location_git: getTestRepoDir()}))
+export const startTestServer = (done: () => void) =>
+    startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
     .subscribe(boilerplateSubscribe(fail, done));
-};
 
 export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
@@ -120,13 +117,8 @@ export class Session {
     }
 }
 
-export const manageTestResourcesBeforeAfter: () => () => Session = () => {
-    let localPoolRef: Pool;
-    beforeAll(createTestPool((p: Pool) => {
-        localPoolRef = p;
-    }, fail));
-    beforeEach(done => setUpGitRepoAndDbSchemaAndServer(localPoolRef, done));
-    afterAll(terminateTestPool(localPoolRef));
+export const manageTestResourcesBeforeAndAfter: () => () => Session = () => {
+    beforeEach(done => startTestServer(done));
     afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
     return () => new Session(getBaseUrl(), agent(), void 0, void 0);
 };

@@ -19,7 +19,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
         sudo docker run \
             --name pg-iconrepo \
             -d \
-            -p 5432:5432 \
+            -p 127.0.0.1:5432:5432 \
             nightmanager/postgres_10 \
             --pg-cluster-owner-userid `id -u` \
             --pg-cluster-owner-groupid `id -g` \
@@ -34,7 +34,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
 1. Import the demo data (optional, but recommended for frontend development)
 
-   `export CREATE_NEW_DB=yes; npm run dev:import`
+   `npm run dev:import`
 
 1. Start the backend
 

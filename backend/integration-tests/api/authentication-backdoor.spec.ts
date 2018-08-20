@@ -1,5 +1,5 @@
 import * as superagent from "superagent";
-import { startServer, getBaseUrl, uxAuth, manageTestResourcesBeforeAfter } from "./api-test-utils";
+import { startServer, getBaseUrl, uxAuth, manageTestResourcesBeforeAndAfter } from "./api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { authenticationBackdoorPath, setAuth } from "./api-client";
 
@@ -61,7 +61,7 @@ describe("backdoor to privileges", () => {
 });
 
 describe(authenticationBackdoorPath, () => {
-    const agent = manageTestResourcesBeforeAfter();
+    const agent = manageTestResourcesBeforeAndAfter();
 
     it("should allow to set privileges on the current session", done => {
         const testPrivileges = [ "asdf" ];
