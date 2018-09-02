@@ -39,17 +39,17 @@ const createAuthenticationInterceptor = (serverContext: string, basicAuthentHand
         });
     }
 
-    ctxLogger.verbose("request URL: %s, method: %s", req.url, req.method);
+    ctxLogger.debug("request URL: %s, method: %s", req.url, req.method);
     if (!req.url.endsWith("login") && !getAuthentication(req.session)) {
         req.session.lastDenied = req.url;
         if (basicAuthentHandler) {
             basicAuthentHandler(req, res, next);
         } else {
-            ctxLogger.verbose(req.url + ": Unauthenticated user is about to be redirected to login page: " + loginPage);
+            ctxLogger.debug(req.url + ": Unauthenticated user is about to be redirected to login page: " + loginPage);
             res.redirect(loginPage);
         }
     } else {
-        ctxLogger.verbose(req.url + ": letting pass:", getAuthentication(req.session));
+        ctxLogger.debug(req.url + ": letting pass:", getAuthentication(req.session));
         next();
     }
 };

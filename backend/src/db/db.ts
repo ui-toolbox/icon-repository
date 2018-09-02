@@ -61,7 +61,7 @@ export const createPool: (connectionProperties: ConnectionProperties) => Observa
 
 export const query: (pool: Pool, statement: string, parameters: any[]) => Observable<QueryResult>
 = (pool, statement, parameters) => {
-    ctxLogger.info("Executing \"%s\"...", statement);
+    ctxLogger.debug("Executing \"%s\"...", statement);
     return Observable.create(
         (observer: Observer<QueryResult>) => pool.query(
             statement,
