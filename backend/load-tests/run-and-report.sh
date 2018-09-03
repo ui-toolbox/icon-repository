@@ -1,13 +1,5 @@
 #!/bin/bash
 
-mkdir -p output
-k6 run \
-    -e ICONREPO_BASE_URL=http://ux:ux@127.0.0.1:8090 \
-    --vus 5 \
-    --duration 60s \
-    --out json=output/create-icon-describe-all.json \
-    backend/load-tests/test-cases/create-icon-describe-all.js
-
 data_point_in_group_jql() {
     script_group="$1"
     metric="$2"
@@ -15,7 +7,6 @@ data_point_in_group_jql() {
         .type==\"Point\" \
         and .metric == \"$metric\" \
         and .data.tags.group == \"$script_group\" \
-        and .data.tags.status >= \"200\"\
     ) | .data.value"
 }
 
@@ -41,10 +32,19 @@ stats() {
     echo "===================================================================="
     echo "$metric"
     echo "--------------------------------------------------------------------"
-    jq "$(data_point_in_group_jql "$script_group" "$metric")" output/create-icon-describe-all.json | count
-    jq "$(data_point_in_group_jql "$script_group" "$metric")" output/create-icon-describe-all.json | avg
-    jq "$(data_point_in_group_jql "$script_group" "$metric")" output/create-icon-describe-all.json | min_p90_p95_max
+    jq "$(data_point_in_group_jql "$script_group" "$metric")" output/create-icon-and-refresh.json | count
+    jq "$(data_point_in_group_jql "$script_group" "$metric")" output/create-icon-and-refresh.json | avg
+    jq "$(data_point_in_group_jql "$script_group" "$metric")" output/create-icon-and-refresh.json | min_p90_p95_max
 }
 
-stats "::Create icon" "http_req_duration"
-stats "::Reload icons" "http_req_duration"
+mkdir -p output
+k6 run \
+    -e ICONREPO_BASE_URL=http://ux:ux@127.0.0.1:8090 \
+    --vus 5 \
+    --duration 60s \
+    --out json=output/create-icon-and-refresh.json \
+    backend/load-tests/test-cases/create-icon-and-refresh.js
+
+stats "::Create and refresh" "group_duration"
+stats "::Create and refresh::Create icon" "group_duration"
+stats "::Create and refresh::Reload icons" "group_duration"
