@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="dialogTitle" :visible="dialogVisible" :before-close="close" width="30%">
+    <el-dialog :title="dialogTitle" :visible="dialogVisible" :before-close="close" width="65%">
         <iconfile-list :iconfiles="iconfileList" :mutable="false"/>
     </el-dialog>
 </template>
@@ -37,4 +37,10 @@ export default {
     }
 }
 </script>
+
+<style lang="postcss" scoped>
+    .el-dialog__wrapper {
+        top: -50px;
+    }
+</style>
 

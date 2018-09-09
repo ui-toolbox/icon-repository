@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="dialogTitle" :visible="dialogVisible" :before-close="close" width="30%">
+    <el-dialog :title="dialogTitle" :visible="dialogVisible" :before-close="close" width="65%">
         <el-tabs v-model="activeOperation">
             <el-tab-pane label="Add icon-file to icon" name="addfile">
                     <add-iconfile
@@ -165,5 +165,11 @@ export default {
         &:last-child {
            margin-bottom: 0;
         }
+    }
+    .el-dialog__wrapper {
+        top: -50px;
+    }
+    .el-tabs {
+        height: 650px;
     }
 </style>

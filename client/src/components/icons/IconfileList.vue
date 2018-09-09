@@ -1,7 +1,7 @@
 <template>
     <el-table
         :data="iconfiles"
-        height="360"
+        height="600"
         style="width: 100%">
         <el-table-column
             label=""
