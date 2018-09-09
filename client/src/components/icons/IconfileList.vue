@@ -7,7 +7,7 @@
             label=""
             width="imageColumnWidth">
             <template slot-scope="scope">
-                <img :src="iconfiles[scope.$index].url"/>
+                <img :style="imageStyleObject(iconfiles[scope.$index])" :src="iconfiles[scope.$index].url" />
             </template>
         </el-table-column>
         <el-table-column
@@ -49,10 +49,18 @@ export default {
         };
     },
     methods: {
+        imageDisplaySize(iconfile) {
+            return iconfile.format === 'svg'
+                ? iconfile.size
+                : 'auto';
+        },
+        imageStyleObject(iconfile) {
+            const size = this.imageDisplaySize(iconfile);
+            return { width: size, height: size };
+        },
         deleteIconfile(index) {
             this.$emit('removeIconfile', this.iconfiles[index]);
         }
     }
 }
 </script>
-
