@@ -10,8 +10,7 @@
             <el-row>
                 <el-col :span="24">
                     <iconfile-attributes
-                        :formats='formats'
-                        :sizes='sizes'
+                        :iconfileTypes="iconfileTypes"
                         :attributes="{fileName, format, size}"
                         @change='onAttributeChange'/>
                 </el-col>
@@ -27,6 +26,7 @@
 
 <script>
 import Vue from 'vue';
+import { defaultTypeForFile } from '@/services/config';
 import IconfileAttributes from '@/components/icons/IconfileAttributes';
 import SelectFileToUpload from '@/components/icons/SelectFileToUpload';
 import { addIconfile } from '@/services/icon';
@@ -38,8 +38,7 @@ export default {
         'select-file-to-upload': SelectFileToUpload
     },
     props: [
-        "formats",
-        "sizes",
+        "iconfileTypes",
         "iconName"
     ],
     computed: {
@@ -71,6 +70,9 @@ export default {
         filesChange({iconfileName, formData}) {
             this.fileName = iconfileName;
             this.formData = formData;
+            const iconfileType = defaultTypeForFile(this.fileName);
+            this.format = iconfileType.format;
+            this.size = iconfileType.size;
         },
         onAttributeChange(newAttrib) {
             this.fileName = newAttrib.fileName || this.fileName;

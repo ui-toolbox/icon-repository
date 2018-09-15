@@ -27,14 +27,12 @@
     </div>
 
     <create-icon-dialog
-            :formats="allowedIconFileFormats"
-            :sizes="allowedIconSizes"
+            :iconfileTypes="iconfileTypes"
             :dialogVisible="createDialogVisible"
             @finished="dialogClosed"/>
     <modify-icon-dialog
             v-if="selectedIcon && hasUpdateIconPrivilege"
-            :formats="allowedIconFileFormats"
-            :sizes="allowedIconSizes"
+            :iconfileTypes="iconfileTypes"
             :icon="selectedIcon"
             :dialogVisible="modifyDialogVisible"
             @finished="dialogClosed"/>
@@ -52,7 +50,7 @@
 </template>
 
 <script>
-import { getAppInfo, getConfig } from '@/services/config';
+import { getAppInfo, iconfileTypes } from '@/services/config';
 import * as userService from '@/services/user';
 import getEndpointUrl from '@/services/url';
 import AppSettings from '@/components/AppSettings';
@@ -76,12 +74,6 @@ export default {
     'modify-icon-dialog': ModifyIconDialog
   },
   computed: {
-    allowedIconFileFormats() {
-        return getConfig().allowedFileFormats
-    },
-    allowedIconSizes() {
-        return getConfig().allowedIconSizes;
-    },
     hasAddIconPrivilege() {
         return userService.hasAddIconPrivilege(this.user);
     },
@@ -114,14 +106,15 @@ export default {
   },
   data () {
     return {
-      branding: {},
-      user: userService.initialUserInfo(),
-      iconRepoConfig: {},
-      icons: [],
-      searchQuery: '',
-      createDialogVisible: false,
-      selectedIcon: null,
-      modifyDialogVisible: false
+        iconfileTypes,
+        branding: {},
+        user: userService.initialUserInfo(),
+        iconTypes: {},
+        icons: [],
+        searchQuery: '',
+        createDialogVisible: false,
+        selectedIcon: null,
+        modifyDialogVisible: false
     }
   },
   methods: {

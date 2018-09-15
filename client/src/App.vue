@@ -28,14 +28,6 @@ $font-dir: "@/assets/";
     font-style: normal;
 }
 
-/*@font-face {
-    font-family: 'Roboto';
-    src: url('#{$font-dir}Roboto/Roboto-Bold.eot');
-    src: local('Roboto Bold'), local('Roboto-Bold'), url('#{$font-dir}Roboto/Roboto-Bold.eot?#iefix') format('embedded-opentype'), url('#{$font-dir}Roboto/Roboto-Bold.woff2') format('woff2'), url('#{$font-dir}Roboto/Roboto-Bold.woff') format('woff'), url('#{$font-dir}Roboto/Roboto-Bold.ttf') format('truetype'), url('#{$font-dir}Roboto/Roboto-Bold.svg#Roboto') format('svg');
-    font-weight: 700;
-    font-style: normal;
-}*/
-
 @font-face {
     font-family: 'Roboto-Light';
     src: url('#{$font-dir}Roboto/Roboto-Light.eot');

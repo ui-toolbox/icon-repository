@@ -6,7 +6,6 @@ import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes, IconNotFo
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IconHanlders {
-    readonly getIconRepoConfig: (req: Request, res: Response) => void;
     readonly describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly describeIcon: (iconPathRoot: string) => (req: Request, res: Response) => void;
     readonly createIcon: (req: Request, res: Response) => void;
@@ -84,15 +83,6 @@ const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Reques
 
 const iconHandlersProvider: (iconService: IconService) => IconHanlders
 = iconService => ({
-    getIconRepoConfig: (req: Request, res: Response) => iconService.getRepoConfiguration().toPromise()
-    .then(
-        config => res.send(config),
-        error => {
-            logger.createChild("icon-formats service").error("Failed to retrieve icons formats", error);
-            res.status(500).send({error: error.message});
-        }
-    ),
-
     describeAllIcons: (iconPathRoot: string) => (req: Request, res: Response) =>
         describeAllIcons(iconService.describeAllIcons, iconPathRoot)(req, res),
 

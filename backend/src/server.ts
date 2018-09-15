@@ -32,7 +32,6 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconH
 
     app.use(appConfig().server_url_context, express.static(appConfig().path_to_static_files));
 
-    router.get("/icons/config", iconHandlers.getIconRepoConfig);
     router.get("/icons", iconHandlers.describeAllIcons("/icons"));
     router.post("/icons", upload.any(), iconHandlers.createIcon);
     router.get("/icons/:name", iconHandlers.describeIcon("/icons"));

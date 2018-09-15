@@ -20,9 +20,7 @@ configuration
 .flatMap(configProvider => {
     return iconServiceProvider(
         {
-            resetData: configProvider().icon_data_create_new,
-            allowedFormats: configProvider().icon_data_allowed_formats,
-            allowedSizes: configProvider().icon_data_allowed_sizes
+            resetData: configProvider().icon_data_create_new
         },
         iconDAFsProvider(createConnectionProperties(configProvider())),
         gitAFsProvider(configProvider().icon_data_location_git)
