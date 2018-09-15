@@ -8,8 +8,7 @@
                 @change='changes => filesChange(changes)'/>
         <create-icon-attributes
                 v-if="isFileSelected"
-                :formats='formats'
-                :sizes='sizes'
+                :iconfileTypes="iconfileTypes"
                 :attributes="{iconName, fileName, format, size}"
                 @change='onAttributeChange'/>
         <span slot="footer" class="dialog-footer">
@@ -22,6 +21,7 @@
 
 <script>
 import Vue from 'vue';
+import { defaultTypeForFile } from '@/services/config';
 import CreateIconAttributes from '@/components/icons/CreateIconAttributes';
 import SelectFileToUpload from '@/components/icons/SelectFileToUpload';
 import { createIcon } from '@/services/icon';
@@ -29,8 +29,7 @@ import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 
 export default {
     props: [
-        "formats",
-        "sizes",
+        "iconfileTypes",
         "dialogVisible"
     ],
     components: {
@@ -46,8 +45,8 @@ export default {
         return {
             iconName: '',
             fileName: '',
-            format: this.initialFormat(),
-            size: this.initialSize(),
+            format: null,
+            size: null,
             formData: null,
             inUpload: false
         };
@@ -56,15 +55,9 @@ export default {
         resetData() {
             this.iconName = '';
             this.fileName = '';
-            this.format = this.initialFormat();
-            this.size = this.initialSize();
+            this.format = null;
+            this.size = null;
             this.formData = null;
-        },
-        initialFormat() {
-            return Vue.util.extend({}, this.formats)[0];
-        },
-        initialSize() {
-            return Vue.util.extend({}, this.sizes)[0];
         },
         onAttributeChange(newAttrib) {
             this.iconName = newAttrib.iconName || this.iconName;
@@ -75,6 +68,9 @@ export default {
             this.fileName = iconfileName;
             this.iconName = iconfileName;
             this.formData = formData;
+            const iconfileType = defaultTypeForFile(this.fileName);
+            this.format = iconfileType.format;
+            this.size = iconfileType.size;
         },
         cancel() {
             this.hideDialog(CANCELLED);

@@ -38,9 +38,7 @@ export const startServer: StartServer = customConfig => {
         );
         return iconServiceProvider(
             {
-                resetData: "always",
-                allowedFormats: configData.icon_data_allowed_formats,
-                allowedSizes: configData.icon_data_allowed_sizes
+                resetData: "always"
             },
             iconDAFsProvider(createConnectionProperties(configData)),
             gitProvider(configData.icon_data_location_git)

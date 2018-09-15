@@ -41,38 +41,43 @@
 export default {
     name: 'IconfileAttributes',
     props: [
-        "formats",
-        "sizes",
+        "iconfileTypes",
         "attributes"
     ],
     computed: {
         formatOptions() {
-            return this.formats.map(f => ({value: f, label: f}));
+            return this.formats().map(format => ({value: format, label: format}));
         },
         sizeOptions() {
-            return this.sizes.map(f => ({value: f, label: f}));
+            return this.iconfileTypes[this.format].map(size => ({value: size, label: size}));
         }
     },
     data: function() {
         return {
             iconName: this.attributes.fileName,
             fileName: this.attributes.fileName,
-            format: this.initialFormat(),
+            format: this.attributes.format,
             size: this.attributes.size
         };
     },
     methods: {
-        onAttributeChange(delta) {
-            this.$emit('change', delta);
+        formats() {
+            return Object.keys(this.iconfileTypes);
         },
-        initialFormat() {
-            const filenameExtension = this.attributes.fileName.split('.').pop();
-            if (this.formats.includes(filenameExtension)) {
-                this.onAttributeChange({format: filenameExtension});
-                return filenameExtension;
+        onAttributeChange(delta) {
+            const change = {
+                fileName: this.attributes.fileName,
+                ...delta
+            };
+            if (delta.format) {
+                this.format = delta.format;
+                change.size = this.iconfileTypes[this.format][0];
+                this.size = change.size;
             } else {
-                return this.attributes.format;
+                this.size = delta.size;
+                change.format = this.attributes.format;
             }
+            this.$emit('change', change);
         }
     }
 }

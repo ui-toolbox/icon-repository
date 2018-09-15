@@ -3,8 +3,7 @@
         <el-tabs v-model="activeOperation">
             <el-tab-pane label="Add icon-file to icon" name="addfile">
                     <add-iconfile
-                        :formats="formats"
-                        :sizes="sizes"
+                        :iconfileTypes="iconfileTypes"
                         :iconName="icon.name"
                         @iconfileAdded="iconfileAdded"
                         />
@@ -49,8 +48,7 @@ import getEndpointUrl from '@/services/url';
 export default {
     props: [
         "icon",
-        "formats",
-        "sizes",
+        "iconfileTypes",
         "dialogVisible"
     ],
     components: {

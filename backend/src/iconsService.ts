@@ -6,12 +6,6 @@ import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
 import csvSplitter from "./utils/csvSplitter";
 
-interface IconRepoConfig {
-    readonly allowedFileFormats: List<string>;
-    readonly allowedIconSizes: List<string>;
-}
-
-type GetIconRepoConfig = () => Observable<IconRepoConfig>;
 export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
 type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
@@ -35,7 +29,6 @@ type UpdateIconFile = (
 type DeleteIconFile = (iconName: string, iconFileDesc: IconFileDescriptor, modifiedBy: string) => Observable<void>;
 
 export interface IconService {
-    readonly getRepoConfiguration: GetIconRepoConfig;
     readonly describeAllIcons: DescribeAllIcons;
     readonly describeIcon: DescribeIcon;
     readonly getIconFile: GetIconFile;
@@ -47,14 +40,10 @@ export interface IconService {
     readonly deleteIconFile: DeleteIconFile;
 }
 
-export const iconFormatListParser = csvSplitter;
-
 export const iconSizeListParser = csvSplitter;
 
 export interface IconRepoSettings {
     readonly resetData: string;
-    readonly allowedFormats: string;
-    readonly allowedSizes: string;
 }
 
 const isNewRepoNeeded: (resetData: string, gitAFs: GitAccessFunctions) => Observable<boolean>
@@ -79,13 +68,6 @@ const iconServiceProvider: (
     gitAFs: GitAccessFunctions
 ) => Observable<IconService>
 = (iconRepoConfig, iconDAFs, gitAFs) => {
-
-    const getRepoConfiguration: GetIconRepoConfig = () => {
-        return Observable.of({
-            allowedFileFormats: iconFormatListParser(iconRepoConfig.allowedFormats),
-            allowedIconSizes: iconSizeListParser(iconRepoConfig.allowedSizes)
-        });
-    };
 
     const describeAllIcons: DescribeAllIcons = () => iconDAFs.describeAllIcons();
 
@@ -136,7 +118,6 @@ const iconServiceProvider: (
 
     return createNewRepoMaybe(iconRepoConfig.resetData, iconDAFs, gitAFs)
     .mapTo({
-        getRepoConfiguration,
         describeIcon,
         createIcon,
         updateIcon,

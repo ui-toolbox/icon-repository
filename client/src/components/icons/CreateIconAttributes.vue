@@ -9,8 +9,7 @@
             </el-col>
         </el-row>
         <iconfile-attributes
-            :formats='formats'
-            :sizes='sizes'
+            :iconfileTypes="iconfileTypes"
             :attributes="{fileName, format, size}"
             @change='onAttributeChange'/>
     </div>
@@ -24,8 +23,7 @@ export default {
         'iconfile-attributes': IconfileAttributes
     },
     props: [
-        "formats",
-        "sizes",
+        "iconfileTypes",
         "attributes"
     ],
     data() {

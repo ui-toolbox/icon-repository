@@ -9,12 +9,6 @@ import { clone } from "./utils/clone";
 
 const ICON_REPO_HOME = path.resolve(Process.env.HOME, ".ui-toolbox/icon-repo");
 
-interface IServerConfiguration {
-    readonly hostname: string;
-    readonly port: number;
-    readonly context?: string;
-}
-
 const configurationDataProto = Object.freeze({
     server_hostname: "",
     server_port: 0,
@@ -23,8 +17,6 @@ const configurationDataProto = Object.freeze({
     path_to_static_files: "",
     icon_data_location_git: "",
     icon_data_create_new: "",
-    icon_data_allowed_formats: "",
-    icon_data_allowed_sizes: "",
     authentication_type: "",
     oidc_client_id: "",
     oidc_client_secret: "",
@@ -62,8 +54,6 @@ const defaultSettings = {
     conn_password: "iconrepo",
     conn_database: "iconrepo",
     icon_data_create_new: "never",
-    icon_data_allowed_formats: "svg, png",
-    icon_data_allowed_sizes: "18px, 24px, 48px, 18dp, 24dp, 36dp, 48dp, 144dp",
     enable_backdoors: false,
     package_root_dir: path.resolve(path.dirname(__filename))
 };
