@@ -97,11 +97,15 @@ export default {
             });
         },
         handleClose(done) {
-            this.$confirm('Are you sure to close this dialog?')
-            .then(_ => {
+            if (this.isFileSelected) {
+                this.$confirm('Are you sure to close this dialog?')
+                .then(_ => {
+                    this.hideDialog(CANCELLED);
+                })
+                .catch(_ => {});
+            } else {
                 this.hideDialog(CANCELLED);
-            })
-            .catch(_ => {});
+            }
         },
         hideDialog(status, error) {
             this.resetData()
