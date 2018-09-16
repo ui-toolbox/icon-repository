@@ -47,4 +47,4 @@ k6 run \
 
 stats "::Create and refresh" "group_duration"
 stats "::Create and refresh::Create icon" "group_duration"
-stats "::Create and refresh::Reload icons" "group_duration"
+stats "::Create and refresh::Reload all icons" "group_duration"

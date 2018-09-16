@@ -5,6 +5,10 @@ const sampleIconFilePath = "../../demo-data/svg/48px/attach_money.svg";
 const format = "svg";
 const svgFile = open(sampleIconFilePath);
 
+export let options = {
+    batchPerHost: 6
+};
+
 export default function() {
 
     group("Create and refresh", () => {
@@ -37,17 +41,24 @@ export default function() {
 
             const listDescList = JSON.parse(resDescribe.body);
 
-            group("Fetch icons", () => {
-                listDescList.forEach(desc =>
-                    Object.keys(desc.paths).forEach(format =>
-                        Object.keys(desc.paths[format]).forEach(size => {
-                            const resFetch = http.get(`${__ENV.ICONREPO_BASE_URL}${desc.paths[format][size]}`);
-                            check(resFetch, {
-                                "is status 200": r => r.status === 200
-                            });
-                        })
-                    )
-                )
+            group("Fetch first icon files", () => {
+                const reqBatch = listDescList.map(desc => {
+                    const firstFormat = desc.paths.svg ? "svg" : Object.keys(desc.paths)[0];
+                    const firstSize = Object.keys(desc.paths[firstFormat])[0];
+                    return {
+                        method: "GET",
+                        url: `${__ENV.ICONREPO_BASE_URL}${desc.paths[firstFormat][firstSize]}`
+                    }
+                });
+                const responses = http.batch(reqBatch);
+                Object.keys(responses).forEach(respKey => {
+                    const resp = responses[respKey];
+                    check(resp, {
+                        "is status 200": r => {
+                            return r.status === 200;
+                        }
+                    });
+                });
             })
         })
     })
