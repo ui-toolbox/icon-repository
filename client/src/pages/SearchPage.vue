@@ -31,19 +31,20 @@
             :dialogVisible="createDialogVisible"
             @finished="dialogClosed"/>
     <modify-icon-dialog
-            v-if="selectedIcon && hasUpdateIconPrivilege"
+            v-if="activeIcon"
             :iconfileTypes="iconfileTypes"
-            :icon="selectedIcon"
-            :dialogVisible="modifyDialogVisible"
+            :icon="activeIcon"
+            :dialogVisible="modifyIconDialogVisible"
             @finished="dialogClosed"/>
     <icon-details-dialog
-            v-if="selectedIcon && !hasUpdateIconPrivilege"
-            :icon="selectedIcon"
-            :dialogVisible="modifyDialogVisible"
+            v-if="activeIcon"
+            :icon="activeIcon"
+            :dialogVisible="iconDetailsDialogVisible"
             @finished="dialogClosed"/>
 
     <section class="inner-wrapper icon-grid">
-      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path" @iconSelected="iconSelected" class="grid-cell"></icon-cell>
+      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path"
+                :editable="hasUpdateIconPrivilege" @edit="editIcon" @view="viewIcon" class="grid-cell"></icon-cell>
     </section>
 
   </div>
@@ -113,8 +114,9 @@ export default {
         icons: [],
         searchQuery: '',
         createDialogVisible: false,
-        selectedIcon: null,
-        modifyDialogVisible: false
+        activeIcon: null,
+        iconDetailsDialogVisible: false,
+        modifyIconDialogVisible: false
     }
   },
   methods: {
@@ -130,14 +132,19 @@ export default {
             }
         })
       },
-      iconSelected(iconName) {
-          this.selectedIcon = iconName;
-          this.modifyDialogVisible = true;
+      editIcon(iconName) {
+          this.activeIcon = iconName;
+          this.modifyIconDialogVisible = true;
+      },
+      viewIcon(iconName) {
+          this.activeIcon = iconName;
+          this.iconDetailsDialogVisible = true;
       },
       dialogClosed(result) {
           this.createDialogVisible = false;
-          this.modifyDialogVisible = false;
-          this.selectedIcon = null;
+          this.modifyIconDialogVisible = false;
+          this.iconDetailsDialogVisible = false;
+          this.activeIcon = null;
           if (result.status === SUCCESSFUL) {
               this.loadIcons();
           } else if (result.status === FAILED) {
@@ -230,7 +237,7 @@ $ic-color-text: #455156;
   }
 }
 
-$icon-grid-size: 120px;
+$icon-grid-size: 160px;
 .icon-grid {
   width: 100%;
   display: flex;
@@ -242,7 +249,7 @@ $icon-grid-size: 120px;
     display: block;
     width: $icon-grid-size;
     height: $icon-grid-size;
-    margin: 30px;
+    margin: 10px;
     flex: 1 0 $icon-grid-size;
     max-width: $icon-grid-size;
   }
