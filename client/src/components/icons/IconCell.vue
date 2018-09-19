@@ -1,7 +1,5 @@
 <template>
-    <div class="icon-cell">
-        <div v-if="!editable" class="el-icon-view iconcell-control" @click="viewRequested"/>
-        <div v-if="editable" class="el-icon-edit iconcell-control" @click="editRequested"/>
+    <div class="icon-cell" @click="detailsRequested">
         <div class="icon-preview">
         <img v-bind:src="firstPath" height="30">
         </div>
@@ -17,17 +15,15 @@ export default {
     computed: {
         firstPath() {
             // If the icon has SVG format, prefer that
-            const format = this.icon.paths.svg ? "svg" : Object.keys(this.icon.paths)[0];
+            const format = this.icon.paths.svg ? 'svg' : Object.keys(this.icon.paths)[0];
             return getEndpointUrl(this.icon.paths[format][Object.keys(this.icon.paths[format])[0]]);
         }
     },
     methods: {
-        viewRequested() {
-            this.$emit('view', this.icon);
+        detailsRequested() {
+            const event = this.editable ? 'edit' : 'view';
+            this.$emit(event, this.icon);
         },
-        editRequested() {
-            this.$emit('edit', this.icon);
-        }
     }
 }
 </script>
