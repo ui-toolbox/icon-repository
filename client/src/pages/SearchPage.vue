@@ -59,7 +59,7 @@ import UserSettings from '@/components/UserSettings';
 import IconCell from '@/components/icons/IconCell';
 import CreateIconDialog from '@/components/icons/CreateIconDialog';
 import ModifyIconDialog from '@/components/icons/ModifyIconDialog';
-import IconDetailsDialog from '@/components/icons/IconDetailsDialog';
+import IconDetailsDialog_1 from '@/components/icons/IconDetailsDialog-1';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 
 import testIconData from '@/resources/test-icon-data';
@@ -70,7 +70,7 @@ export default {
     'app-settings': AppSettings,
     'user-settings': UserSettings,
     'icon-cell': IconCell,
-    'icon-details-dialog': IconDetailsDialog,
+    'icon-details-dialog': IconDetailsDialog_1,
     'create-icon-dialog': CreateIconDialog,
     'modify-icon-dialog': ModifyIconDialog
   },
