@@ -8,21 +8,19 @@
 </template>
 
 <script>
-import getEndpointUrl from '@/services/url';
+import { preferredIconfileUrl } from '@/services/icon';
+
 export default {
     name: 'IconCell',
-    props: ['icon', 'editable'],
+    props: ['icon'],
     computed: {
         firstPath() {
-            // If the icon has SVG format, prefer that
-            const format = this.icon.paths.svg ? 'svg' : Object.keys(this.icon.paths)[0];
-            return getEndpointUrl(this.icon.paths[format][Object.keys(this.icon.paths[format])[0]]);
+            return preferredIconfileUrl(this.icon);
         }
     },
     methods: {
         detailsRequested() {
-            const event = this.editable ? 'edit' : 'view';
-            this.$emit(event, this.icon);
+            this.$emit('view', this.icon);
         },
     }
 }

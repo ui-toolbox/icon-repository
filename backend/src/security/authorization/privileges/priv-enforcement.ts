@@ -24,6 +24,9 @@ const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
     },
     // "/icons/:name
     "^/icons/[^/]+$": {
+        PATCH: [
+            privilegeDictionary.UPDATE_ICON
+        ],
         PUT: [
             privilegeDictionary.UPDATE_ICON
         ],

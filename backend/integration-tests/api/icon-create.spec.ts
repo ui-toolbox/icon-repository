@@ -42,17 +42,19 @@ describe(iconEndpointPath, () => {
     it ("POST should complete with CREATE_ICON privilege", done => {
         const testIcon = {
             name: "some icon name",
+            modifiedBy: "ux",
             format: "some format",
             size: "some size",
             content: crypto.randomBytes(4096)
         };
         const expectedIconInfo: IconDTO = {
             name: testIcon.name,
-            paths: {
-                [testIcon.format]: {
-                    [testIcon.size]: getFilePath(testIcon.name, {format: testIcon.format, size: testIcon.size})
-                }
-            }
+            modifiedBy: testIcon.modifiedBy,
+            paths: [{
+                format: testIcon.format,
+                size: testIcon.size,
+                path: getFilePath(testIcon.name, {format: testIcon.format, size: testIcon.size})
+            }]
         };
 
         const privileges = [

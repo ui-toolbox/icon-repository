@@ -1,8 +1,17 @@
 <template>
     <div>
         <el-row>
-            <el-col :span="3" ><span class="label">Label</span></el-col>
-            <el-col :span="21"><tag-collection :tags="tags" @tag-added="tagAdded" @tag-removed="tagRemoved"></tag-collection></el-col>
+            <el-col :span="5" ><span class="label">{{label}}:</span></el-col>
+            <el-col :span="19">
+                <tag-collection
+                    :tags="tags"
+                    :selectedIndex="selectedIndex"
+                    :itemsCanBeAdded="itemsCanBeAdded"
+                    :itemsCanBeRemoved="itemsCanBeRemoved"
+                    @change-selection="selectionChangeRequest"
+                    @add-tag="tagAdditionRequest"
+                    @remove-tag="tagRemovalRequest"/>
+            </el-col>
         </el-row>
     </div>
 </template>
@@ -15,14 +24,21 @@ export default {
         'tag-collection': TagCollection
     },
     props: [
-        "tags"
+        "label",
+        "tags",
+        "selectedIndex",
+        "itemsCanBeAdded",
+        "itemsCanBeRemoved"
     ],
     methods: {
-        tagAdded(tagValue) {
-            this.$emit('tag-added', tagValue);
+        selectionChangeRequest(index) {
+            this.$emit('change-selection', index);
         },
-        tagRemoved(tag) {
-            this.$emit('tag-removed', tag);
+        tagAdditionRequest(tagValue) {
+            this.$emit('add-tag', tagValue);
+        },
+        tagRemovalRequest(index) {
+            this.$emit('remove-tag', index);
         }
     }
 }
@@ -31,7 +47,7 @@ export default {
 
 <style lang="postcss" scoped>
     .el-col {
-        height: 24px;
+        height: auto;
     }
     .label {
         line-height: 24px;

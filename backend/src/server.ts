@@ -10,12 +10,16 @@ import { IconHanlders } from "./iconsHandlers";
 import { ConfigurationDataProvider } from "./configuration";
 import securityManagerProvider from "./security/securityManager";
 import appInfoHandlerProvider from "./appInfoHandler";
+import iconServiceProvider from "./iconsService";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconHanlders) => Rx.Observable<http.Server>
-= (appConfig, iconHandlers) => {
+const serverProvider: (
+    appConfig: ConfigurationDataProvider,
+    iconHandlers: (iconPathRoot: string) => IconHanlders
+) => Rx.Observable<http.Server>
+= (appConfig, iconHandlersProvider) => {
 
     const app = express();
     app.use(helmet());
@@ -32,10 +36,13 @@ const serverProvider: (appConfig: ConfigurationDataProvider, iconHandlers: IconH
 
     app.use(appConfig().server_url_context, express.static(appConfig().path_to_static_files));
 
-    router.get("/icons", iconHandlers.describeAllIcons("/icons"));
+    const iconHandlers = iconHandlersProvider("/icons");
+
+    router.get("/icons", iconHandlers.describeAllIcons);
     router.post("/icons", upload.any(), iconHandlers.createIcon);
-    router.get("/icons/:name", iconHandlers.describeIcon("/icons"));
-    router.put("/icons/:name", iconHandlers.updateIcon);
+    router.get("/icons/:name", iconHandlers.describeIcon);
+    router.post("/icons/:name", upload.any(), iconHandlers.ingestIconfile);
+    router.patch("/icons/:name", iconHandlers.updateIcon);
     router.delete("/icons/:name", iconHandlers.deleteIcon);
     router.get("/icons/:name/formats/:format/sizes/:size", iconHandlers.getIconFile);
     router.post("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);

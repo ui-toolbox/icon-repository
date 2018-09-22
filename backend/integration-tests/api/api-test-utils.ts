@@ -98,6 +98,7 @@ export class Session {
     public requestBuilder() {
         return ({
             get: (path: string) => this.addConfig(this.session.get(`${this.baseUrl}${path}`)),
+            patch: (path: string) => this.addConfig(this.session.patch(`${this.baseUrl}${path}`).ok(() => true)),
             post: (path: string) => this.addConfig(this.session.post(`${this.baseUrl}${path}`).ok(() => true)),
             put: (path: string) => this.addConfig(this.session.put(`${this.baseUrl}${path}`).ok(() => true)),
             del: (path: string) => this.addConfig(this.session.del(`${this.baseUrl}${path}`).ok(() => true))

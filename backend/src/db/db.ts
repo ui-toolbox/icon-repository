@@ -2,9 +2,19 @@ import { List, Set } from "immutable";
 import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult } from "pg";
 
-import { IconDescriptor, IconFile, IconFileDescriptor, IconAttributes, IconNotFound } from "../icon";
+import {
+    IconDescriptor,
+    IconFile,
+    IconFileDescriptor,
+    IconAttributes,
+    IconNotFound,
+    IconFileAlreadyExists } from "../icon";
 import logger from "../utils/logger";
 import { createSchema, CreateSchema } from "./create-schema";
+
+const pgErrorCodes = {
+    unique_constraint_violation: 23505
+};
 
 const ctxLogger = logger.createChild("db");
 
@@ -198,6 +208,17 @@ export const updateIcon: (pool: Pool) => UpdateIcon
             .flatMap(() => createSideEffect(iconDesc))));
 };
 
+type DeleteIconFromIconTable = (
+    executeQuery: ExecuteQuery,
+    iconName: string
+) => Observable<void>;
+
+const deleteIconFromIconTable: DeleteIconFromIconTable = (executeQuery, iconName) => {
+    const deleteIconSQL: string = "DELETE FROM icon WHERE name = $1";
+    return executeQuery(deleteIconSQL, [ iconName ])
+    .mapTo(void 0);
+};
+
 type DeleteIcon = (
     iconName: string,
     modifiedBy: string,
@@ -210,7 +231,7 @@ export const deleteIcon: (pool: Pool) => DeleteIcon
         describeIconBare(executeQuery, iconName, true)
         .flatMap(iconDesc => iconDesc.iconFiles.toArray())
         .flatMap(iconFileDesc =>
-            deleteIconFileBare(executeQuery, iconName, iconFileDesc, modifiedBy)
+            deleteIconFromIconTable(executeQuery, iconName)
             .mapTo(iconFileDesc))
         .reduce((acc, iconFileDesc) => acc.add(iconFileDesc), Set())
         .flatMap((iconFileDescSet: Set<IconFileDescriptor>) =>
@@ -247,7 +268,11 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile
         return insertIconFileIntoTable(executeQuery, iconFile, modifiedBy)
         .flatMap(iconFileId =>
             (createSideEffect ? createSideEffect() : Observable.of(void 0))
-            .map(() => iconFileId));
+            .map(() => iconFileId))
+        .catch(error => error.code === pgErrorCodes.unique_constraint_violation
+            ? Observable.throw(new IconFileAlreadyExists(iconFile))
+            : Observable.throw(error)
+        );
     });
 };
 
@@ -287,7 +312,7 @@ const deleteIconFileBare: DeleteIconFileBare
         .flatMap(() => executeQuery(countIconFilesLeftForIcon, [iconId]))
         .map(countQueryResult => countQueryResult.rows[0].icon_file_count)
         .flatMap(countOfLeftIconFiles =>
-            countOfLeftIconFiles === 0
+            parseInt(countOfLeftIconFiles, 10) === 0
                 ? executeQuery(deleteIconSQL, [iconId])
                 : Observable.of(void 0)));
 };
@@ -341,6 +366,7 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +
+                    "icon.modified_by as modified_by, " +
                     "icon_file.file_format as icon_file_format, " +
                     "icon_file.icon_size as icon_size " +
                 "FROM icon, icon_file " +
@@ -356,7 +382,7 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
             let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
             if (!lastIconInfo || row.icon_name !== lastIconInfo.name) {
-                lastIconInfo = new IconDescriptor(row.icon_name, Set());
+                lastIconInfo = new IconDescriptor(row.icon_name, row.modified_by, Set());
                 lastIndex++;
             }
             return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));
@@ -371,6 +397,7 @@ const describeIconBare: DescribeIconBare = (executeQuery, iconName, forUpdate = 
     const sql: string =
                 "SELECT icon.name as icon_name, " +
                     "icon.id as icon_id, " +
+                    "icon.modified_by as modified_by, " +
                     "icon_file.file_format as icon_file_format, " +
                     "icon_file.icon_size as icon_size " +
                 "FROM icon, icon_file " +
@@ -388,7 +415,7 @@ const describeIconBare: DescribeIconBare = (executeQuery, iconName, forUpdate = 
             let lastIconInfo: IconDescriptor = iconInfoList.last();
             let lastIndex: number = iconInfoList.size - 1;
             if (!lastIconInfo || row.icon_name !== lastIconInfo.name) {
-                lastIconInfo = new IconDescriptor(row.icon_name, Set());
+                lastIconInfo = new IconDescriptor(row.icon_name, row.modified_by, Set());
                 lastIndex++;
             }
             return iconInfoList.set(lastIndex, lastIconInfo.addIconFile(iconFile));
