@@ -51,7 +51,7 @@ describe("DEL icons/:name/<file>", () => {
         const fileToDelete = iconToDeleteFrom.files.get(0);
         const descOfIconFileToDelete: IconFileDescriptor = { format: fileToDelete.format, size: fileToDelete.size };
         const expectedAllIconsDescriptor = getTestDataDescriptor();
-        delete expectedAllIconsDescriptor[0].paths.french.great;
+        expectedAllIconsDescriptor[0].paths.splice(1, 1);
 
         // Used in asserting git result
         const expectedIconFile: IconFile = { name: iconToDeleteFrom.name, ...fileToDelete };

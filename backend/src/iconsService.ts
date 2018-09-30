@@ -1,17 +1,22 @@
 import { List } from "immutable";
 import { Observable } from "rxjs/Rx";
 
-import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes } from "./icon";
+import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes, IconfileDescriptorEx } from "./icon";
 import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
 import csvSplitter from "./utils/csvSplitter";
+import { probeMetadata } from "./iconfileService";
 
 export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
 type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
     initialIconFileInfo: IconFile,
-    modifiedBy: string) => Observable<number>;
+    modifiedBy: string) => Observable<IconfileDescriptorEx>;
+type IngestIconfile = (
+    iconName: string,
+    content: Buffer,
+    modifiedBy: string) => Observable<IconFileDescriptor>;
 type UpdateIcon = (
     oldIconName: string,
     newIcon: IconAttributes,
@@ -33,6 +38,7 @@ export interface IconService {
     readonly describeIcon: DescribeIcon;
     readonly getIconFile: GetIconFile;
     readonly createIcon: CreateIcon;
+    readonly ingestIconfile: IngestIconfile;
     readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
     readonly addIconFile: AddIconFile;
@@ -76,11 +82,35 @@ const iconServiceProvider: (
     const getIconFile: GetIconFile = (iconId, fileFormat, iconSize) =>
         iconDAFs.getIconFile(iconId, fileFormat, iconSize);
 
-    const createIcon: CreateIcon = (iconfFileInfo, modifiedBy) =>
-        iconDAFs.createIcon(
-            iconfFileInfo,
+    const createIcon: CreateIcon = (iconFileInfo, modifiedBy) =>
+        (iconFileInfo.format
+            ? Observable.of(iconFileInfo)
+            : probeMetadata(iconFileInfo.content).map(v => ({
+                name: iconFileInfo.name,
+                format: v.type,
+                size: `${v.height}${v.hUnits}`,
+                content: iconFileInfo.content
+            }))
+        )
+        .flatMap(fixedIconfileInfo => iconDAFs.createIcon(
+            fixedIconfileInfo,
             modifiedBy,
-            () => gitAFs.addIconFile(iconfFileInfo, modifiedBy));
+            () => gitAFs.addIconFile(fixedIconfileInfo, modifiedBy))
+            .mapTo({
+                name: fixedIconfileInfo.name,
+                format: fixedIconfileInfo.format,
+                size: fixedIconfileInfo.size
+            }));
+
+    const ingestIconfile: IngestIconfile = (iconName, content, modifiedBy) =>
+        probeMetadata(content)
+        .flatMap(v => {
+            const format = v.type;
+            const size = `${v.height}${v.hUnits}`;
+            const iconFile: IconFile = { name: iconName, format, size, content };
+            return addIconFile(iconFile, modifiedBy)
+            .mapTo({format, size});
+        });
 
     const updateIcon: UpdateIcon = (oldIconName, newIcon, modifiedBy) =>
         iconDAFs.updateIcon(
@@ -120,6 +150,7 @@ const iconServiceProvider: (
     .mapTo({
         describeIcon,
         createIcon,
+        ingestIconfile,
         updateIcon,
         deleteIcon,
         getIconFile,

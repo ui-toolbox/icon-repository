@@ -1,7 +1,5 @@
 <template>
-    <div class="icon-cell">
-        <div v-if="!editable" class="el-icon-view iconcell-control" @click="viewRequested"/>
-        <div v-if="editable" class="el-icon-edit iconcell-control" @click="editRequested"/>
+    <div class="icon-cell" @click="detailsRequested">
         <div class="icon-preview">
         <img v-bind:src="firstPath" height="30">
         </div>
@@ -10,24 +8,20 @@
 </template>
 
 <script>
-import getEndpointUrl from '@/services/url';
+import { preferredIconfileUrl } from '@/services/icon';
+
 export default {
     name: 'IconCell',
-    props: ['icon', 'editable'],
+    props: ['icon'],
     computed: {
         firstPath() {
-            // If the icon has SVG format, prefer that
-            const format = this.icon.paths.svg ? "svg" : Object.keys(this.icon.paths)[0];
-            return getEndpointUrl(this.icon.paths[format][Object.keys(this.icon.paths[format])[0]]);
+            return preferredIconfileUrl(this.icon);
         }
     },
     methods: {
-        viewRequested() {
+        detailsRequested() {
             this.$emit('view', this.icon);
         },
-        editRequested() {
-            this.$emit('edit', this.icon);
-        }
     }
 }
 </script>

@@ -33,15 +33,12 @@ describe(singleIconPath, () => {
         const icon1: Icon = testData.get(0);
         const expectedReply: IconDTO = {
             name: icon1.name,
-            paths: {
-                french: {
-                    great: getFilePath(icon1.name, {format: "french", size: "great"}),
-                    large: getFilePath(icon1.name, {format: "french", size: "large"})
-                },
-                belge: {
-                    large: getFilePath(icon1.name, {format: "belge", size: "large"})
-                }
-            }
+            modifiedBy: icon1.modifiedBy,
+            paths: [
+                { format: "belge", size: "large", path: getFilePath(icon1.name, {format: "belge", size: "large"}) },
+                { format: "french", size: "great", path: getFilePath(icon1.name, {format: "french", size: "great"}) },
+                { format: "french", size: "large", path: getFilePath(icon1.name, {format: "french", size: "large"}) }
+            ]
         };
 
         const session: Session = agent();

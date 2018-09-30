@@ -8,12 +8,14 @@ import { clone } from "../../src/utils/clone";
 
 export interface Icon {
     readonly name: string;
-    files: List<IconFileData>;
+    readonly modifiedBy: string;
+    readonly files: List<IconFileData>;
 }
 
 export const getTestIconData: () => List<Icon> = () => List([
     {
         name: "cartouche",
+        modifiedBy: "ux",
         files: List([
             {
                 format: "french",
@@ -34,6 +36,7 @@ export const getTestIconData: () => List<Icon> = () => List([
     },
     {
         name: "flonflon",
+        modifiedBy: "ux",
         files: List([
             {
                 format: "french",
@@ -57,27 +60,21 @@ export const getTestIconData: () => List<Icon> = () => List([
 const testDataDescriptor = [
     {
         name: "cartouche",
-        paths: {
-            french: {
-                great: "/icons/cartouche/formats/french/sizes/great",
-                large: "/icons/cartouche/formats/french/sizes/large"
-            },
-            belge: {
-                large: "/icons/cartouche/formats/belge/sizes/large"
-            }
-        }
+        modifiedBy: "ux",
+        paths: [
+            { format: "belge", size: "large", path: "/icons/cartouche/formats/belge/sizes/large" },
+            { format: "french", size: "great", path: "/icons/cartouche/formats/french/sizes/great" },
+            { format: "french", size: "large", path: "/icons/cartouche/formats/french/sizes/large" }
+        ]
     },
     {
         name: "flonflon",
-        paths: {
-            french: {
-                great: "/icons/flonflon/formats/french/sizes/great",
-                large: "/icons/flonflon/formats/french/sizes/large"
-            },
-            belge: {
-                large: "/icons/flonflon/formats/belge/sizes/large"
-            }
-          }
+        modifiedBy: "ux",
+        paths: [
+            { format: "belge", size: "large", path: "/icons/flonflon/formats/belge/sizes/large" },
+            { format: "french", size: "great", path: "/icons/flonflon/formats/french/sizes/great" },
+            { format: "french", size: "large", path: "/icons/flonflon/formats/french/sizes/large" }
+        ]
     }
 ];
 

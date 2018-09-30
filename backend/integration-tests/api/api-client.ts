@@ -8,6 +8,7 @@ export const authenticationBackdoorPath = "/backdoor/authentication";
 
 export interface RequestBuilder {
     get: (path: string) => SuperAgentRequest;
+    patch: (path: string) => SuperAgentRequest;
     post: (path: string) => SuperAgentRequest;
     put: (path: string) => SuperAgentRequest;
     del: (path: string) => SuperAgentRequest;
@@ -130,7 +131,7 @@ export const updateIcon: (
 ) => Observable<void>
 = (requestBuilder, oldIconName, newIcon) => Observable.create((observer: Observer<void>) =>
     requestBuilder
-    .put(`/icons/${oldIconName}`)
+    .patch(`/icons/${oldIconName}`)
     .send(newIcon)
     .then(
         result => {

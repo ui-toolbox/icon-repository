@@ -1,4 +1,3 @@
-import { List } from 'immutable';
 import getEndpointUrl from '@/services/url';
 import { throwError } from '@/services/errors';
 
@@ -22,11 +21,26 @@ export const createIcon = formData => fetch(getEndpointUrl("/icons"), {
 .then(response => {
     if (response.status !== 201) {
         return throwError('Failed to create icon', response);
+    } else {
+        return response.json();
+    }
+});
+
+export const ingestIconfile = (iconName, formData) => fetch(getEndpointUrl(`/icons/${iconName}`), {
+    method: 'POST',
+    credentials: 'include',
+    body: formData
+})
+.then(response => {
+    if (response.status !== 200) {
+        return throwError('Failed to add icon file', response);
+    } else {
+        return response.json();
     }
 });
 
 export const renameIcon = (oldName, newName) => fetch(getEndpointUrl(`/icons/${oldName}`), {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
         "Content-Type": "application/json; charset=utf-8"
     },
@@ -74,11 +88,26 @@ export const deleteIconfile = iconfilePath => fetch(getEndpointUrl(iconfilePath)
 });
 
 export const createIconfileList = iconPaths =>
-    List(Object.keys(iconPaths))
-    .flatMap(format => Object.keys(iconPaths[format])
-        .map(size => {
-            const path = iconPaths[format][size];
-            const url = getEndpointUrl(path);
-            return { format, size, path, url };
-        }))
-    .toArray();
+    iconPaths
+    .map(iconfile => ({
+        format: iconfile.format,
+        size: iconfile.size,
+        path: iconfile.path,
+        url: getEndpointUrl(iconfile.path)
+    }));
+
+export const preferredIconfileType = icon => {
+    // If the icon has SVG format, prefer that
+    const svgFiles = icon.paths.filter(iconfile => iconfile.format === 'svg');
+    return svgFiles.length > 0
+        ? svgFiles[0]
+        : icon.paths[0];
+}
+
+export const urlOfIconfile = (icon, iconfileType) =>
+    getEndpointUrl(icon.paths.filter(iconfile => iconfile.format === iconfileType.format && iconfile.size === iconfileType.size)[0].path);
+
+export const preferredIconfileUrl = icon => urlOfIconfile(icon, preferredIconfileType(icon));
+
+export const indexInIconfileListOfType = (iconfileList, iconfileType) =>
+    iconfileList.findIndex(element => element.format === iconfileType.format && element.size === iconfileType.size);

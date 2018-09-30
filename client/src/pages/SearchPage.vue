@@ -22,29 +22,25 @@
 
     <div class="action-bar">
       <div class="add-icon" v-if="hasAddIconPrivilege">
-        <el-button type="primary" icon="el-icon-plus" @click="createDialogVisible = true">ADD NEW</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="openCreateIconDialog">ADD NEW</el-button>
       </div>
     </div>
 
-    <create-icon-dialog
-            :iconfileTypes="iconfileTypes"
-            :dialogVisible="createDialogVisible"
-            @finished="dialogClosed"/>
-    <modify-icon-dialog
-            v-if="activeIcon"
-            :iconfileTypes="iconfileTypes"
-            :icon="activeIcon"
-            :dialogVisible="modifyIconDialogVisible"
-            @finished="dialogClosed"/>
     <icon-details-dialog
-            v-if="activeIcon"
-            :icon="activeIcon"
-            :dialogVisible="iconDetailsDialogVisible"
-            @finished="dialogClosed"/>
+        v-if="iconDetailsDialogVisible"
+        :dialogVisible="iconDetailsDialogVisible"
+        :icon="activeIcon"
+        :initInEdit="detailsDialogForCreate"
+        :editable="hasUpdateIconPrivilege"
+        @finished="dialogClosed"/>
 
     <section class="inner-wrapper icon-grid">
-      <icon-cell v-for="item in filteredIcons" v-bind:icon="item" :key="item.path"
-                :editable="hasUpdateIconPrivilege" @edit="editIcon" @view="viewIcon" class="grid-cell"></icon-cell>
+      <icon-cell
+        v-for="item in filteredIcons"
+        v-bind:icon="item"
+        :key="item.name"
+        @view="viewIconDetails"
+        class="grid-cell"/>
     </section>
 
   </div>
@@ -57,8 +53,6 @@ import getEndpointUrl from '@/services/url';
 import AppSettings from '@/components/AppSettings';
 import UserSettings from '@/components/UserSettings';
 import IconCell from '@/components/icons/IconCell';
-import CreateIconDialog from '@/components/icons/CreateIconDialog';
-import ModifyIconDialog from '@/components/icons/ModifyIconDialog';
 import IconDetailsDialog from '@/components/icons/IconDetailsDialog';
 import { SUCCESSFUL, CANCELLED, FAILED } from '@/services/constants';
 
@@ -70,9 +64,7 @@ export default {
     'app-settings': AppSettings,
     'user-settings': UserSettings,
     'icon-cell': IconCell,
-    'icon-details-dialog': IconDetailsDialog,
-    'create-icon-dialog': CreateIconDialog,
-    'modify-icon-dialog': ModifyIconDialog
+    'icon-details-dialog': IconDetailsDialog
   },
   computed: {
     hasAddIconPrivilege() {
@@ -82,13 +74,12 @@ export default {
         return userService.hasUpdateIconPrivilege(this.user);
     },
     filteredIcons: function () {
-      var self = this;
       if (this.searchQuery=='') {
         return this.icons;
       }
       else {
-        return self.icons.filter(function (icon) {
-         return icon.name.toLowerCase().indexOf(self.searchQuery.toLowerCase()) !== -1
+        return this.icons.filter(icon => {
+          return icon.name.toLowerCase().indexOf(this.searchQuery.toLowerCase()) !== -1
         })
       }
     }
@@ -97,7 +88,6 @@ export default {
     this.branding = {
         appDescription: getAppInfo().appDescription
     };
-
     userService.fetchUserInfo()
     .then(
         userinfo => this.user = userinfo,
@@ -113,10 +103,9 @@ export default {
         iconTypes: {},
         icons: [],
         searchQuery: '',
-        createDialogVisible: false,
         activeIcon: null,
-        iconDetailsDialogVisible: false,
-        modifyIconDialogVisible: false
+        detailsDialogForCreate: false,
+        iconDetailsDialogVisible: false
     }
   },
   methods: {
@@ -132,24 +121,34 @@ export default {
             }
         })
       },
-      editIcon(iconName) {
-          this.activeIcon = iconName;
-          this.modifyIconDialogVisible = true;
+      updateIcon(sourceIcon) {
+        if (this.icons.some(targetIcon => targetIcon.name === sourceIcon.name)) { // sourceIcon already existed
+          this.icons = sourceIcon.paths === null // icon DELETED
+            ? this.icons.filter(targetIcon => targetIcon.name !== sourceIcon.name)
+            : this.icons.map(targetIcon => targetIcon.name === sourceIcon.name ? sourceIcon : targetIcon);
+        } else { // sourceIcon is new
+          this.icons = [ ...this.icons, sourceIcon ];
+          this.icons.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+        }
       },
-      viewIcon(iconName) {
-          this.activeIcon = iconName;
-          this.iconDetailsDialogVisible = true;
+      openCreateIconDialog() {
+        this.activeIcon = { paths: [] };
+        this.detailsDialogForCreate = true;
+        this.iconDetailsDialogVisible = true;
+      },
+      viewIconDetails(icon) {
+        this.activeIcon = icon;
+        this.iconDetailsDialogVisible = true;
       },
       dialogClosed(result) {
-          this.createDialogVisible = false;
-          this.modifyIconDialogVisible = false;
-          this.iconDetailsDialogVisible = false;
-          this.activeIcon = null;
-          if (result.status === SUCCESSFUL) {
-              this.loadIcons();
-          } else if (result.status === FAILED) {
-              this.$showErrorMessage(result.error);
-          }
+        this.detailsDialogForCreate = false;
+        this.iconDetailsDialogVisible = false;
+        this.activeIcon = null;
+        if (result.status === SUCCESSFUL) {
+            this.updateIcon(result.icon)
+        } else if (result.status === FAILED) {
+            this.$showErrorMessage(result.error);
+        }
       }
   }
 }

@@ -35,7 +35,7 @@
             .map(x => {
                 formData.append(fieldName, fileList[x], fileList[x].name);
             });
-            this.$emit('change', {iconfileName: fileList[0].name, formData});
+            this.$emit('upload-request', {fileName: fileList[0].name, formData});
         }
     }
   }

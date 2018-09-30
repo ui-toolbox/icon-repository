@@ -14,7 +14,7 @@ describe(iconEndpointPath, () => {
 
     const agent = manageTestResourcesBeforeAndAfter();
 
-    it ("POST should fail with 403 without UPDATE_ICON privilege", done => {
+    it ("PATCH should fail with 403 without UPDATE_ICON privilege", done => {
         const testData = getTestIconData();
         const oldIconName = "cartouche";
         const newIcon: IconAttributes = {
@@ -32,7 +32,7 @@ describe(iconEndpointPath, () => {
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
-    it ("POST should complete with UPDATE_ICON privilege", done => {
+    it ("PATCH should complete with UPDATE_ICON privilege", done => {
         const testData = getTestIconData();
         const testAllIconDescriptor = getTestDataDescriptor();
 
@@ -42,15 +42,11 @@ describe(iconEndpointPath, () => {
         };
 
         testAllIconDescriptor[0].name = newIcon.name;
-        testAllIconDescriptor[0].paths = {
-            french: {
-                great: `/icons/${newIcon.name}/formats/french/sizes/great`,
-                large: `/icons/${newIcon.name}/formats/french/sizes/large`
-            },
-            belge: {
-                large: `/icons/${newIcon.name}/formats/belge/sizes/large`
-            }
-        };
+        testAllIconDescriptor[0].paths = [
+            { format: "belge", size: "large", path: `/icons/${newIcon.name}/formats/belge/sizes/large` },
+            { format: "french", size: "great", path: `/icons/${newIcon.name}/formats/french/sizes/great` },
+            { format: "french", size: "large", path: `/icons/${newIcon.name}/formats/french/sizes/large` }
+        ];
         // Expected order is lexicographic by icon name: "flonflon" first, "some icon name" second
         const expectedIconDescriptors = [
             testAllIconDescriptor[1],

@@ -2,6 +2,8 @@ import { List } from 'immutable';
 import getEndpointUrl from '@/services/url';
 import { throwError } from '@/services/errors';
 
+let currentUserInfo = null;
+
 const privilegDictionary = Object.freeze({
     CREATE_ICON: "CREATE_ICON",
     ADD_ICON_FILE: "ADD_ICON_FILE",
@@ -27,10 +29,11 @@ export const fetchUserInfo = () => fetch(getEndpointUrl('/user'), {
     }
 })
 .then(
-    json => {
-        json.privileges = List(json.privileges);
-        json.authenticated = true;
-        return json;
+    userInfo => {
+        userInfo.privileges = List(userInfo.privileges);
+        userInfo.authenticated = true;
+        currentUserInfo = userInfo;
+        return userInfo;
     }
 )
 
@@ -43,5 +46,6 @@ export const logout = () =>
         window.location = getEndpointUrl("");
     });
 
+export const getUserInfo = () => currentUserInfo;
 export const hasAddIconPrivilege = user => user.privileges && user.privileges.contains(privilegDictionary.CREATE_ICON);
 export const hasUpdateIconPrivilege = user => user.privileges && user.privileges.contains(privilegDictionary.REMOVE_ICON);

@@ -20,6 +20,7 @@
     "node-fetch": "^2.1.1",
     "nosql": "^3.2.0",
     "pg": "^7.4.1",
+    "probe-image-size": "^4.0.0",
     "qs": "^6.5.1",
     "rxjs": "^5.5.6",
     "session-memory-store": "git://github.com/pdkovacs/session-memory-store.git#09a1651d0c5d0a69252a265a7e7449f805764b01",
