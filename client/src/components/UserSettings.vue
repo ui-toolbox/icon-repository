@@ -32,7 +32,7 @@ export default {
 }
 </script>
 
-<style lang='scss'>
+<style lang='scss' scoped>
 $highlighted: #ffbd4d;
 
 .user-area {

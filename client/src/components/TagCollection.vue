@@ -65,7 +65,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang='scss' scoped>
   .el-tag {
     background-color: #efeeee;
     color: #3a3a3a;

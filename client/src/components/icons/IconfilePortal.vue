@@ -60,7 +60,7 @@
   }
 </script>
 
-<style lang="scss">
+<style lang='scss' scoped>
   .el-upload {
     cursor: default;
   }
