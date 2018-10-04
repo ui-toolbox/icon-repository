@@ -53,8 +53,13 @@
         cursor: pointer;
     }
 
-    .el-upload--picture-card:hover {
-        border-color: lightblue;
+    .el-upload--picture-card {
+        display: flex;
+        justify-content: center; /* align horizontal */
+        align-items: center; /* align vertical */
+        &:hover {
+            border-color: lightblue;
+        }
     }
 
     .dropbox p {
