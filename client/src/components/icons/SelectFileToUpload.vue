@@ -42,7 +42,7 @@
 </script>
 
 <!-- SASS styling -->
-<style lang="scss">
+<style lang='scss' scoped>
 .upload-container {
     .input-file {
         opacity: 0; /* invisible but it's there! */

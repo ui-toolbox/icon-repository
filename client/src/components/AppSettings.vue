@@ -38,7 +38,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang='scss' scoped>
     .el-dropdown-link {
         font-size: 24px;
         cursor: pointer;

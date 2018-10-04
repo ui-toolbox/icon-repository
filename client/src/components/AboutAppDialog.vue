@@ -35,7 +35,7 @@ export default {
 }
 </script>
 
-<style <style lang="scss">
+<style lang='scss' scoped>
     td {
         padding-bottom: 10px;
         &:first-child {
