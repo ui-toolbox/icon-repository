@@ -5,9 +5,16 @@ const sampleIconFilePath = "../../demo-data/svg/48px/attach_money.svg";
 const format = "svg";
 const svgFile = open(sampleIconFilePath);
 
+export let options = {
+    batchPerHost: 6
+};
+
 export default function() {
 
-    group("Create and refresh", () => {
+    group("Create and load image", () => {
+
+        let newIconDesc;
+
         group("Create icon", () => {
             const iconName = `attach_money-${new Date().getTime()}-${Math.floor(Math.random() * 1024 * 1024)}`;
             const size = `${Math.floor(Math.random() * 10) + 1}x`;
@@ -19,37 +26,24 @@ export default function() {
             };
 
             const resCreate = http.post(`${__ENV.ICONREPO_BASE_URL}/icons`, data);
+            newIconDesc = JSON.parse(resCreate.body);
             check(resCreate, {
-                "is status 201": r => r.status === 201
+                "is status 201": r => r.status === 201,
+                "icon desc OK": r => newIconDesc.format === "svg"
             });
-        })
+            
+        });
 
-        group("Reload all icons", () => {
-
-            let resDescribe;
-
-            group("Describe icons", () => {
-                resDescribe = http.get(`${__ENV.ICONREPO_BASE_URL}/icons`);
-                check(resDescribe, {
-                    "is status 200": r => r.status === 200
-                });
-            })
-
-            const listDescList = JSON.parse(resDescribe.body);
-
-            group("Fetch icons", () => {
-                listDescList.forEach(desc =>
-                    Object.keys(desc.paths).forEach(format =>
-                        Object.keys(desc.paths[format]).forEach(size => {
-                            const resFetch = http.get(`${__ENV.ICONREPO_BASE_URL}${desc.paths[format][size]}`);
-                            check(resFetch, {
-                                "is status 200": r => r.status === 200
-                            });
-                        })
-                    )
-                )
-            })
-        })
+        group("Load image", () => {
+            const name = newIconDesc.iconName;
+            const format = newIconDesc.format;
+            const size = newIconDesc.size;
+            const resp = http.get(`${__ENV.ICONREPO_BASE_URL}/icons/${name}/formats/${format}/sizes/${size}`);
+            check(resp, {
+                "is status 200": r => r.status === 200,
+                "file length is 443 bytes": r => r.body.length === 443
+            });
+        });
     })
 
 };

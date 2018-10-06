@@ -45,6 +45,6 @@ k6 run \
     --out json=output/create-icon-and-refresh.json \
     backend/load-tests/test-cases/create-icon-and-refresh.js
 
-stats "::Create and refresh" "group_duration"
-stats "::Create and refresh::Create icon" "group_duration"
-stats "::Create and refresh::Reload icons" "group_duration"
+stats "::Create and load image" "group_duration"
+stats "::Create and load image::Create icon" "group_duration"
+stats "::Create and load image::Load image" "group_duration"
