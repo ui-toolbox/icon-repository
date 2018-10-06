@@ -116,7 +116,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
                 ctxLogger.info("Icon %o created: %o", iconfileDescEx, iconData);
                 const iconfileInfo = {
                     iconName: iconfileDescEx.name,
-                    format: iconfileDescEx.name,
+                    format: iconfileDescEx.format,
                     size: iconfileDescEx.size,
                     path: createIconfilePath(iconPathRoot, iconfileDescEx.name, iconfileDescEx)
                 };
