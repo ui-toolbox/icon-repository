@@ -48,7 +48,7 @@
             </el-row>
         </el-row>
         <el-row class="button-row">
-            <el-col :span="4" :offset="10"><el-button :disabled="true">Download</el-button></el-col>
+            <el-col :span="4" :offset="10"><a :href="pathOfSelectedIconfile" :download="downloadName"><el-button>Download</el-button></a></el-col>
         </el-row>
     </el-dialog>
 </template>
@@ -97,6 +97,10 @@ export default {
             return this.selectedIconfileIndex >= 0
                 ? this.fileList[this.selectedIconfileIndex].url
                 : undefined;
+        },
+        downloadName() {
+            const iconfile = this.fileList[this.selectedIconfileIndex];
+            return `${this.name}@${iconfile.size}.${iconfile.format}`;
         }
     },
     methods: {
