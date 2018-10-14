@@ -1,6 +1,7 @@
 import { Set, Map } from "immutable";
 import * as Rx from "rxjs";
 import { GetAllPrivilegesForUser } from "../../common";
+import logger from "../../../utils/logger";
 
 export const privilegeDictionary = Object.freeze({
     CREATE_ICON: "CREATE_ICON",
@@ -38,8 +39,13 @@ export const privilegesForUserGetterProvider: () => PrivilegesForUserGetter
 export const rolesForUserGetterProvider: (usersByRoles: {[key: string]: string[]}) => RolesForUserGetter
 = usersByRoles => userName => Rx.Observable.of(Set(
     Object.keys(usersByRoles)
-        .filter(role => usersByRoles[role].indexOf(userName) > -1)
-));
+        .filter(role => {
+            const ctxLogger = logger.createChild("rolesForUserGetter");
+            ctxLogger.debug("role: %s, userByRole: %o, userName: %s, hasRole: %o",
+                            role, usersByRoles[role], userName, usersByRoles[role].indexOf(userName));
+            return usersByRoles[role].indexOf(userName) > -1;
+        }
+)));
 
 export const privilegesForRoleGetterProvider: () => PrivilegesForRoleGetter
 = () => role => Rx.Observable.of(privilegesByRoles.get(role));

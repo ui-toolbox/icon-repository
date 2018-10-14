@@ -38,6 +38,7 @@ describe("oidcLogoutSuccessHandler", () => {
                     configProvider().server_url_context
                 )(req, res);
                 expect(res.redirect).toHaveBeenCalledWith(
+                    307,
                     `${someLogoutURL}?service=${someProtocol}://${someHostname}/${someContextPath}`
                 );
                 done();

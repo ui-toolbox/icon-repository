@@ -37,14 +37,13 @@ export const fetchUserInfo = () => fetch(getEndpointUrl('/user'), {
     }
 )
 
-export const logout = () =>
-    fetch(this.logoutUrl, {
-        method: "POST",
-        mode: "no-cors",
-        credentials: "include"
-    }).then(response => {
-        window.location = getEndpointUrl("");
-    });
+export const logout = () => fetch(getEndpointUrl('/logout'), {
+    method: 'POST',
+    mode: 'no-cors',
+    credentials: 'include'
+}).then(response => {
+    window.location = getEndpointUrl("");
+});
 
 export const getUserInfo = () => currentUserInfo;
 export const hasAddIconPrivilege = user => user.privileges && user.privileges.contains(privilegDictionary.CREATE_ICON);

@@ -95,10 +95,17 @@ const ignoreJSONSyntaxError: (error: any) => Rx.Observable<any> = error => {
     }
 };
 
+const getEnvVarValue = (proto: any, configPropName: string) => {
+    const envVarValue = process.env[configPropName.toUpperCase()];
+    return typeof (proto as any)[configPropName] === "object"
+        ? JSON.parse(envVarValue)
+        : envVarValue;
+};
+
 export const updateConfigurationDataWithEnvVarValues = <T> (proto: T, conf: T) =>
     Object.keys(proto).reduce(
         (acc: any, key: string) => process.env[key.toUpperCase()]
-            ? Object.assign(acc, {[key]: process.env[key.toUpperCase()]})
+            ? Object.assign(acc, {[key]: getEnvVarValue(proto, key)})
             : acc,
         conf
     );

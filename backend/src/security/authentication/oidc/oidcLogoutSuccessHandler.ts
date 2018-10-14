@@ -23,7 +23,7 @@ export default (logoutURL: string, serverContextPath: string) => (req: Request, 
         serviceURL.pathname = serverContextPath;
         const redirectBackAfterLogin = url.format(serviceURL);
         log.debug("Request redirect back to ", redirectBackAfterLogin);
-        res.redirect(logoutURL + "?service=" + redirectBackAfterLogin);
+        res.redirect(307, logoutURL + "?service=" + redirectBackAfterLogin);
     } else {
         res.end(200);
     }

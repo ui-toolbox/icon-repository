@@ -122,8 +122,7 @@ type LogoutSuccessHandler = (req: express.Request, res: express.Response) => voi
 
 const createLogoutHandler = (logoutSuccessHandler?: LogoutSuccessHandler) => {
     const ctxLogger = logger.createChild("securityManager#createLogoutHandler");
-    return (req: express.Request,
-            res: express.Response) => {
+    return (req: express.Request, res: express.Response) => {
         ctxLogger.debug("handler called");
         if (req.session) {
             req.session.destroy(err => {
@@ -172,6 +171,7 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
         const ctxLogger = logger.createChild("security-manager#setup-routes");
         const authType = appConfigProvider().authentication_type;
         ctxLogger.debug(`Authentication type: ${authType}`);
+        ctxLogger.debug(`users_by_roles: ${appConfigProvider().users_by_roles}`);
         const getAllPrivilegesForUser: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider(
             privilegeResourcesProvider(appConfigProvider().users_by_roles)
         );

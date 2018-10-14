@@ -1,4 +1,3 @@
-import * as util from "util";
 import * as express from "express";
 
 import { storeAuthentication, getAuthentication } from "../../common";

@@ -10,7 +10,6 @@ import { IconHanlders } from "./iconsHandlers";
 import { ConfigurationDataProvider } from "./configuration";
 import securityManagerProvider from "./security/securityManager";
 import appInfoHandlerProvider from "./appInfoHandler";
-import iconServiceProvider from "./iconsService";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
