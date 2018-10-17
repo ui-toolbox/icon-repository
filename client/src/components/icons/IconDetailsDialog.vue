@@ -13,7 +13,7 @@
                         :iconName="name"
                         :imageUrl="pathOfSelectedIconfile"
                         @iconfile-uploaded="onIconfileUploaded"/>
-                    <div class="icon-name">{{icon.name}}</div>
+                    <div class="icon-name">{{name}}</div>
                 </div>
             </el-col>
         </el-row>

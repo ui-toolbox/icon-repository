@@ -46,9 +46,15 @@ export const createSchema: (pool: Pool) => CreateSchema
     .flatMap(() => dropCreateTable(pool, iconFileTableSpec))
     .mapTo(pool)
     .catch(error => {
-        ctxLogger.error(error);
+        ctxLogger.error("error code: %s", error.code);
+        if (error.code !== "ECONNREFUSED") {
+            process.exit(1);
+        } else {
+            return Observable.throw(error);
+        }
+    })
+    .retryWhen(error => error.delay(2000).take(30).concat(error.do(() => {
         process.exit(1);
-        return Observable.throw(error);
-    });
+    })));
 
 export default createSchema;

@@ -57,7 +57,7 @@ describe("updateConfigurationDataWithEnvVarValues", () => {
             le: "",
             metro: ""
         };
-        const zazieDansLeMetro = {
+        const configToOverride = {
             zazie: "zazie",
             dans: "dans",
             le: "le",
@@ -74,7 +74,29 @@ describe("updateConfigurationDataWithEnvVarValues", () => {
             metro: "envvar metro"
         };
 
-        expect(updateConfigurationDataWithEnvVarValues(proto, zazieDansLeMetro)).toEqual(expected);
+        expect(updateConfigurationDataWithEnvVarValues(proto, configToOverride)).toEqual(expected);
+    });
+
+    it("should be able to handle the value of object-protoed variables as JSON", () => {
+
+        const proto = {
+            metro: {}
+        };
+
+        const configToOverride = {};
+
+        const theValue = {
+            aKey: "aValue",
+            anotherKey: "anotherValue"
+        };
+
+        const expected = {
+            metro: theValue
+        };
+
+        setEnvVar("METRO", JSON.stringify(theValue));
+
+        expect(updateConfigurationDataWithEnvVarValues(proto, proto)).toEqual(expected);
     });
 });
 
