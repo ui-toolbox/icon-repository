@@ -11,7 +11,8 @@ export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
 type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
-    initialIconFileInfo: IconFile,
+    iconName: string,
+    initialIconfileContent: Buffer,
     modifiedBy: string) => Observable<IconfileDescriptorEx>;
 type IngestIconfile = (
     iconName: string,
@@ -28,9 +29,6 @@ type DeleteIcon = (
 type AddIconFile = (
     iconFile: IconFile,
     modifiedBy: string) => Observable<number>;
-type UpdateIconFile = (
-    iconFile: IconFile,
-    modifiedBy: string) => Observable<void>;
 type DeleteIconFile = (iconName: string, iconFileDesc: IconFileDescriptor, modifiedBy: string) => Observable<void>;
 
 export interface IconService {
@@ -42,7 +40,6 @@ export interface IconService {
     readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
     readonly addIconFile: AddIconFile;
-    readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
 }
 
@@ -82,16 +79,13 @@ const iconServiceProvider: (
     const getIconFile: GetIconFile = (iconId, fileFormat, iconSize) =>
         iconDAFs.getIconFile(iconId, fileFormat, iconSize);
 
-    const createIcon: CreateIcon = (iconFileInfo, modifiedBy) =>
-        (iconFileInfo.format
-            ? Observable.of(iconFileInfo)
-            : probeMetadata(iconFileInfo.content).map(v => ({
-                name: iconFileInfo.name,
-                format: v.type,
-                size: `${v.height}${v.hUnits}`,
-                content: iconFileInfo.content
-            }))
-        )
+    const createIcon: CreateIcon = (iconName, initialIconfileContent, modifiedBy) =>
+        probeMetadata(initialIconfileContent).map(v => ({
+            name: iconName,
+            format: v.type,
+            size: `${v.height}${v.hUnits}`,
+            content: initialIconfileContent
+        }))
         .flatMap(fixedIconfileInfo => iconDAFs.createIcon(
             fixedIconfileInfo,
             modifiedBy,
@@ -132,12 +126,6 @@ const iconServiceProvider: (
             modifiedBy,
             () => gitAFs.addIconFile(iconFile, modifiedBy));
 
-    const updateIconFile: UpdateIconFile = (iconFile, modifiedBy) =>
-        iconDAFs.updateIconFile(
-            iconFile,
-            modifiedBy,
-            () => gitAFs.updateIconFile(iconFile, modifiedBy));
-
     const deleteIconFile: DeleteIconFile = (iconName, iconFileDesc, modifiedBy) =>
         iconDAFs.deleteIconFile(
             iconName,
@@ -155,7 +143,6 @@ const iconServiceProvider: (
         deleteIcon,
         getIconFile,
         addIconFile,
-        updateIconFile,
         deleteIconFile,
         describeAllIcons
     });

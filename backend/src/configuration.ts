@@ -5,7 +5,7 @@ import * as Process from "process";
 import logger from "./utils/logger";
 import * as Rx from "rxjs";
 import { fileExists, readTextFile } from "./utils/rx";
-import { clone } from "./utils/clone";
+import clone from "./utils/clone";
 
 const ICON_REPO_HOME = path.resolve(Process.env.HOME, ".ui-toolbox/icon-repo");
 

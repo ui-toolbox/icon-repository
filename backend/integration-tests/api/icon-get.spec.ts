@@ -1,7 +1,6 @@
 import { manageTestResourcesBeforeAndAfter, Session, uxAuth } from "./api-test-utils";
-import { getTestIconData, addTestData, getTestDataDescriptor, Icon } from "./icon-api-test-utils";
+import { testIconInputData, addTestData, getIngestedTestIconDataDescription } from "./icon-api-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
-import { IconDTO } from "../../src/iconsHandlers";
 import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
 
 const allIconsPath = "/icons";
@@ -11,12 +10,11 @@ describe(allIconsPath, () => {
     const agent = manageTestResourcesBeforeAndAfter();
 
     it("GET should return the description of all icons in the repository", done => {
-        const testData = getTestIconData();
-
         const session: Session = agent();
-        addTestData(session.requestBuilder(), testData)
+        addTestData(session.requestBuilder(), testIconInputData)
             .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(actualReply => expect(new Set(actualReply.toArray())).toEqual(new Set(getTestDataDescriptor())))
+            .map(actualReply => expect(new Set(actualReply.toArray()))
+                                .toEqual(new Set(getIngestedTestIconDataDescription())))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -28,23 +26,10 @@ describe(singleIconPath, () => {
     const agent = manageTestResourcesBeforeAndAfter();
 
     it ("GET should describe the icon", done => {
-        const testData = getTestIconData();
-
-        const icon1: Icon = testData.get(0);
-        const expectedReply: IconDTO = {
-            name: icon1.name,
-            modifiedBy: icon1.modifiedBy,
-            paths: [
-                { format: "belge", size: "large", path: getFilePath(icon1.name, {format: "belge", size: "large"}) },
-                { format: "french", size: "great", path: getFilePath(icon1.name, {format: "french", size: "great"}) },
-                { format: "french", size: "large", path: getFilePath(icon1.name, {format: "french", size: "large"}) }
-            ]
-        };
-
         const session: Session = agent();
-        addTestData(session.requestBuilder(), testData)
-            .flatMap(() => describeIcon(session.requestBuilder(), icon1.name))
-            .map(actualReply => expect(actualReply).toEqual(expectedReply))
+        addTestData(session.requestBuilder(), testIconInputData)
+            .flatMap(() => describeIcon(session.requestBuilder(), getIngestedTestIconDataDescription()[0].name))
+            .map(actualReply => expect(actualReply).toEqual(getIngestedTestIconDataDescription()[0]))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
