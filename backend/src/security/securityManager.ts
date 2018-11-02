@@ -163,7 +163,9 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
                 // domain: "example.com",
                 path: appConfigProvider().server_url_context,
                 expires: void 0
-            }
+            },
+            resave: false,
+            saveUninitialized: false
         }));
     };
 
