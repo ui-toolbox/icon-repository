@@ -1,5 +1,6 @@
 import { List } from "immutable";
-import { Observable } from "rxjs/Rx";
+import { Observable, of } from "rxjs";
+import { mapTo, map, flatMap } from "rxjs/operators";
 
 import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes, IconfileDescriptorEx } from "./icon";
 import { IconDAFs } from "./db/db";
@@ -52,17 +53,19 @@ export interface IconRepoSettings {
 const isNewRepoNeeded: (resetData: string, gitAFs: GitAccessFunctions) => Observable<boolean>
 = (resetData, gitAFs) =>
     resetData === "always"
-        ? Observable.of(true)
+        ? of(true)
         : resetData === "init"
-            ? gitAFs.isRepoInitialized().map(initialized => !initialized)
-            : Observable.of(false);
+            ? gitAFs.isRepoInitialized().pipe(map(initialized => !initialized))
+            : of(false);
 
 const createNewRepoMaybe = (resetData: string, iconDAFs: IconDAFs, gitAFs: GitAccessFunctions) => {
     return isNewRepoNeeded(resetData, gitAFs)
-    .flatMap(needed => needed
-        ? iconDAFs.createSchema()
-            .flatMap(gitAFs.createNewGitRepo)
-        : Observable.of(undefined));
+    .pipe(
+        flatMap(needed => needed
+            ? iconDAFs.createSchema()
+                .pipe(flatMap(gitAFs.createNewGitRepo))
+            : of(undefined))
+    );
 };
 
 const iconServiceProvider: (
@@ -80,31 +83,38 @@ const iconServiceProvider: (
         iconDAFs.getIconFile(iconId, fileFormat, iconSize);
 
     const createIcon: CreateIcon = (iconName, initialIconfileContent, modifiedBy) =>
-        probeMetadata(initialIconfileContent).map(v => ({
-            name: iconName,
-            format: v.type,
-            size: `${v.height}${v.hUnits}`,
-            content: initialIconfileContent
-        }))
-        .flatMap(fixedIconfileInfo => iconDAFs.createIcon(
-            fixedIconfileInfo,
-            modifiedBy,
-            () => gitAFs.addIconFile(fixedIconfileInfo, modifiedBy))
-            .mapTo({
-                name: fixedIconfileInfo.name,
-                format: fixedIconfileInfo.format,
-                size: fixedIconfileInfo.size
-            }));
+        probeMetadata(initialIconfileContent)
+        .pipe(
+            map(v => ({
+                name: iconName,
+                format: v.type,
+                size: `${v.height}${v.hUnits}`,
+                content: initialIconfileContent
+            })),
+            flatMap(fixedIconfileInfo => iconDAFs.createIcon(
+                fixedIconfileInfo,
+                modifiedBy,
+                () => gitAFs.addIconFile(fixedIconfileInfo, modifiedBy))
+                .pipe(
+                    mapTo({
+                        name: fixedIconfileInfo.name,
+                        format: fixedIconfileInfo.format,
+                        size: fixedIconfileInfo.size
+                    })
+                ))
+        );
 
     const ingestIconfile: IngestIconfile = (iconName, content, modifiedBy) =>
         probeMetadata(content)
-        .flatMap(v => {
-            const format = v.type;
-            const size = `${v.height}${v.hUnits}`;
-            const iconFile: IconFile = { name: iconName, format, size, content };
-            return addIconFile(iconFile, modifiedBy)
-            .mapTo({format, size});
-        });
+        .pipe(
+            flatMap(v => {
+                const format = v.type;
+                const size = `${v.height}${v.hUnits}`;
+                const iconFile: IconFile = { name: iconName, format, size, content };
+                return addIconFile(iconFile, modifiedBy)
+                .pipe(mapTo({format, size}));
+            })
+        );
 
     const updateIcon: UpdateIcon = (oldIconName, newIcon, modifiedBy) =>
         iconDAFs.updateIcon(
@@ -135,17 +145,19 @@ const iconServiceProvider: (
         );
 
     return createNewRepoMaybe(iconRepoConfig.resetData, iconDAFs, gitAFs)
-    .mapTo({
-        describeIcon,
-        createIcon,
-        ingestIconfile,
-        updateIcon,
-        deleteIcon,
-        getIconFile,
-        addIconFile,
-        deleteIconFile,
-        describeAllIcons
-    });
+    .pipe(
+        mapTo({
+            describeIcon,
+            createIcon,
+            ingestIconfile,
+            updateIcon,
+            deleteIcon,
+            getIconFile,
+            addIconFile,
+            deleteIconFile,
+            describeAllIcons
+        })
+    );
 };
 
 export default iconServiceProvider;

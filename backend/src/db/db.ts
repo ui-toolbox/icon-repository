@@ -1,5 +1,6 @@
+
+import {throwError as observableThrowError,  Observable, Observer } from "rxjs";
 import { List, Set } from "immutable";
-import { Observable, Observer } from "rxjs";
 import { Pool, QueryResult } from "pg";
 
 import {
@@ -138,7 +139,7 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
             conn.executeQuery("ROLLBACK", [])
             .catch(rollbakcError => {
                 ctxLogger.error("Error while rolling back: %o", rollbakcError);
-                return Observable.throw(error);
+                return observableThrowError(error);
             })
             .finally(() => conn.release())
             .map(() => { throw error; })
@@ -148,8 +149,8 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
 
 const handleUniqueConstraintViolation = (error: any, iconFile: IconFile) => {
     return error.code === pgErrorCodes.unique_constraint_violation
-        ? Observable.throw(new IconFileAlreadyExists(iconFile))
-        : Observable.throw(error);
+        ? observableThrowError(new IconFileAlreadyExists(iconFile))
+        : observableThrowError(error);
 };
 type InsertIconFileIntoTable = (
     executeQuery: ExecuteQuery,

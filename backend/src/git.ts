@@ -1,5 +1,7 @@
+
+import {throwError as observableThrowError,  Observable, of } from "rxjs";
+import { flatMap, mapTo } from "rxjs/operators";
 import * as path from "path";
-import { Observable } from "rxjs";
 import { mkdirMaybe, appendFile, deleteFile, renameFile, hasSubDirectory } from "./utils/rx";
 import {
     SerializableJobImpl,
@@ -33,18 +35,20 @@ export const createNewGitRepo: (location: string) => CreateNewGitRepo
 = location => () => {
     const newGitRepoLogger = loggerFactory("create-new-git-repo");
     return commandExecutor(newGitRepoLogger, "rm", [ "-rf", location])
-    .flatMap(() => commandExecutor(newGitRepoLogger, "mkdir", [ "-p", location ]))
-    .flatMap(() => commandExecutor(newGitRepoLogger, "git", [ "init" ], { cwd: location }))
-    .flatMap(() => commandExecutor(
-        newGitRepoLogger,
-        "git", [ "config", "user.name", "Icon Repo Server"],
-        { cwd: location }
-    ))
-    .flatMap(() => commandExecutor(
-        newGitRepoLogger,
-        "git", [ "config", "user.email", "IconRepoServer@UIToolBox"],
-        { cwd: location }
-    ));
+    .pipe(
+        flatMap(() => commandExecutor(newGitRepoLogger, "mkdir", [ "-p", location ])),
+        flatMap(() => commandExecutor(newGitRepoLogger, "git", [ "init" ], { cwd: location })),
+        flatMap(() => commandExecutor(
+            newGitRepoLogger,
+            "git", [ "config", "user.name", "Icon Repo Server"],
+            { cwd: location }
+        )),
+        flatMap(() => commandExecutor(
+            newGitRepoLogger,
+            "git", [ "config", "user.email", "IconRepoServer@UIToolBox"],
+            { cwd: location }
+        ))
+    );
 };
 
 const enqueueJob = createSerializer("G I T");
@@ -94,9 +98,11 @@ const createIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => 
 = (pathToIconRepository, iconFileInfo) => {
     const pathCompos = getPathComponents1(pathToIconRepository, iconFileInfo);
     return mkdirMaybe(pathCompos.pathToFormatDir)
-    .flatMap(() => mkdirMaybe(pathCompos.pathToSizeDir))
-    .flatMap(() => appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"}))
-    .mapTo(List.of(pathCompos.pathToIconFileInRepo));
+    .pipe(
+        flatMap(() => mkdirMaybe(pathCompos.pathToSizeDir)),
+        flatMap(() => appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"})),
+        mapTo(List.of(pathCompos.pathToIconFileInRepo))
+    );
 };
 
 const updateIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => Observable<List<string>>
@@ -139,7 +145,7 @@ const deleteIconFile: (
         if (error.code === "ENOENT") {
             throw new IconNotFound(pathCompos.pathToIconFile);
         } else {
-            return Observable.throw(error);
+            return observableThrowError(error);
         }
     })
     .mapTo(List.of(pathCompos.pathToIconFileInRepo));
@@ -192,7 +198,7 @@ const createIconFileJob: CreateIconFileJob = (iconFileOperation, jobTexts, userN
             ctxLogger.error(errorInRollback);
             return "dummy return value";
         });
-        return Observable.throw(error);
+        return observableThrowError(error);
     });
 };
 
@@ -295,9 +301,11 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
 
         deleteIcon: (iconName, iconFileDescSet, modifiedBy) => enqueueJob(
             createIconFileJob(
-                () => Observable.of(void 0)
-                    .flatMap(() => iconFileDescSet.toArray())
-                    .flatMap(iconFileDesc => deleteIconFile(localIconRepositoryLocation, iconName, iconFileDesc)),
+                () => of(void 0)
+                .pipe(
+                    flatMap(() => iconFileDescSet.toArray()),
+                    flatMap(iconFileDesc => deleteIconFile(localIconRepositoryLocation, iconName, iconFileDesc))
+                ),
                 createIconFileJobTextProviders(
                     `delete all files for icon "${iconName}"`,
                     (fileList: List<string>) =>

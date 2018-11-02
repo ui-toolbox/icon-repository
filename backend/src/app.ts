@@ -9,6 +9,7 @@ import serverProvider from "./server";
 import iconServiceProvider from "./iconsService";
 import iconHandlersProvider from "./iconsHandlers";
 import { Logger } from "winston";
+import { flatMap, map } from "rxjs/operators";
 
 let logger: Logger;
 
@@ -20,23 +21,29 @@ const logServerStart = (server: http.Server) => {
 };
 
 configurationProvider
-.flatMap(configuration => {
-    setDefaultLogLevel(configuration.logger_level);
-    logger = loggerFactory("app");
+.pipe(
+    flatMap(configuration => {
+        setDefaultLogLevel(configuration.logger_level);
+        logger = loggerFactory("app");
 
-    return iconServiceProvider(
-        {
-            resetData: configuration.icon_data_create_new
-        },
-        iconDAFsProvider(createConnectionProperties(configuration)),
-        gitAFsProvider(configuration.icon_data_location_git)
-    )
-    .flatMap(iconService => {
-        const iconHandlers = iconHandlersProvider(iconService);
-        return serverProvider(configuration, iconHandlers)
-        .map(logServerStart);
-    });
-})
+        return iconServiceProvider(
+            {
+                resetData: configuration.icon_data_create_new
+            },
+            iconDAFsProvider(createConnectionProperties(configuration)),
+            gitAFsProvider(configuration.icon_data_location_git)
+        )
+        .pipe(
+            flatMap(iconService => {
+                const iconHandlers = iconHandlersProvider(iconService);
+                return serverProvider(configuration, iconHandlers)
+                .pipe(
+                    map(logServerStart)
+                );
+            })
+        );
+    })
+)
 .subscribe(
     undefined,
     error => logger.error(error),

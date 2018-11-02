@@ -1,4 +1,5 @@
-import { Observable } from "rxjs";
+
+import {throwError as observableThrowError,  Observable } from "rxjs";
 import { Pool } from "pg";
 
 import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "./db-schema";
@@ -50,7 +51,7 @@ export const createSchema: (pool: Pool) => CreateSchema
         if (error.code !== "ECONNREFUSED") {
             process.exit(1);
         } else {
-            return Observable.throw(error);
+            return observableThrowError(error);
         }
     })
     .retryWhen(error => error.delay(2000).take(30).concat(error.do(() => {

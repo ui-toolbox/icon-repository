@@ -23,7 +23,7 @@
     "probe-image-size": "^4.0.0",
     "qs": "^6.5.1",
     "rimraf": "^2.6.2",
-    "rxjs": "^5.5.6",
+    "rxjs": "^6.3.3",
     "session-memory-store": "git://github.com/pdkovacs/session-memory-store.git#09a1651d0c5d0a69252a265a7e7449f805764b01",
     "source-map-support": "^0.5.4",
     "superagent": "^3.8.3",

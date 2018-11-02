@@ -1,6 +1,7 @@
 import { format } from "util";
 import { Request, Response } from "express";
 import loggerFactory from "./utils/logger";
+import { map } from "rxjs/operators";
 
 import {
     IconDescriptor,
@@ -64,7 +65,7 @@ const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req
 = (getter, iconPathRoot) => (req, res) => {
     const log = loggerFactory(`${req.url} request handler`);
     getter()
-    .map(iconList => iconList.map(iconDescriptor => createIconDTO(iconPathRoot, iconDescriptor)).toArray())
+    .pipe(map(iconList => iconList.map(iconDescriptor => createIconDTO(iconPathRoot, iconDescriptor)).toArray()))
     .subscribe(
         iconDTOArray => res.send(iconDTOArray),
         error => {
@@ -79,7 +80,7 @@ const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Reques
 = (getter, iconPathRoot) => (req, res) => {
     const log = loggerFactory(`${req.url} request handler`);
     getter(req.params.name)
-    .map(iconDescriptor => iconDescriptor ? createIconDTO(iconPathRoot, iconDescriptor) : void 0)
+    .pipe(map(iconDescriptor => iconDescriptor ? createIconDTO(iconPathRoot, iconDescriptor) : void 0))
     .subscribe(
         iconDTO => iconDTO ? res.send(iconDTO) : res.status(404).end(),
         error => {
