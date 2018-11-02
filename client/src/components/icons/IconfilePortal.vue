@@ -25,11 +25,9 @@
     },
     methods: {
       onIconfileUploadSuccess(res, file) {
-        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> onIconfileUploadSuccess', res);
         this.$emit('iconfile-added', file);
       },
       beforeIconfileUpload(file) {
-        console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>> beforeIconfileUpload", file.type);
         if (file.type !== 'image/png' && file.type !== 'image/svg+xml') {
           this.$showErrorMessage(`File type '${file.type}'not allowed`)
           return false;

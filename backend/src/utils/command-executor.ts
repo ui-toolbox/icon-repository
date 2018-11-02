@@ -14,7 +14,7 @@ export const commandExecutor: CommandExecutor = (ctxLogger, command, spawnArgs, 
     const proc = spawn(command, spawnArgs, options);
     proc.stderr.on("data", data => ctxLogger.info(`stderr: ${data}`));
     proc.stdout.on("data", data => {
-        ctxLogger.info(`stdout: ${data}`);
+        ctxLogger.debug(`stdout: ${data}`);
         stdoutData += data;
     });
     return Observable.create((observer: Observer<string>) => {

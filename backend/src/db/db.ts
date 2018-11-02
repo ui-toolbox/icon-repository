@@ -13,7 +13,7 @@ import logger from "../utils/logger";
 import { createSchema, CreateSchema } from "./create-schema";
 
 const pgErrorCodes = {
-    unique_constraint_violation: 23505
+    unique_constraint_violation: "23505"
 };
 
 const ctxLogger = logger.createChild("db");
@@ -146,6 +146,11 @@ function tx<R>(pool: Pool, transactable: Transactable<R>) {
     );
 }
 
+const handleUniqueConstraintViolation = (error: any, iconFile: IconFile) => {
+    return error.code === pgErrorCodes.unique_constraint_violation
+        ? Observable.throw(new IconFileAlreadyExists(iconFile))
+        : Observable.throw(error);
+};
 type InsertIconFileIntoTable = (
     executeQuery: ExecuteQuery,
     iconFile: IconFile,
@@ -161,6 +166,7 @@ const insertIconFileIntoTable: InsertIconFileIntoTable = (executeQuery, iconFile
         iconFileInfo.size,
         iconFileInfo.content
     ])
+    .catch(error => handleUniqueConstraintViolation(error, iconFileInfo))
     .map(result => result.rows[0].id);
 };
 
@@ -269,27 +275,7 @@ const addIconFileToIcon: (pool: Pool) => AddIconFile
         .flatMap(iconFileId =>
             (createSideEffect ? createSideEffect() : Observable.of(void 0))
             .map(() => iconFileId))
-        .catch(error => error.code === pgErrorCodes.unique_constraint_violation
-            ? Observable.throw(new IconFileAlreadyExists(iconFile))
-            : Observable.throw(error)
-        );
-    });
-};
-
-type UpdateIconFile = (
-    iconFile: IconFile,
-    modifiedBy: string,
-    createSideEffect?: () => Observable<void>) => Observable<void>;
-
-const updateIconFile: (pool: Pool) => UpdateIconFile
-= pool => (iconFile, modifiedBy, createSideEffect) => {
-    return tx(pool, (executeQuery: ExecuteQuery) => {
-        const updateSQL = "UPDATE icon_file SET content = $1 " +
-                            "WHERE icon_id = (SELECT id FROM icon WHERE name = $2) AND " +
-                                "file_format = $3 AND icon_size = $4 ";
-        return executeQuery(updateSQL, [iconFile.content, iconFile.name, iconFile.format, iconFile.size])
-        .flatMap(() =>
-            (createSideEffect ? createSideEffect() : Observable.of(void 0)));
+        .catch(error => handleUniqueConstraintViolation(error, iconFile));
     });
 };
 
@@ -307,7 +293,13 @@ const deleteIconFileBare: DeleteIconFileBare
     const countIconFilesLeftForIcon = "SELECT count(*) as icon_file_count FROM icon_file WHERE icon_id = $1";
     const deleteIconSQL = "DELETE FROM icon WHERE id = $1";
     return executeQuery(getIdAndLockIcon, [iconName])
-    .map(iconIdQueryResult => iconIdQueryResult.rows[0].id)
+    .map(iconIdQueryResult => {
+        if (iconIdQueryResult.rows[0]) {
+            return iconIdQueryResult.rows[0].id;
+        } else {
+            throw new IconNotFound(iconName);
+        }
+    })
     .flatMap(iconId => executeQuery(deleteFile, [iconId, iconFileDesc.format, iconFileDesc.size])
         .flatMap(() => executeQuery(countIconFilesLeftForIcon, [iconId]))
         .map(countQueryResult => countQueryResult.rows[0].icon_file_count)
@@ -338,7 +330,6 @@ export interface IconDAFs {
     readonly deleteIcon: DeleteIcon;
     readonly getIconFile: GetIconFile;
     readonly addIconFileToIcon: AddIconFile;
-    readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
     readonly describeAllIcons: DescribeAllIcons;
 }
@@ -354,7 +345,6 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
         deleteIcon: deleteIcon(pool),
         getIconFile: getIconFile(pool),
         addIconFileToIcon: addIconFileToIcon(pool),
-        updateIconFile: updateIconFile(pool),
         deleteIconFile: deleteIconFile(pool),
         describeAllIcons: describeAllIcons(pool)
     };

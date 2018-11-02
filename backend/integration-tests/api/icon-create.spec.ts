@@ -1,10 +1,10 @@
-import * as crypto from "crypto";
 import { boilerplateSubscribe } from "../testUtils";
 
 import {
     iconEndpointPath,
     manageTestResourcesBeforeAndAfter,
-    getCheckIconFile } from "./api-test-utils";
+    getCheckIconFile,
+    defaultAuth} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
 import {
@@ -15,45 +15,44 @@ import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { List } from "immutable";
 import { setAuth, createIcon, describeAllIcons, getFilePath, describeIcon } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
-import { getTestIconData, addTestData, getTestDataDescriptor, Icon } from "./icon-api-test-utils";
-import { IconFile, IconFileData } from "../../src/icon";
+import {
+    testIconInputData,
+    addTestData,
+    getIngestedTestIconDataDescription,
+    getDemoIconfileContent } from "./icon-api-test-utils";
+import { IconFile, IconFileDescriptor } from "../../src/icon";
 
 describe(iconEndpointPath, () => {
 
     const agent = manageTestResourcesBeforeAndAfter();
 
     it ("POST should fail with 403 without CREATE_ICON privilege", done => {
-        const testIcon = {
-            name: "some icon name",
-            format: "some format",
-            size: "some size",
-            content: crypto.randomBytes(4096)
-        };
+        const iconName: string = "dock";
+        const format = "png";
+        const sizeInDP = "36dp";
 
         const session = agent();
         setAuth(session.requestBuilder(), [])
-            .flatMap(() => createIcon(
+        .flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP }))
+        .flatMap(content => createIcon(
                 session.responseOK(resp => resp.status === 403).requestBuilder(),
-                testIcon
-            ))
-            .subscribe(boilerplateSubscribe(fail, done));
+                iconName, content))
+        .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it ("POST should complete with CREATE_ICON privilege", done => {
-        const testIcon = {
-            name: "some icon name",
-            modifiedBy: "ux",
-            format: "some format",
-            size: "some size",
-            content: crypto.randomBytes(4096)
-        };
+        const iconName = "dock";
+        const format = "png";
+        const sizeInDP = "36dp";
+        const size = "54px";
+
         const expectedIconInfo: IconDTO = {
-            name: testIcon.name,
-            modifiedBy: testIcon.modifiedBy,
+            name: iconName,
+            modifiedBy: defaultAuth.user,
             paths: [{
-                format: testIcon.format,
-                size: testIcon.size,
-                path: getFilePath(testIcon.name, {format: testIcon.format, size: testIcon.size})
+                path: getFilePath(iconName, {format, size}),
+                format,
+                size
             }]
         };
 
@@ -62,54 +61,60 @@ describe(iconEndpointPath, () => {
         ];
         const session = agent();
         setAuth(session.requestBuilder(), privileges)
-            .flatMap(() => createIcon(session.requestBuilder(), testIcon))
-            .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(iconInfoList => {
-                expect(iconInfoList.size).toEqual(1);
-                expect({...iconInfoList.get(0)}).toEqual({...expectedIconInfo});
-            })
-            .subscribe(boilerplateSubscribe(fail, done));
+        .flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP}))
+        .flatMap(content => createIcon(session.requestBuilder(), iconName, content))
+        .flatMap(iconfileInfo => {
+            expect(iconfileInfo).toEqual({iconName, format, size, path: expectedIconInfo.paths[0].path});
+            return describeAllIcons(session.requestBuilder());
+        })
+        .map(iconInfoList => {
+            expect(iconInfoList.size).toEqual(1);
+            expect({...iconInfoList.get(0)}).toEqual({...expectedIconInfo});
+        })
+        .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it ("POST should be capable of creating multiple icons in a row", done => {
-        const testData = getTestIconData();
-
-        const sampleIconFileData1: IconFileData = testData.get(0).files.get(0);
-        const sampleIconFile1: IconFile = {
-            name: testData.get(0).name,
-            ...sampleIconFileData1
-        };
-        const sampleIconFileData2: IconFileData = testData.get(1).files.get(1);
-        const sampleIconFile2: IconFile = {
-            name: testData.get(1).name,
-            ...sampleIconFileData2
-        };
+        const sampleIconName1 = testIconInputData.get(0).name;
+        const sampleIconFileDesc1: IconFileDescriptor = testIconInputData.get(0).files.get(0);
+        const sampleIconName2 = testIconInputData.get(1).name;
+        const sampleIconFileDesc2: IconFileDescriptor = testIconInputData.get(1).files.get(1);
 
         const session = agent();
-        addTestData(session.requestBuilder(), testData)
-            .flatMap(() => testData.toArray())
-            .flatMap(() => getCheckIconFile(session, sampleIconFile1))
-            .flatMap(() => getCheckIconFile(session, sampleIconFile2))
+        addTestData(session.requestBuilder(), testIconInputData)
+            .flatMap(() => testIconInputData.toArray())
+            .flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconFileDesc1))
+            .flatMap(content => getCheckIconFile(session, {
+                name: sampleIconName1,
+                ...sampleIconFileDesc1,
+                content
+            }))
+            .flatMap(() => getDemoIconfileContent(sampleIconName2, sampleIconFileDesc2))
+            .flatMap(content => getCheckIconFile(session, {
+                name: sampleIconName2,
+                ...sampleIconFileDesc2,
+                content
+            }))
             .flatMap(() => assertGitCleanStatus())
             .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(iconDTOList => expect(new Set(iconDTOList.toArray())).toEqual(new Set(getTestDataDescriptor())))
+            .map(iconDTOList =>
+                expect(new Set(iconDTOList.toArray()))
+                    .toEqual(new Set(getIngestedTestIconDataDescription())))
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it ("POST should rollback to last consistent state, in case an error occurs", done => {
-        const testData = getTestIconData();
-
         const iconFileToFind1: IconFile = {
-            name: testData.get(0).name,
-            ...testData.get(0).files.get(0)
+            name: testIconInputData.get(0).name,
+            ...testIconInputData.get(0).files.get(0)
         };
         const iconFileToFind2: IconFile = {
-            name: testData.get(0).name,
-            ...testData.get(0).files.get(1)
+            name: testIconInputData.get(0).name,
+            ...testIconInputData.get(0).files.get(1)
         };
 
         const session = agent();
-        addTestData(session.requestBuilder(), List.of(testData.get(0)))
+        addTestData(session.requestBuilder(), List.of(testIconInputData.get(0)))
         .flatMap(() =>
             getCurrentGitCommit()
             .flatMap(gitSha1 => {
@@ -118,7 +123,7 @@ describe(iconEndpointPath, () => {
                     session
                         .responseOK(resp => resp.status === 500)
                         .requestBuilder(),
-                    List.of(testData.get(1))
+                    List.of(testIconInputData.get(1))
                 )
                 .flatMap(() => getCurrentGitCommit()
                     .map(gitSha2 => expect(gitSha1).toEqual(gitSha2)))
@@ -129,7 +134,7 @@ describe(iconEndpointPath, () => {
         .flatMap(() => describeAllIcons(session.requestBuilder()))
         .map(iconInfoList => {
             expect(iconInfoList.size).toEqual(1);
-            expect(iconInfoList.get(0)).toEqual(getTestDataDescriptor()[0]);
+            expect(iconInfoList.get(0)).toEqual(getIngestedTestIconDataDescription()[0]);
         })
         .subscribe(boilerplateSubscribe(fail, done));
     });

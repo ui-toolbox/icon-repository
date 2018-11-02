@@ -1,6 +1,6 @@
 import "jasmine";
 
-import { IconDTO } from "./iconsHandlers";
+import { IconDTO, createIconDTO } from "./iconsHandlers";
 import { Set } from "immutable";
 import { IconFileDescriptor, IconDescriptor } from "./icon";
 
@@ -32,6 +32,6 @@ describe("getAllIcons", () => {
             ]
         };
 
-        expect(JSON.parse(JSON.stringify(new IconDTO(iconPathRoot, iconDesc)))).toEqual(expectedDTO);
+        expect(JSON.parse(JSON.stringify(createIconDTO(iconPathRoot, iconDesc)))).toEqual(expectedDTO);
     });
 });

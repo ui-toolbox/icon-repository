@@ -44,8 +44,6 @@ const serverProvider: (
     router.patch("/icons/:name", iconHandlers.updateIcon);
     router.delete("/icons/:name", iconHandlers.deleteIcon);
     router.get("/icons/:name/formats/:format/sizes/:size", iconHandlers.getIconFile);
-    router.post("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.addIconFile);
-    router.put("/icons/:name/formats/:format/sizes/:size", upload.any(), iconHandlers.updateIconFile);
     router.delete("/icons/:name/formats/:format/sizes/:size", iconHandlers.deleteIconFile);
     router.get("/app-info", appInfoHandlerProvider(appConfig().app_description, appConfig().package_root_dir));
 

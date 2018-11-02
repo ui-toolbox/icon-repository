@@ -6,9 +6,10 @@ import {
     create as createSerializer
 } from "./utils/serializer";
 import logger from "./utils/logger";
-import { IconFile, IconFileDescriptor, IconDescriptor, IconAttributes } from "./icon";
+import { IconFile, IconFileDescriptor, IconDescriptor, IconAttributes, IconNotFound } from "./icon";
 import { commandExecutor } from "./utils/command-executor";
 import { Set, List } from "immutable";
+import { format as strformat } from "util";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -133,6 +134,13 @@ const deleteIconFile: (
         iconFileDesc.size
     );
     return deleteFile(pathCompos.pathToIconFile)
+    .catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") {
+            throw new IconNotFound(pathCompos.pathToIconFile);
+        } else {
+            return Observable.throw(error);
+        }
+    })
     .mapTo(List.of(pathCompos.pathToIconFileInRepo));
 };
 
@@ -176,7 +184,7 @@ const createIconFileJob: CreateIconFileJob = (iconFileOperation, jobTexts, userN
     .flatMap(fileList => gitCommandExecutor(commit(jobTexts.getCommitMessage(fileList), userName)))
     .map(() => ctxLogger.debug("Succeeded"))
     .catch(error => {
-        ctxLogger.error(`Failed: ${error}`);
+        ctxLogger.error(strformat("Failed: %o", error));
         gitCommandExecutor(rollback()[0])
         .flatMap(() => gitCommandExecutor(rollback()[1]))
         .catch(errorInRollback => {
@@ -220,7 +228,6 @@ export interface GitAccessFunctions {
     readonly isRepoInitialized: IsRepoInitialized;
     readonly createNewGitRepo: CreateNewGitRepo;
     readonly addIconFile: AddIconFile;
-    readonly updateIconFile: UpdateIconFile;
     readonly deleteIconFile: DeleteIconFile;
     readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
@@ -257,15 +264,6 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
             createIconFileJob(
                 () => createIconFile(localIconRepositoryLocation, iconFileInfo),
                 createIconFileJobTextProviders("add icon file", defaultCommitMsgProvider("icon file(s) added")),
-                modifiedBy,
-                gitCommandExecutor
-            )
-        ),
-
-        updateIconFile: (iconFileInfo, modifiedBy) => enqueueJob(
-            createIconFileJob(
-                () => updateIconFile(localIconRepositoryLocation, iconFileInfo),
-                createIconFileJobTextProviders("update icon file", defaultCommitMsgProvider("icon file(s) updated")),
                 modifiedBy,
                 gitCommandExecutor
             )

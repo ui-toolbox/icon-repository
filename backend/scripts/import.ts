@@ -1,3 +1,4 @@
+import { format as strformat } from "util";
 import * as path from "path";
 import * as superagent from "superagent";
 import { Observable, Observer } from "rxjs";
@@ -79,21 +80,28 @@ const addIconFile: (
 = (iconName, format, size, content, create) => Observable.create((observer: Observer<void>) => {
     const url: string = create
         ? `/icons`
-        : `/icons/${iconName}/formats/${format}/sizes/${size}`;
+        : `/icons/${iconName}`;
 
     const request = create
-        ? createSession().requestBuilder().post(url).field({name: iconName}).field({format}).field({size})
+        ? createSession().requestBuilder().post(url).field({name: iconName})
         : createSession().requestBuilder().post(url);
 
     return request
     .attach("icon", content, iconName)
     .then(
         response => {
-            if (response.status === 201) {
+            if (create && response.status === 201 || response.status === 200) {
+                const message = create
+                    ? `"${iconName}" created with ${format} ${size}`
+                    : `${format} ${size} added to "${iconName}"`;
+                ctxLogger.info(message);
                 observer.next(void 0);
                 observer.complete();
             } else {
-                observer.error(`Adding ${iconName} ${format} ${size} failed with error: ${response.error}`);
+                const errorMessage = create
+                    ? strformat("Creating \"%s\" with %s %s failed: %o", iconName, format, size, response.error)
+                    : strformat("Adding %s %s to \"%s\" failed with %o", format, size, iconName, response.error);
+                observer.error(errorMessage);
             }
         },
         error => observer.error(error)
@@ -106,7 +114,7 @@ let existingIcons: Set<string> = Set();
 
 const readAndUploadIconFile: (descriptor: SourceFileDescriptor) => Observable<void>
 = descriptor => {
-    ctxLogger.info("Processing icon file: %o", descriptor);
+    ctxLogger.debug("Processing icon file: %o", descriptor);
     return readFile(path.join(sourceDir, descriptor.format, descriptor.size, descriptor.filePath))
     .flatMap(content =>
         (existingIcons.contains(descriptor.name)
@@ -137,7 +145,10 @@ configuration
 })
 .subscribe(
     void 0,
-    error => ctxLogger.error("Importing icons failed: %o", error),
+    error => {
+        ctxLogger.error("Importing icons failed: %o", error);
+        process.exit(1);
+    },
     () => {
         ctxLogger.info("Import finshed");
         process.exit(0);
