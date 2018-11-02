@@ -6,11 +6,12 @@ import * as _ from "lodash";
 // @ts-ignore
 import jose = require("jsrsasign");
 
-import logger, { ContextAbleLogger } from "../../../utils/logger";
+import loggerFactory from "../../../utils/logger";
 import * as errorHandling from "../../../utils/error-handling";
 import doFetch from "../../../utils/fetch";
 import { fromBase64 } from "../../../utils/encodings";
 import { Authentication } from "../../common";
+import { Logger } from "winston";
 
 const sformat = util.format;
 
@@ -56,7 +57,7 @@ export default (
         } else {
             return requestPublicKeyFromIDProvider()
                 .map(publicKey => {
-                    logger.createChild("pk from IP")
+                    loggerFactory("pk from IP")
                         .verbose("Extracting JWS public key from ", publicKey);
                     return jose.KEYUTIL.getKey(publicKey);
                 });
@@ -69,7 +70,7 @@ export default (
 
     const parseVerifyAuthorizationToken: (token: IAuthorizationToken, publicKey: any) => Authentication
     = (token, publicKey) => {
-        const ctxLogger = logger.createChild("oidcAuthentication#parseAuthorizationToken");
+        const ctxLogger = loggerFactory("oidcAuthentication#parseAuthorizationToken");
         let signatureValid: boolean;
         try {
             signatureValid = jose.jws.JWS.verify(token.id_token, publicKey, ["RS256"]);
@@ -116,19 +117,19 @@ export default (
         tokenVerificationFailed(ctxLogger, "Something went wrong during token parsing");
     };
 
-    const tokenVerificationFailed = (ctxtLogger: ContextAbleLogger, message: string, ...args: any[]) => {
+    const tokenVerificationFailed = (ctxtLogger: Logger, message: string, ...args: any[]) => {
         ctxtLogger.error(message, args);
         errorHandling.throwErrorWOStackTrace("Authentication failed");
     };
 
     const authenticateByCode: (reqState: string, resState: string, code: string) => Rx.Observable<Authentication>
     = (reqState, resState, code) => {
-        const ctxLogger = logger.createChild("oidcAuthentication#authenticateByCode");
+        const ctxLogger = loggerFactory("oidcAuthentication#authenticateByCode");
         if (typeof resState === "undefined") {
             tokenVerificationFailed(ctxLogger, "OIDC authorization state shouldn't be undefined");
         }
         if (resState === reqState) {
-            logger.verbose("State value matches: expected %s got %s", reqState, resState);
+            ctxLogger.verbose("State value matches: expected %s got %s", reqState, resState);
         } else {
             tokenVerificationFailed(ctxLogger, "State DOES NOT MATCH: expected %s got %s", reqState, resState);
         }

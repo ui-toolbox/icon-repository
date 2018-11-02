@@ -1,8 +1,9 @@
+import { format as strformat } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as Process from "process";
 
-import logger from "./utils/logger";
+import loggerFactory from "./utils/logger";
 import * as Rx from "rxjs";
 import { fileExists, readTextFile } from "./utils/rx";
 import clone from "./utils/clone";
@@ -40,7 +41,7 @@ const configurationDataProto = Object.freeze({
 
 export type ConfigurationData = typeof configurationDataProto;
 
-const defaultSettings = {
+const defaultSettings = Object.freeze({
     server_hostname: "localhost",
     server_port: 8090,
     server_url_context: "/",
@@ -56,14 +57,31 @@ const defaultSettings = {
     icon_data_create_new: "never",
     enable_backdoors: false,
     package_root_dir: path.resolve(path.dirname(__filename))
+});
+
+let configurationData: ConfigurationData;
+
+const getEnvVarValue = (proto: any, configPropName: string) => {
+    const envVarValue = process.env[configPropName.toUpperCase()];
+    return typeof (proto as any)[configPropName] === "object"
+        ? JSON.parse(envVarValue)
+        : envVarValue;
 };
+
+export const updateConfigurationDataWithEnvVarValues = <T> (proto: T, conf: T) =>
+    Object.keys(proto).reduce(
+        (acc: any, key: string) => process.env[key.toUpperCase()]
+            ? Object.assign(acc, {[key]: getEnvVarValue(proto, key)})
+            : acc,
+        conf
+    );
 
 export const getDefaultConfiguration: () => ConfigurationData = () => Object.assign(
     clone(configurationDataProto),
     clone(defaultSettings)
 );
 
-const ctxLogger = logger.createChild("appConfig");
+const ctxLogger = loggerFactory("appConfig");
 
 export const DEFAULT_CONFIG_FILE_PATH = path.join(ICON_REPO_HOME, "config.json");
 
@@ -95,32 +113,17 @@ const ignoreJSONSyntaxError: (error: any) => Rx.Observable<any> = error => {
     }
 };
 
-const getEnvVarValue = (proto: any, configPropName: string) => {
-    const envVarValue = process.env[configPropName.toUpperCase()];
-    return typeof (proto as any)[configPropName] === "object"
-        ? JSON.parse(envVarValue)
-        : envVarValue;
-};
-
-export const updateConfigurationDataWithEnvVarValues = <T> (proto: T, conf: T) =>
-    Object.keys(proto).reduce(
-        (acc: any, key: string) => process.env[key.toUpperCase()]
-            ? Object.assign(acc, {[key]: getEnvVarValue(proto, key)})
-            : acc,
-        conf
-    );
-
 export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) => Rx.Observable<T>
 = (filePath, proto, defaults) => {
     return fileExists(filePath)
         .flatMap(exists => {
             if (exists) {
-                logger.info("Updating configuration from %s...", configFilePath);
+                ctxLogger.info(strformat("Updating configuration from %s...", configFilePath));
                 return readTextFile(filePath)
                     .map(fileContent => JSON.parse(fileContent))
                     .catch(error => ignoreJSONSyntaxError(error));
             } else {
-                logger.warn("Configuration file doesn't exist: %s...", configFilePath);
+                ctxLogger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
                 return Rx.Observable.of({});
             }
         })
@@ -128,19 +131,12 @@ export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) 
         .do(conf => updateConfigurationDataWithEnvVarValues(proto, conf));
 };
 
-let configurationData: ConfigurationData;
-
-export type ConfigurationDataProvider = () => ConfigurationData;
-
-const updateState: () => Rx.Observable<ConfigurationDataProvider> = () => {
+const updateState: () => Rx.Observable<ConfigurationData> = () => {
     return readConfiguration(configFilePath, configurationDataProto, defaultSettings)
         .do(conf => {
-            if (conf.logger_level) {
-                logger.setLevel(conf.logger_level);
-            }
             configurationData = conf;
         })
-        .map(conf => () => configurationData);
+        .map(() => Object.freeze(configurationData));
 };
 
 const watchConfigFile = (filePathToWatch: string) => {
@@ -152,17 +148,14 @@ const watchConfigFile = (filePathToWatch: string) => {
             case "rename": // Editing with vim results in this event
                 fileExists(filePathToWatch)
                 .do(exists => {
-                    logger.warn(
-                        "Ooops! Configuration file was renamed?",
-                        filePathToWatch
-                    );
+                    ctxLogger.info(`Ooops! Configuration file was renamed: ${filePathToWatch}?`);
                 })
                 .filter(exists => exists)
                 .do(b => updateState())
                 .toPromise()
                     .then(
-                        r => watchConfigFile(filePathToWatch),
-                        err => ctxLogger.error("Configuration error", err)
+                        () => watchConfigFile(filePathToWatch),
+                        err => ctxLogger.info(strformat("Configuration error: %o", err))
                     );
                 break;
             case "change":
@@ -173,10 +166,10 @@ const watchConfigFile = (filePathToWatch: string) => {
 };
 
 Rx.Observable
-    .forkJoin(Rx.Observable.of(configFilePath), fileExists(configFilePath))
-    .filter(value => value[1])
-        .do(value => watchConfigFile(value[0]))
-        .subscribe();
+.forkJoin(Rx.Observable.of(configFilePath), fileExists(configFilePath))
+.filter(value => value[1])
+    .do(value => watchConfigFile(value[0]))
+    .subscribe();
 
 let watcher: fs.FSWatcher = null;
 

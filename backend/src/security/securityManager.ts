@@ -6,7 +6,7 @@ import * as session from "express-session";
 // @ts-ignore
 import sessionMemoryStoreFactory = require("session-memory-store");
 
-import { ConfigurationDataProvider } from "./../configuration";
+import { ConfigurationData } from "./../configuration";
 
 import oidcLoginHandlerProvider from "./authentication/oidc/oidcLoginRouteHandler";
 import oidcLogoutSuccessHandlerProvider from "./authentication/oidc/oidcLogoutSuccessHandler";
@@ -17,7 +17,7 @@ import {
     allPrivilegesForUserGetterProvider
 } from "./authorization/privileges/priv-config";
 import { hasRequiredPrivileges } from "./authorization/privileges/priv-enforcement";
-import logger from "./../utils/logger";
+import loggerFactory, { getDefaultLogLevel } from "./../utils/logger";
 import randomstring from "./../utils/randomstring";
 
 import backdoors from "./backdoors";
@@ -30,12 +30,12 @@ const createAuthenticationInterceptor = (serverContext: string, basicAuthentHand
     res: express.Response,
     next: express.NextFunction
 ) => {
-    const ctxLogger = logger.createChild("authenticationInterceptor");
+    const ctxLogger = loggerFactory("authenticationInterceptor");
     const loginPage = serverContext + "/login";
 
-    if (ctxLogger.isLevelEnabled("silly")) {
+    if (getDefaultLogLevel() === "silly") {
         (Object.keys(req.headers)).forEach(key => {
-            logger.silly(key + ": " + req.headers[key]);
+            ctxLogger.silly(key + ": " + req.headers[key]);
         });
     }
 
@@ -59,7 +59,7 @@ const privilegeCheckInterceptor = (
     res: express.Response,
     next: express.NextFunction
 ) => {
-    const ctxLogger = logger.createChild("privilegeCheckInterceptor");
+    const ctxLogger = loggerFactory("privilegeCheckInterceptor");
     if (hasRequiredPrivileges(req)) {
         ctxLogger.silly(req.url + ": letting pass:", getAuthentication(req.session));
         next();
@@ -74,7 +74,7 @@ type AttachUserPrivileges = (currentSession: Express.Session) => Observable<void
 
 const attachUserPrivilegesProvider: (getAllPrivilegesForUser: GetAllPrivilegesForUser) => AttachUserPrivileges
 = getAllPrivilegesForUser => currentSession => {
-    const ctxLogger = logger.createChild("remember-user-privileges");
+    const ctxLogger = loggerFactory("remember-user-privileges");
     if (!currentSession || !getAuthentication(currentSession)) {
         ctxLogger.error(
             "Illegal state: no session or authentication information associated with the request",
@@ -95,7 +95,7 @@ const loginSuccessHandlerProvider: (attachUserPrivileges: AttachUserPrivileges, 
     res: express.Response
 ) => void
 = (attachUserPrivileges, serverContextPath) => (req, res) => {
-    const ctxLogger = logger.createChild("loginSuccessHandlerProvider");
+    const ctxLogger = loggerFactory("loginSuccessHandlerProvider");
 
     attachUserPrivileges(req.session)
     .subscribe(() => {
@@ -110,7 +110,7 @@ const loginSuccessHandlerProvider: (attachUserPrivileges: AttachUserPrivileges, 
 };
 
 const userInfoHandler = (req: express.Request, res: express.Response) => {
-    logger.createChild("user-info-handler").debug("returning: %o", getAuthentication(req.session));
+    loggerFactory("user-info-handler").debug("returning: %o", getAuthentication(req.session));
     const auth: Authentication = getAuthentication(req.session);
     res.send({
         username: auth.username,
@@ -121,7 +121,7 @@ const userInfoHandler = (req: express.Request, res: express.Response) => {
 type LogoutSuccessHandler = (req: express.Request, res: express.Response) => void;
 
 const createLogoutHandler = (logoutSuccessHandler?: LogoutSuccessHandler) => {
-    const ctxLogger = logger.createChild("securityManager#createLogoutHandler");
+    const ctxLogger = loggerFactory("securityManager#createLogoutHandler");
     return (req: express.Request, res: express.Response) => {
         ctxLogger.debug("handler called");
         if (req.session) {
@@ -144,7 +144,7 @@ const createLogoutHandler = (logoutSuccessHandler?: LogoutSuccessHandler) => {
     };
 };
 
-export default (appConfigProvider: ConfigurationDataProvider) => {
+export default (configuration: ConfigurationData) => {
     const setupSessionManagement = (app: express.Express) => {
         // @ts-ignore
         const sessionStore: MemoryStore = new sessionMemoryStoreFactory(session)({
@@ -161,7 +161,7 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
                 // secure: true,
                 httpOnly: true,
                 // domain: "example.com",
-                path: appConfigProvider().server_url_context,
+                path: configuration.server_url_context,
                 expires: void 0
             },
             resave: false,
@@ -170,28 +170,28 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
     };
 
     const setupRoutes: (router: express.Router) => void = router => {
-        const ctxLogger = logger.createChild("security-manager#setup-routes");
-        const authType = appConfigProvider().authentication_type;
+        const ctxLogger = loggerFactory("security-manager#setup-routes");
+        const authType = configuration.authentication_type;
         ctxLogger.debug(`Authentication type: ${authType}`);
-        ctxLogger.debug(`users_by_roles: ${appConfigProvider().users_by_roles}`);
+        ctxLogger.debug(`users_by_roles: ${configuration.users_by_roles}`);
         const getAllPrivilegesForUser: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider(
-            privilegeResourcesProvider(appConfigProvider().users_by_roles)
+            privilegeResourcesProvider(configuration.users_by_roles)
         );
 
         const attachUserPrivileges: AttachUserPrivileges = attachUserPrivilegesProvider(getAllPrivilegesForUser);
 
         let loginHandler: express.Handler;
         const loginSuccessHandler: express.Handler = loginSuccessHandlerProvider(
-            attachUserPrivileges, appConfigProvider().server_url_context
+            attachUserPrivileges, configuration.server_url_context
         );
         let logoutSuccessHandler: LogoutSuccessHandler;
         let basicAuthentHandler: express.Handler;
 
         if (authType === "oidc") {
-            loginHandler = oidcLoginHandlerProvider(appConfigProvider);
+            loginHandler = oidcLoginHandlerProvider(configuration);
             logoutSuccessHandler = oidcLogoutSuccessHandlerProvider(
-                appConfigProvider().oidc_ip_logout_url,
-                appConfigProvider().server_url_context
+                configuration.oidc_ip_logout_url,
+                configuration.server_url_context
             );
         } else if (authType === "basic") {
             ctxLogger.warn("Authentication type is: %s", authType);
@@ -208,7 +208,7 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
         );
         router.use(
             createAuthenticationInterceptor(
-                appConfigProvider().server_url_context,
+                configuration.server_url_context,
                 basicAuthentHandler
             )
         );
@@ -216,7 +216,7 @@ export default (appConfigProvider: ConfigurationDataProvider) => {
         router.post("/logout", createLogoutHandler(logoutSuccessHandler));
         router.get("/user", userInfoHandler);
 
-        if (appConfigProvider().enable_backdoors) {
+        if (configuration.enable_backdoors) {
             router.use("/backdoor", backdoors);
         }
     };

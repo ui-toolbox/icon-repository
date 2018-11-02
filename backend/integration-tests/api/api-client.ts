@@ -3,6 +3,7 @@ import { Observable, Observer } from "rxjs";
 import { IconDTO } from "../../src/iconsHandlers";
 import { List } from "immutable";
 import { IconFileDescriptor, IconAttributes } from "../../src/icon";
+import loggerFactory from "../../src/utils/logger";
 
 export const authenticationBackdoorPath = "/backdoor/authentication";
 
@@ -47,6 +48,8 @@ export const setAuth: (
 
 export const describeAllIcons: (reqBuilder: RequestBuilder) => Observable<List<IconDTO>>
 = reqBuilder => Observable.create((observer: Observer<List<IconDTO>>) => {
+    const logger = loggerFactory("api-client: describe-all-icons");
+    logger.info("START");
     reqBuilder
         .get(`/icons`)
         .then(
@@ -156,18 +159,22 @@ export const updateIcon: (
     iconName: string,
     newIconAttributes: IconAttributes
 ) => Observable<void>
-= (requestBuilder, iconName, newIconAttributes) => Observable.create((observer: Observer<void>) =>
+= (requestBuilder, iconName, newIconAttributes) => Observable.create((observer: Observer<void>) => {
+    const logger = loggerFactory("api-client: describe-all-icons");
+    logger.info("START");
     requestBuilder
     .patch(`/icons/${iconName}`)
     .send(newIconAttributes)
     .then(
         () => {
+            logger.info("Got result");
             observer.next(void 0);
             observer.complete();
         },
         error => observer.error(error)
     )
-    .catch(error => observer.error(error)));
+    .catch(error => observer.error(error));
+});
 
 export const deleteIcon: (
     requestBuilder: RequestBuilder,

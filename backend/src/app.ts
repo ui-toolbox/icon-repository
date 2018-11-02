@@ -1,13 +1,16 @@
 import * as http from "http";
 
-import logger from "./utils/logger";
-import configuration from "./configuration";
+import loggerFactory, { setDefaultLogLevel } from "./utils/logger";
+import configurationProvider from "./configuration";
 import iconDAFsProvider, { createConnectionProperties } from "./db/db";
 import gitAFsProvider from "./git";
 import serverProvider from "./server";
 
 import iconServiceProvider from "./iconsService";
 import iconHandlersProvider from "./iconsHandlers";
+import { Logger } from "winston";
+
+let logger: Logger;
 
 const logServerStart = (server: http.Server) => {
     const host = server.address().address;
@@ -16,18 +19,21 @@ const logServerStart = (server: http.Server) => {
     logger.log("info", "The CXN Icon Repository server is listening at http://%s:%s", host, port);
 };
 
-configuration
-.flatMap(configProvider => {
+configurationProvider
+.flatMap(configuration => {
+    setDefaultLogLevel(configuration.logger_level);
+    logger = loggerFactory("app");
+
     return iconServiceProvider(
         {
-            resetData: configProvider().icon_data_create_new
+            resetData: configuration.icon_data_create_new
         },
-        iconDAFsProvider(createConnectionProperties(configProvider())),
-        gitAFsProvider(configProvider().icon_data_location_git)
+        iconDAFsProvider(createConnectionProperties(configuration)),
+        gitAFsProvider(configuration.icon_data_location_git)
     )
     .flatMap(iconService => {
         const iconHandlers = iconHandlersProvider(iconService);
-        return serverProvider(configProvider, iconHandlers)
+        return serverProvider(configuration, iconHandlers)
         .map(logServerStart);
     });
 })

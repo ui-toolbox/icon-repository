@@ -4,28 +4,28 @@ import { storeAuthentication, getAuthentication } from "../../common";
 
 import oidcCreateRequestTokenURL from "./oidcRequestTokenURLFactory";
 import authenticateByCode from "./oidcAuthentication";
-import logger from "../../../utils/logger";
-import { ConfigurationDataProvider } from "../../../configuration";
+import loggerFactory from "../../../utils/logger";
+import { ConfigurationData } from "../../../configuration";
 import { fromBase64 } from "../../../utils/encodings";
 
-const ctxLogger = logger.createChild("oidc-login-handler");
+const ctxLogger = loggerFactory("oidc-login-handler");
 
 export default (
-    appConfigProvider: ConfigurationDataProvider
+    configuration: ConfigurationData
 ) =>
 (req: express.Request, res: express.Response, next: express.NextFunction) => {
 
-    const authorizationURL = appConfigProvider().oidc_user_authorization_url;
-    const redirectURL = appConfigProvider().oidc_client_redirect_back_url;
-    const clientID = appConfigProvider().oidc_client_id;
-    const clientSecret = appConfigProvider().oidc_client_secret;
+    const authorizationURL = configuration.oidc_user_authorization_url;
+    const redirectURL = configuration.oidc_client_redirect_back_url;
+    const clientID = configuration.oidc_client_id;
+    const clientSecret = configuration.oidc_client_secret;
 
     if (req.query.error) {
         ctxLogger.error("Request has (returned with) an error", req.query.error);
         res.end(400, req.query.error);
     } else if (req.session && getAuthentication(req.session)) {
         ctxLogger.verbose("Already logged in");
-        res.redirect(appConfigProvider().server_url_context);
+        res.redirect(configuration.server_url_context);
     } else if (!req.query || !req.query.code) {
         const tokenRequestURL: URL = oidcCreateRequestTokenURL(
             authorizationURL,
@@ -40,10 +40,10 @@ export default (
             clientID,
             clientSecret,
             redirectURL,
-            appConfigProvider().oidc_access_token_url,
-            appConfigProvider().oidc_ip_jwt_public_key_url,
-            fromBase64(appConfigProvider().oidc_ip_jwt_public_key_pem_base64),
-            appConfigProvider().oidc_token_issuer)
+            configuration.oidc_access_token_url,
+            configuration.oidc_ip_jwt_public_key_url,
+            fromBase64(configuration.oidc_ip_jwt_public_key_pem_base64),
+            configuration.oidc_token_issuer)
                     (req.session.oidcTokenRequestState, req.query.state, req.query.code)
         .toPromise()
         .then(

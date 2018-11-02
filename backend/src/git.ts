@@ -10,6 +10,7 @@ import { IconFile, IconFileDescriptor, IconDescriptor, IconAttributes, IconNotFo
 import { commandExecutor } from "./utils/command-executor";
 import { Set, List } from "immutable";
 import { format as strformat } from "util";
+import loggerFactory from "./utils/logger";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -17,7 +18,7 @@ export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 
 export const createGitCommandExecutor: (pathToIconRepository: string) => GitCommandExecutor
 = pathToIconRepository => spawnArgs => {
-    const ctxLogger = logger.createChild(`executeGitCommand ${spawnArgs} in ${pathToIconRepository}`);
+    const ctxLogger = loggerFactory(`executeGitCommand ${spawnArgs} in ${pathToIconRepository}`);
     return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: pathToIconRepository });
 };
 
@@ -30,7 +31,7 @@ type CreateNewGitRepo = () => Observable<string>;
 
 export const createNewGitRepo: (location: string) => CreateNewGitRepo
 = location => () => {
-    const newGitRepoLogger = logger.createChild("create-new-git-repo");
+    const newGitRepoLogger = loggerFactory("create-new-git-repo");
     return commandExecutor(newGitRepoLogger, "rm", [ "-rf", location])
     .flatMap(() => commandExecutor(newGitRepoLogger, "mkdir", [ "-p", location ]))
     .flatMap(() => commandExecutor(newGitRepoLogger, "git", [ "init" ], { cwd: location }))
@@ -176,7 +177,7 @@ type CreateIconFileJob = (
 ) => SerializableJobImpl;
 
 const createIconFileJob: CreateIconFileJob = (iconFileOperation, jobTexts, userName, gitCommandExecutor) => {
-    const ctxLogger = logger.createChild("git: " + jobTexts.logContext);
+    const ctxLogger = loggerFactory("git: " + jobTexts.logContext);
     return () => iconFileOperation()
     .flatMap(iconFilePathsInRepo => iconFilePathsInRepo.toArray())
     .flatMap(oneFilePathInRepo => gitCommandExecutor(addToIndex(oneFilePathInRepo)).mapTo(oneFilePathInRepo))

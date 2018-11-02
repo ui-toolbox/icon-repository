@@ -8,7 +8,7 @@ import {
     getBaseUrl,
     Session
 } from "../integration-tests/api/api-test-utils";
-import logger from "../src/utils/logger";
+import loggerFactory from "../src/utils/logger";
 import { readdir, readFile } from "../src/utils/rx";
 import configuration from "../src/configuration";
 import { create as createSerializer } from "../src/utils/serializer";
@@ -24,7 +24,7 @@ const sourceDir = process.env.ICON_IMPORT_SOURCE_DIR || defaultSourceDir;
 
 delete process.env.ICON_DATA_LOCATION_GIT;
 
-const ctxLogger = logger.createChild("importer");
+const ctxLogger = loggerFactory("importer");
 
 interface SourceFileDescriptor {
     name: string;
@@ -138,7 +138,7 @@ const importIcons: () => Observable<any> = () => {
 };
 
 configuration
-.flatMap(configProvider => startServer(configProvider()))
+.flatMap(configProvider => startServer(configProvider))
 .flatMap(server => {
     return importIcons()
     .finally(() => server.close);
@@ -146,7 +146,7 @@ configuration
 .subscribe(
     void 0,
     error => {
-        ctxLogger.error("Importing icons failed: %o", error);
+        ctxLogger.error(strformat("Importing icons failed: %o", error));
         process.exit(1);
     },
     () => {

@@ -1,9 +1,9 @@
 import * as url from "url";
 import { Request, Response } from "express";
-import { ConfigurationDataProvider } from "../../../configuration";
-import logger from "../../../utils/logger";
+import { ConfigurationData } from "../../../configuration";
+import loggerFactory from "../../../utils/logger";
 
-const log = logger.createChild("oidcLogout");
+const logger = loggerFactory("oidcLogout");
 
 const getForwardedPort: (req: Request) => number = req => {
     const fwPortHeader = req.headers["X-Forwarded-Port"];
@@ -22,7 +22,7 @@ export default (logoutURL: string, serverContextPath: string) => (req: Request, 
         const serviceURL = new url.URL(url.format(fqdn));
         serviceURL.pathname = serverContextPath;
         const redirectBackAfterLogin = url.format(serviceURL);
-        log.debug("Request redirect back to ", redirectBackAfterLogin);
+        logger.debug("Request redirect back to ", redirectBackAfterLogin);
         res.redirect(307, logoutURL + "?service=" + redirectBackAfterLogin);
     } else {
         res.end(200);
