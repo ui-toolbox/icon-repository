@@ -1,19 +1,20 @@
 import oidcLogoutSuccessHandler from "./oidcLogoutSuccessHandler";
 
-import config, { ConfigurationDataProvider } from "../../../configuration";
+import config, { ConfigurationData } from "../../../configuration";
 
 import { Request, Response } from "express";
-import { Observable } from "rxjs";
 import { Mock } from "ts-mocks";
+import { Observable } from "rxjs";
 
-const getConfigProviderWithLogoutURLAndContextPathSet: (logoutURLValue: string, contextPath: string)
-        => Observable<ConfigurationDataProvider>
+const getConfigProviderWithLogoutURLAndContextPathSet: (
+    logoutURLValue: string,
+    contextPath: string) => Observable<ConfigurationData>
 = (logoutURLValue, contextPath) =>
-    config
-    .map(configData => () => Object.assign(configData(), {
-            server_url_context: contextPath,
-            oidc_ip_logout_url: logoutURLValue
-        }));
+    config.map(configData => Object.freeze({
+        ...configData,
+        server_url_context: contextPath,
+        oidc_ip_logout_url: logoutURLValue
+    }));
 
 describe("oidcLogoutSuccessHandler", () => {
     const someLogoutURL = "some-logout-url";
@@ -34,8 +35,8 @@ describe("oidcLogoutSuccessHandler", () => {
         .subscribe(
             configProvider => {
                 oidcLogoutSuccessHandler(
-                    configProvider().oidc_ip_logout_url,
-                    configProvider().server_url_context
+                    configProvider.oidc_ip_logout_url,
+                    configProvider.server_url_context
                 )(req, res);
                 expect(res.redirect).toHaveBeenCalledWith(
                     307,
@@ -53,8 +54,8 @@ describe("oidcLogoutSuccessHandler", () => {
         .subscribe(
             configProvider => {
                 oidcLogoutSuccessHandler(
-                    configProvider().oidc_ip_logout_url,
-                    configProvider().server_url_context
+                    configProvider.oidc_ip_logout_url,
+                    configProvider.server_url_context
                 )(req, res);
                 expect(res.end).toHaveBeenCalledWith(200);
                 done();

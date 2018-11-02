@@ -9,14 +9,14 @@ import {
     IconAttributes,
     IconNotFound,
     IconFileAlreadyExists } from "../icon";
-import logger from "../utils/logger";
+import loggerFactory from "../utils/logger";
 import { createSchema, CreateSchema } from "./create-schema";
 
 const pgErrorCodes = {
     unique_constraint_violation: "23505"
 };
 
-const ctxLogger = logger.createChild("db");
+const ctxLogger = loggerFactory("db");
 
 export interface ConnectionProperties {
     readonly user: string;

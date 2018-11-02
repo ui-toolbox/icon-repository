@@ -1,71 +1,39 @@
-import * as util from "util";
 import * as winston from "winston";
+import { Map } from "immutable";
 
-const tsFormat = () => new Date().toISOString();
-const baseLogger = new (winston.Logger)({
-    transports: [
-        new (winston.transports.Console)({
-            timestamp: tsFormat,
-            colorize: false
-        })
-    ]
-});
+export type LoggerFactory = (label: string) => winston.Logger;
 
-const createChild: (context: string) => ContextAbleLogger = context => {
-    return new ContextAbleLogger(context);
+let defaultLogLevel = "info";
+
+// Keep track of the loggers by label, so they can be reconfigured, if necessary
+let loggers: Map<string, winston.Logger> = Map();
+
+const loggerFactory = (label: string) => {
+
+    const cached = loggers.get(label);
+
+    if (cached) {
+        return cached;
+    } else {
+        const logger = winston.createLogger({
+            level: defaultLogLevel,
+            format: winston.format.combine(
+                winston.format.splat(),
+                winston.format.timestamp(),
+                winston.format.label({label}),
+                winston.format.printf(info => `${info.timestamp} ${info.level}: ${label}: ${info.message}`)
+            ),
+            transports: [ new winston.transports.Console() ]
+        });
+        loggers = loggers.set(label, logger);
+        return logger;
+    }
 };
 
-type CreateChildContext = (context: string) => winston.LoggerInstance;
+export const setDefaultLogLevel = (logLevel: string) => {
+    defaultLogLevel = logLevel;
+};
 
-const contextPrefix = (context: string) => context ? context + ": " : "";
+export const getDefaultLogLevel = () => defaultLogLevel;
 
-export class ContextAbleLogger {
-    private context: string;
-
-    constructor(context: string) {
-        this.context = context;
-    }
-
-    public log(level: string, msg: string, ...meta: any[]) {
-        (this as any)[level](util.format(meta));
-    }
-
-    public error(msg: string, ...meta: any[]) {
-        baseLogger.error(util.format(contextPrefix(this.context) + msg, ...meta));
-    }
-
-    public warn(msg: string, ...meta: any[]) {
-        baseLogger.warn(util.format(contextPrefix(this.context) + msg, ...meta));
-    }
-
-    public info(msg: string, ...meta: any[]) {
-        baseLogger.info(util.format(contextPrefix(this.context) + msg, ...meta));
-    }
-
-    public debug(msg: string, ...meta: any[]) {
-        baseLogger.debug(util.format(contextPrefix(this.context) + msg, ...meta));
-    }
-
-    public verbose(msg: string, ...meta: any[]) {
-        baseLogger.verbose(util.format(contextPrefix(this.context) + msg, ...meta));
-    }
-
-    public silly(msg: string, ...meta: any[]) {
-        baseLogger.silly(util.format(contextPrefix(this.context) + msg, ...meta));
-    }
-
-    public isLevelEnabled(level: string) {
-        // @ts-ignore
-        return baseLogger.levels[level] >= baseLogger.level;
-    }
-
-    public setLevel(level: string) {
-        baseLogger.level = level;
-    }
-
-    public createChild(context: string): ContextAbleLogger {
-        return createChild(context);
-    }
-}
-
-export default createChild("");
+export default loggerFactory;

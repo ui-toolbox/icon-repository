@@ -1,7 +1,7 @@
 import * as http from "http";
 import { Observable } from "rxjs";
 
-import configuration from "../../src/configuration";
+import configurationProvider from "../../src/configuration";
 import { ConfigurationData } from "../../src/configuration";
 import iconDAFsProvider, { createConnectionProperties } from "../../src/db/db";
 import gitProvider from "../../src/git";
@@ -9,14 +9,11 @@ import serverProvider from "../../src/server";
 import { Server } from "http";
 import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
-import logger from "../../src/utils/logger";
 import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { Auth, getIconFile } from "./api-client";
 import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
 import { IconFile } from "../../src/icon";
-
-logger.setLevel("silly");
 
 type StartServer = (customServerConfig: any) => Observable<Server>;
 
@@ -27,15 +24,14 @@ export const defaultTestServerconfig = Object.freeze({
 let localServerRef: Server;
 
 export const startServer: StartServer = customConfig => {
-    return configuration
-    .flatMap(configurationProvider => {
-        const configData: ConfigurationData = Object.assign(
-            Object.assign(
-                configurationProvider(),
-                defaultTestServerconfig
-            ),
-            Object.assign(customConfig, {server_port: 0})
-        );
+    return configurationProvider
+    .flatMap(configuration => {
+        const configData: ConfigurationData = Object.freeze({
+                ...configuration,
+                ...defaultTestServerconfig,
+                ...customConfig,
+                server_port: 0
+        });
         return iconServiceProvider(
             {
                 resetData: "always"
@@ -45,7 +41,7 @@ export const startServer: StartServer = customConfig => {
         )
         .flatMap(iconService => {
             const iconHandlers = iconHandlersProvider(iconService);
-            return serverProvider(() => configData, iconHandlers);
+            return serverProvider(configData, iconHandlers);
         })
         .map(server => {
             localServerRef = server;

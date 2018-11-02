@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction, Handler } from "express";
 import { Observable } from "rxjs";
 import { AuthenticationDataSource } from "../common";
-import logger from "../../../utils/logger";
+import loggerFactory from "../../../utils/logger";
 import { storeAuthentication, Authentication, GetAllPrivilegesForUser } from "../../common";
 
 const getAuthorizationHeader: (req: Request) => string
@@ -26,7 +26,7 @@ export type BasicAuthenticationHandlerProvider = (
 
 const basicAuthenticationHandlerProvider: BasicAuthenticationHandlerProvider
 = (authenticationDatasource, getAllPrivilegesForUser) => (req: Request, res: Response, next: NextFunction) => {
-    const ctxLogger = logger.createChild("basic-authentication-handler");
+    const ctxLogger = loggerFactory("basic-authentication-handler");
     const currentCreds = getCredentials(req);
     authenticationDatasource(currentCreds)
     .flatMap(matchFound => matchFound

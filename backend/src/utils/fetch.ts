@@ -2,7 +2,7 @@ import * as util from "util";
 import fetch from "node-fetch";
 import { Observable, Observer } from "rxjs";
 
-import logger from "./logger";
+import loggerFactory from "./logger";
 import { throwErrorWOStackTrace } from "./error-handling";
 
 export default <T> (
@@ -12,7 +12,7 @@ export default <T> (
     data: any,
     responseIsJSON: boolean = true
 ) => Observable.create((observer: Observer<T>) => {
-const log = logger.createChild("util#doFetch");
+const log = loggerFactory("util#doFetch");
 fetch(url, {
     method,
     headers,

@@ -1,9 +1,10 @@
-import { ContextAbleLogger } from "./logger";
+import loggerFactory from "./logger";
 import { SpawnOptions, spawn } from "child_process";
 import { Observable, Observer } from "rxjs";
+import { Logger } from "winston";
 
 export type CommandExecutor = (
-    logger: ContextAbleLogger,
+    logger: Logger,
     command: string,
     spawnArgs: ReadonlyArray<string>,
     options?: SpawnOptions) => Observable<string>;

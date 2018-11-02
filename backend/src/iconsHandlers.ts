@@ -1,6 +1,6 @@
 import { format } from "util";
 import { Request, Response } from "express";
-import logger from "./utils/logger";
+import loggerFactory from "./utils/logger";
 
 import {
     IconDescriptor,
@@ -62,7 +62,7 @@ export const createIconDTO: (iconPathRoot: string, iconDesc: IconDescriptor) => 
 
 const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
 = (getter, iconPathRoot) => (req, res) => {
-    const log = logger.createChild(`${req.url} request handler`);
+    const log = loggerFactory(`${req.url} request handler`);
     getter()
     .map(iconList => iconList.map(iconDescriptor => createIconDTO(iconPathRoot, iconDescriptor)).toArray())
     .subscribe(
@@ -77,7 +77,7 @@ const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req
 
 const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Request, res: Response) => void
 = (getter, iconPathRoot) => (req, res) => {
-    const log = logger.createChild(`${req.url} request handler`);
+    const log = loggerFactory(`${req.url} request handler`);
     getter(req.params.name)
     .map(iconDescriptor => iconDescriptor ? createIconDTO(iconPathRoot, iconDescriptor) : void 0)
     .subscribe(
@@ -99,7 +99,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         describeIcon(iconService.describeIcon, iconPathRoot)(req, res),
 
     createIcon: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("icon-create-requesthandler");
+        const ctxLogger = loggerFactory("icon-create-requesthandler");
         ctxLogger.debug("START");
         const iconName = req.body.name;
         const initialIconfileContent = (req.files as any)[0].buffer;
@@ -124,7 +124,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
     },
 
     ingestIconfile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("ingest-iconfile-requesthandler");
+        const ctxLogger = loggerFactory("ingest-iconfile-requesthandler");
         ctxLogger.debug("START");
         const file: UploadedFileDescriptor = (req as any).files[0];
         const iconName: string = req.params.name;
@@ -148,7 +148,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
     },
 
     updateIcon: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("icon-update-requesthandler");
+        const ctxLogger = loggerFactory("icon-update-requesthandler");
         ctxLogger.info(`START ${req.body.name}`);
         const oldIconName: string = req.params.name;
         const newIcon: IconAttributes = { name: req.body.name };
@@ -160,8 +160,8 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             iconService.updateIcon(oldIconName, newIcon, getAuthentication(req.session).username)
             .subscribe(
                 result => {
-                    ctxLogger.info("Icon #%d updated: %o", result, newIcon);
-                    res.status(204).send({iconId: result}).end();
+                    ctxLogger.info("Icon %s updated: %o", oldIconName, newIcon);
+                    res.status(204).end();
                 },
                 error => {
                     ctxLogger.error("An error occurred while updating icon %o: %o", oldIconName, error);
@@ -172,7 +172,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
     },
 
     deleteIcon: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("icon-delete-requesthandler");
+        const ctxLogger = loggerFactory("icon-delete-requesthandler");
         if (!req.params || !req.params.name) {
             ctxLogger.error("Missing icon name");
             res.status(400).send({error: "Icon name must be specified"}).end();
@@ -191,7 +191,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
     },
 
     getIconFile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("iconfile-get-requesthandler");
+        const ctxLogger = loggerFactory("iconfile-get-requesthandler");
         iconService.getIconFile(req.params.name, req.params.format, req.params.size)
         .toPromise()
         .then(
@@ -213,7 +213,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
     },
 
     deleteIconFile: (req: Request, res: Response) => {
-        const ctxLogger = logger.createChild("iconfile-delete-requesthandler");
+        const ctxLogger = loggerFactory("iconfile-delete-requesthandler");
         if (!req.params.name) {
             ctxLogger.error("Missing icon name");
             res.status(400).send({error: "Icon name must be specified"}).end();

@@ -3,7 +3,7 @@
  */
 import { List } from "immutable";
 
-import logger from "../utils/logger";
+import loggerFactory from "../utils/logger";
 import { Observable, Observer } from "rxjs";
 
 export type JobResult = any;
@@ -23,7 +23,7 @@ interface JobItem {
 }
 
 export const create: (jobType: string) => EnqueueJob = jobType => {
-    const ctxLogger = logger.createChild("asynch-jobs-serializer: " + jobType);
+    const ctxLogger = loggerFactory("asynch-jobs-serializer: " + jobType);
 
     let queue: List<JobItem> = List([]);
 

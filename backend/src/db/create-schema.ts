@@ -3,9 +3,9 @@ import { Pool } from "pg";
 
 import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "./db-schema";
 import { query } from "./db";
-import logger from "../utils/logger";
+import loggerFactory from "../utils/logger";
 
-const ctxLogger = logger.createChild("db/create-schema");
+const ctxLogger = loggerFactory("db/create-schema");
 
 const colDefToSQL: (columnsDefinition: IColumnsDefinition, columnName: string) => string
 = (columnsDefinition, columnName) => {
