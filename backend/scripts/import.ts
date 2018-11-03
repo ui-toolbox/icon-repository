@@ -1,7 +1,8 @@
 import { format as strformat } from "util";
 import * as path from "path";
 import * as superagent from "superagent";
-import { Observable, Observer } from "rxjs";
+import { Observable, Observer, of } from "rxjs";
+import { flatMap, map, finalize } from "rxjs/operators";
 
 import {
     startServer,
@@ -38,19 +39,25 @@ const stripExtension = (fileName: string) => fileName.replace(/(.*)\.[^.]*$/, "$
 const iconFileCollector: () => Observable<SourceFileDescriptor>
 = () => {
     return readdir(sourceDir)
-    .flatMap(directoriesForFormats => directoriesForFormats)
-    .flatMap(directoryForFormat =>
-        readdir(path.join(sourceDir, directoryForFormat))
-        .flatMap(directoriesForSizes => directoriesForSizes)
-        .flatMap(directoryForSize =>
-            readdir(path.join(sourceDir, directoryForFormat, directoryForSize))
-            .flatMap(files => files)
-            .map(file => ({
-                name: stripExtension(file),
-                format: directoryForFormat,
-                size: directoryForSize,
-                filePath: file
-            }))));
+    .pipe(
+        flatMap(directoriesForFormats => directoriesForFormats),
+        flatMap(directoryForFormat =>
+            readdir(path.join(sourceDir, directoryForFormat))
+            .pipe(
+                flatMap(directoriesForSizes => directoriesForSizes),
+                flatMap(directoryForSize =>
+                    readdir(path.join(sourceDir, directoryForFormat, directoryForSize))
+                    .pipe(
+                        flatMap(files => files),
+                        map(file => ({
+                            name: stripExtension(file),
+                            format: directoryForFormat,
+                            size: directoryForSize,
+                            filePath: file
+                        }))
+                    ))
+            ))
+    );
 };
 
 const createSession = () => new Session(
@@ -69,7 +76,7 @@ const doesIconExist: (iconName: string) => Observable<boolean>
         createSession().requestBuilder(),
         iconName
     )
-    .map(icon => !!icon);
+    .pipe(map(icon => !!icon));
 
 const addIconFile: (
     iconName: string,
@@ -116,33 +123,44 @@ const readAndUploadIconFile: (descriptor: SourceFileDescriptor) => Observable<vo
 = descriptor => {
     ctxLogger.debug("Processing icon file: %o", descriptor);
     return readFile(path.join(sourceDir, descriptor.format, descriptor.size, descriptor.filePath))
-    .flatMap(content =>
-        (existingIcons.contains(descriptor.name)
-            ? Observable.of(true)
-            : doesIconExist(descriptor.name))
-        .flatMap(iconExists => {
-            existingIcons = existingIcons.add(descriptor.name);
-            return addIconFile(
-                descriptor.name,
-                descriptor.format,
-                descriptor.size,
-                content,
-                !iconExists);
-    }));
+    .pipe(
+        flatMap(content =>
+            (existingIcons.contains(descriptor.name)
+                ? of(true)
+                : doesIconExist(descriptor.name))
+            .pipe(
+                flatMap(iconExists => {
+                    existingIcons = existingIcons.add(descriptor.name);
+                    return addIconFile(
+                        descriptor.name,
+                        descriptor.format,
+                        descriptor.size,
+                        content,
+                        !iconExists
+                    );
+                })
+            ))
+    );
 };
 
 const importIcons: () => Observable<any> = () => {
     ctxLogger.info("Start importing from %s", sourceDir);
     return iconFileCollector()
-    .flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(iconFileData)));
+    .pipe(
+        flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(iconFileData)))
+    );
 };
 
 configuration
-.flatMap(configProvider => startServer(configProvider))
-.flatMap(server => {
-    return importIcons()
-    .finally(() => server.close);
-})
+.pipe(
+    flatMap(configProvider => startServer(configProvider)),
+    flatMap(server => {
+        return importIcons()
+        .pipe(
+            finalize(() => server.close)
+        );
+    })
+)
 .subscribe(
     void 0,
     error => {

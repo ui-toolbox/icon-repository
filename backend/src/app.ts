@@ -10,6 +10,7 @@ import iconServiceProvider from "./iconsService";
 import iconHandlersProvider from "./iconsHandlers";
 import { Logger } from "winston";
 import { flatMap, map } from "rxjs/operators";
+import { FatalError } from "./general-errors";
 
 let logger: Logger;
 
@@ -46,6 +47,13 @@ configurationProvider
 )
 .subscribe(
     undefined,
-    error => logger.error(error),
+    error => {
+        if (error instanceof FatalError) {
+            logger.error("Exiting on fatal error: %O", error);
+            process.exit(-1);
+        } else {
+            logger.error(error);
+        }
+    },
     undefined
 );

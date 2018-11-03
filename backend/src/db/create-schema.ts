@@ -1,10 +1,13 @@
 
-import {throwError as observableThrowError,  Observable } from "rxjs";
+import {throwError as observableThrowError,  Observable, concat, pipe, throwError } from "rxjs";
 import { Pool } from "pg";
 
 import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "./db-schema";
 import { query } from "./db";
 import loggerFactory from "../utils/logger";
+import { map, flatMap, catchError, retryWhen, delay, take, mapTo, tap } from "rxjs/operators";
+import { retryOnError } from "../utils/rx";
+import { FatalError } from "../general-errors";
 
 const ctxLogger = loggerFactory("db/create-schema");
 
@@ -30,32 +33,27 @@ export const makeCreateTableStatement = (tableDefinition: ITableSpec) => `CREATE
 
 const dropTableIfExists = (pool: Pool, tableName: string) =>
     query(pool, `DROP TABLE IF EXISTS ${tableName} CASCADE`, [])
-    .map(result => ctxLogger.info(result.command));
+    .pipe(map(result => ctxLogger.info(result.command)));
 
 const createTable = (pool: Pool, tableDefinition: ITableSpec) =>
     query(pool, makeCreateTableStatement(tableDefinition), [])
-    .map(result => ctxLogger.info(result.command));
+    .pipe(map(result => ctxLogger.info(result.command)));
 
 const dropCreateTable = (pool: Pool, tableDefinition: ITableSpec) =>
     dropTableIfExists(pool, tableDefinition.tableName)
-    .flatMap(() => createTable(pool, tableDefinition));
+    .pipe(flatMap(() => createTable(pool, tableDefinition)));
 
 export type CreateSchema = () => Observable<Pool>;
 
 export const createSchema: (pool: Pool) => CreateSchema
 = pool => () => dropCreateTable(pool, iconTableSpec)
-    .flatMap(() => dropCreateTable(pool, iconFileTableSpec))
-    .mapTo(pool)
-    .catch(error => {
-        ctxLogger.error("error code: %s", error.code);
-        if (error.code !== "ECONNREFUSED") {
-            process.exit(1);
-        } else {
-            return observableThrowError(error);
-        }
-    })
-    .retryWhen(error => error.delay(2000).take(30).concat(error.do(() => {
-        process.exit(1);
-    })));
+    .pipe(
+        flatMap(() => dropCreateTable(pool, iconFileTableSpec)),
+        mapTo(pool),
+        retryOnError(2000, 30, "ECONNREFUSED"),
+        catchError(error => {
+            return throwError(new FatalError("Cannot connect to database"));
+        })
+    );
 
 export default createSchema;

@@ -1,18 +1,18 @@
 
 import {throwError as observableThrowError,  Observable, of } from "rxjs";
-import { flatMap, mapTo } from "rxjs/operators";
+import { flatMap, mapTo, reduce, map, catchError } from "rxjs/operators";
 import * as path from "path";
 import { mkdirMaybe, appendFile, deleteFile, renameFile, hasSubDirectory } from "./utils/rx";
 import {
     SerializableJobImpl,
     create as createSerializer
 } from "./utils/serializer";
-import logger from "./utils/logger";
 import { IconFile, IconFileDescriptor, IconDescriptor, IconAttributes, IconNotFound } from "./icon";
 import { commandExecutor } from "./utils/command-executor";
 import { Set, List } from "immutable";
 import { format as strformat } from "util";
 import loggerFactory from "./utils/logger";
+import { stringify } from "querystring";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -109,7 +109,7 @@ const updateIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => 
 = (pathToIconRepository, iconFileInfo) => {
     const pathCompos = getPathComponents1(pathToIconRepository, iconFileInfo);
     return appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"})
-    .mapTo(List.of(pathCompos.pathToIconFileInRepo));
+    .pipe(mapTo(List.of(pathCompos.pathToIconFileInRepo)));
 };
 
 const renameIconFiles: (
@@ -117,16 +117,18 @@ const renameIconFiles: (
     oldIcon: IconDescriptor,
     newIcon: IconAttributes
 ) => Observable<List<string>> = (pathToIconRepository, oldIcon, newIcon) =>
-    Observable.of(void 0)
-    .flatMap(() => oldIcon.iconFiles.toArray())
-    .flatMap(iconFileDesc => {
-        const oldIconPaths: IconFilePathComponents = getPathComponents(
-            pathToIconRepository, oldIcon.name, iconFileDesc.format, iconFileDesc.size);
-        const newIconPaths: IconFilePathComponents = getPathComponents(
-            pathToIconRepository, newIcon.name, iconFileDesc.format, iconFileDesc.size);
-        return renameFile(oldIconPaths.pathToIconFile, newIconPaths.pathToIconFile)
-        .mapTo(List.of(oldIconPaths.pathToIconFileInRepo, newIconPaths.pathToIconFileInRepo));
-    });
+    of(void 0)
+    .pipe(
+        flatMap(() => oldIcon.iconFiles.toArray()),
+        flatMap(iconFileDesc => {
+            const oldIconPaths: IconFilePathComponents = getPathComponents(
+                pathToIconRepository, oldIcon.name, iconFileDesc.format, iconFileDesc.size);
+            const newIconPaths: IconFilePathComponents = getPathComponents(
+                pathToIconRepository, newIcon.name, iconFileDesc.format, iconFileDesc.size);
+            return renameFile(oldIconPaths.pathToIconFile, newIconPaths.pathToIconFile)
+            .pipe(mapTo(List.of(oldIconPaths.pathToIconFileInRepo, newIconPaths.pathToIconFileInRepo)));
+        })
+    );
 
 const deleteIconFile: (
     pathToIconRepository: string,
@@ -141,14 +143,16 @@ const deleteIconFile: (
         iconFileDesc.size
     );
     return deleteFile(pathCompos.pathToIconFile)
-    .catch((error: NodeJS.ErrnoException) => {
-        if (error.code === "ENOENT") {
-            throw new IconNotFound(pathCompos.pathToIconFile);
-        } else {
-            return observableThrowError(error);
-        }
-    })
-    .mapTo(List.of(pathCompos.pathToIconFileInRepo));
+    .pipe(
+        catchError((error: NodeJS.ErrnoException) => {
+            if (error.code === "ENOENT") {
+                throw new IconNotFound(pathCompos.pathToIconFile);
+            } else {
+                return observableThrowError(error);
+            }
+        }),
+        mapTo(List.of(pathCompos.pathToIconFileInRepo))
+    );
 };
 
 const addToIndex = (pathInRepo: string) => ["add", pathInRepo];
@@ -185,21 +189,28 @@ type CreateIconFileJob = (
 const createIconFileJob: CreateIconFileJob = (iconFileOperation, jobTexts, userName, gitCommandExecutor) => {
     const ctxLogger = loggerFactory("git: " + jobTexts.logContext);
     return () => iconFileOperation()
-    .flatMap(iconFilePathsInRepo => iconFilePathsInRepo.toArray())
-    .flatMap(oneFilePathInRepo => gitCommandExecutor(addToIndex(oneFilePathInRepo)).mapTo(oneFilePathInRepo))
-    .reduce((fileList, oneIconFilePathInRepo) => fileList.push(oneIconFilePathInRepo), List<string>())
-    .flatMap(fileList => gitCommandExecutor(commit(jobTexts.getCommitMessage(fileList), userName)))
-    .map(() => ctxLogger.debug("Succeeded"))
-    .catch(error => {
-        ctxLogger.error(strformat("Failed: %o", error));
-        gitCommandExecutor(rollback()[0])
-        .flatMap(() => gitCommandExecutor(rollback()[1]))
-        .catch(errorInRollback => {
-            ctxLogger.error(errorInRollback);
-            return "dummy return value";
-        });
-        return observableThrowError(error);
-    });
+    .pipe(
+        flatMap(iconFilePathsInRepo => iconFilePathsInRepo.toArray()),
+        flatMap(oneFilePathInRepo => gitCommandExecutor(addToIndex(oneFilePathInRepo)).pipe(mapTo(oneFilePathInRepo))),
+        reduce<string, List<string>>(
+            (fileList, oneIconFilePathInRepo) => fileList.push(oneIconFilePathInRepo),
+            List<string>()
+        ),
+        flatMap(fileList => gitCommandExecutor(commit(jobTexts.getCommitMessage(fileList), userName))),
+        map(() => ctxLogger.debug("Succeeded")),
+        catchError(error => {
+            ctxLogger.error(strformat("Failed: %o", error));
+            gitCommandExecutor(rollback()[0])
+            .pipe(
+                flatMap(() => gitCommandExecutor(rollback()[1])),
+                catchError(errorInRollback => {
+                    ctxLogger.error(errorInRollback);
+                    return "dummy return value";
+                })
+            );
+            return observableThrowError(error);
+        })
+    );
 };
 
 type AddIconFile = (

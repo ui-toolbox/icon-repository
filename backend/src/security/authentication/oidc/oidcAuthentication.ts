@@ -1,6 +1,4 @@
 import * as qs from "qs";
-import * as util from "util";
-import * as Rx from "rxjs/Rx";
 import * as _ from "lodash";
 
 // @ts-ignore
@@ -12,8 +10,8 @@ import doFetch from "../../../utils/fetch";
 import { fromBase64 } from "../../../utils/encodings";
 import { Authentication } from "../../common";
 import { Logger } from "winston";
-
-const sformat = util.format;
+import { Observable, of, forkJoin } from "rxjs";
+import { map } from "rxjs/operators";
 
 export interface IAuthorizationToken {
     readonly scope: string;
@@ -36,7 +34,7 @@ export default (
         return new Buffer(clientID + ":" + clientSecret).toString("base64");
     };
 
-    const requestAuthorizationToken: (code: string) => Rx.Observable<IAuthorizationToken> = code => {
+    const requestAuthorizationToken: (code: string) => Observable<IAuthorizationToken> = code => {
         const formData: string = qs.stringify({
             grant_type: "authorization_code",
             code,
@@ -51,20 +49,22 @@ export default (
         return doFetch<IAuthorizationToken>(accessTokenURL, "POST", headers, formData);
     };
 
-    const getIdProviderPublicKey: () => Rx.Observable<string> = () => {
+    const getIdProviderPublicKey: () => Observable<string> = () => {
         if (jwtPublicKeyPEM) {
-            return Rx.Observable.of(jwtPublicKeyPEM);
+            return of(jwtPublicKeyPEM);
         } else {
             return requestPublicKeyFromIDProvider()
-                .map(publicKey => {
-                    loggerFactory("pk from IP")
-                        .verbose("Extracting JWS public key from ", publicKey);
-                    return jose.KEYUTIL.getKey(publicKey);
-                });
+                .pipe(
+                    map(publicKey => {
+                        loggerFactory("pk from IP")
+                            .verbose("Extracting JWS public key from ", publicKey);
+                        return jose.KEYUTIL.getKey(publicKey);
+                    })
+                );
         }
     };
 
-    const requestPublicKeyFromIDProvider: () => Rx.Observable<string> = () => {
+    const requestPublicKeyFromIDProvider: () => Observable<string> = () => {
         return doFetch(jwtPublicKeyURL, "GET", {}, void 0, true);
     };
 
@@ -122,7 +122,7 @@ export default (
         errorHandling.throwErrorWOStackTrace("Authentication failed");
     };
 
-    const authenticateByCode: (reqState: string, resState: string, code: string) => Rx.Observable<Authentication>
+    const authenticateByCode: (reqState: string, resState: string, code: string) => Observable<Authentication>
     = (reqState, resState, code) => {
         const ctxLogger = loggerFactory("oidcAuthentication#authenticateByCode");
         if (typeof resState === "undefined") {
@@ -134,10 +134,10 @@ export default (
             tokenVerificationFailed(ctxLogger, "State DOES NOT MATCH: expected %s got %s", reqState, resState);
         }
 
-        return Rx.Observable.forkJoin(
+        return forkJoin(
             requestAuthorizationToken(code),
             getIdProviderPublicKey()
-        ).map(result => parseVerifyAuthorizationToken(result[0], result[1]));
+        ).pipe(map(result => parseVerifyAuthorizationToken(result[0], result[1])));
     };
 
     return authenticateByCode;

@@ -4,17 +4,21 @@ import config, { ConfigurationData } from "../../../configuration";
 
 import { Request, Response } from "express";
 import { Mock } from "ts-mocks";
-import { Observable } from "rxjs";
+import { Observable, pipe } from "rxjs";
+import { map } from "rxjs/operators";
 
 const getConfigProviderWithLogoutURLAndContextPathSet: (
     logoutURLValue: string,
     contextPath: string) => Observable<ConfigurationData>
 = (logoutURLValue, contextPath) =>
-    config.map(configData => Object.freeze({
-        ...configData,
-        server_url_context: contextPath,
-        oidc_ip_logout_url: logoutURLValue
-    }));
+    config
+    .pipe(
+        map(configData => Object.freeze({
+            ...configData,
+            server_url_context: contextPath,
+            oidc_ip_logout_url: logoutURLValue
+        }))
+    );
 
 describe("oidcLogoutSuccessHandler", () => {
     const someLogoutURL = "some-logout-url";

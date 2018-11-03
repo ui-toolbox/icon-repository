@@ -1,17 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as rimraf from "rimraf";
-import { Observable, Observer } from "rxjs";
+import { Observable, Observer, bindCallback, bindNodeCallback, of, throwError, concat } from "rxjs";
+import { flatMap, map, mapTo, catchError, retryWhen, delay, take, tap, takeWhile } from "rxjs/operators";
+import loggerFactory from "./logger";
 
-export const fileExists: (pathToFile: string) => Observable<boolean> = Observable.bindCallback(fs.exists);
+export const fileExists: (pathToFile: string) => Observable<boolean> = bindCallback(fs.exists);
 
 const readFileUTF8: (pathToFile: string, callback: (err: NodeJS.ErrnoException, data: string) => void) => void
 = (pathToFile, callback) => fs.readFile(pathToFile, "utf8", callback);
 
-export const readTextFile: (pathToFile: string) => Observable<string> = Observable.bindNodeCallback(readFileUTF8);
+export const readTextFile: (pathToFile: string) => Observable<string> = bindNodeCallback(readFileUTF8);
 
-export const readdir: (path: string) => Observable<string[]> = Observable.bindNodeCallback(fs.readdir);
-export const readFile: (path: string) => Observable<Buffer> = Observable.bindNodeCallback(fs.readFile);
+export const readdir: (path: string) => Observable<string[]> = bindNodeCallback(fs.readdir);
+export const readFile: (path: string) => Observable<Buffer> = bindNodeCallback(fs.readFile);
 
 export const stat: (pathToDir: string) => Observable<fs.Stats>
 = pathToDir => Observable.create((observer: Observer<fs.Stats>) =>
@@ -55,44 +57,52 @@ export const rmdir: (pathToDir: string) => Observable<string>
 export const hasSubDirectory: (pathToParentDir: string, childDir: string) => Observable<boolean>
 = (pathToParentDir, childDir) =>
     stat(pathToParentDir)
-    .flatMap(parentStats =>
-        !parentStats || !parentStats.isDirectory()
-            ? Observable.of(false)
-            : stat(path.resolve(pathToParentDir, childDir))
-                .map(childStats =>
-                    childStats
-                        ? childStats.isDirectory()
-                        : false));
+    .pipe(
+        flatMap(parentStats =>
+            !parentStats || !parentStats.isDirectory()
+                ? of(false)
+                : stat(path.resolve(pathToParentDir, childDir))
+                    .pipe(
+                        map(childStats =>
+                            childStats
+                                ? childStats.isDirectory()
+                                : false)
+                    ))
+    );
 
 /*
  * @return an Observable for path to the directory at issue
  */
 export const mkdirMaybe: (pathToDir: string) => Observable<string>
 = pathToDir => stat(pathToDir)
-    .flatMap(stats => {
-        if (stats) {
-            if (!stats.isDirectory()) {
-                throw Error(`File exists, but it is not a directory: ${pathToDir}`);
+    .pipe(
+        flatMap(stats => {
+            if (stats) {
+                if (!stats.isDirectory()) {
+                    throw Error(`File exists, but it is not a directory: ${pathToDir}`);
+                }
+            } else {
+                return mkdir(pathToDir);
             }
-        } else {
-            return mkdir(pathToDir);
-        }
-        return Observable.of(void 0);
-    })
-    .mapTo(pathToDir);
+            return of(void 0);
+        }),
+        mapTo(pathToDir)
+    );
 
 export const rmdirMaybe: (pathToDir: string) => Observable<string>
 = pathToDir => stat(pathToDir)
-    .flatMap(stats => {
-        if (stats) {
-            if (!stats.isDirectory()) {
-                throw Error(`File exists, but it is not a directory: ${pathToDir}`);
-            } else {
-                return rmdir(pathToDir);
+    .pipe(
+        flatMap(stats => {
+            if (stats) {
+                if (!stats.isDirectory()) {
+                    throw Error(`File exists, but it is not a directory: ${pathToDir}`);
+                } else {
+                    return rmdir(pathToDir);
+                }
             }
-        }
-        return Observable.of(void 0);
-    });
+            return of(void 0);
+        })
+    );
 
 export const appendFile: (pathToFile: string, data: Buffer, options: {
     encoding?: string,
@@ -151,3 +161,25 @@ export const moveFile: (
         }
     );
 });
+
+const retryOnErrorLogger = loggerFactory("rx-retryOnError");
+
+export const retryOnError: (
+    delayMsecs: number,
+    retryCount: number,
+    errorCode: string
+) => <T>(source: Observable<T>) => Observable<T>
+= (delayMsecs, retryCount, errorCode) => source => {
+    return source.pipe(
+        retryWhen(error => concat(
+            error
+            .pipe(
+                takeWhile(err => err.code === errorCode),
+                tap(err => retryOnErrorLogger.warn("Retrying on %s", err.code)),
+                delay(delayMsecs),
+                take(retryCount)
+            ),
+            throwError(error)
+        ))
+    );
+};

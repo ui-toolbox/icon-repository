@@ -1,4 +1,3 @@
-import loggerFactory from "./logger";
 import { SpawnOptions, spawn } from "child_process";
 import { Observable, Observer } from "rxjs";
 import { Logger } from "winston";
