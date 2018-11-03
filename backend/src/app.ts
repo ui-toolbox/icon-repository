@@ -9,6 +9,8 @@ import serverProvider from "./server";
 import iconServiceProvider from "./iconsService";
 import iconHandlersProvider from "./iconsHandlers";
 import { Logger } from "winston";
+import { flatMap, map } from "rxjs/operators";
+import { FatalError } from "./general-errors";
 
 let logger: Logger;
 
@@ -20,25 +22,38 @@ const logServerStart = (server: http.Server) => {
 };
 
 configurationProvider
-.flatMap(configuration => {
-    setDefaultLogLevel(configuration.logger_level);
-    logger = loggerFactory("app");
+.pipe(
+    flatMap(configuration => {
+        setDefaultLogLevel(configuration.logger_level);
+        logger = loggerFactory("app");
 
-    return iconServiceProvider(
-        {
-            resetData: configuration.icon_data_create_new
-        },
-        iconDAFsProvider(createConnectionProperties(configuration)),
-        gitAFsProvider(configuration.icon_data_location_git)
-    )
-    .flatMap(iconService => {
-        const iconHandlers = iconHandlersProvider(iconService);
-        return serverProvider(configuration, iconHandlers)
-        .map(logServerStart);
-    });
-})
+        return iconServiceProvider(
+            {
+                resetData: configuration.icon_data_create_new
+            },
+            iconDAFsProvider(createConnectionProperties(configuration)),
+            gitAFsProvider(configuration.icon_data_location_git)
+        )
+        .pipe(
+            flatMap(iconService => {
+                const iconHandlers = iconHandlersProvider(iconService);
+                return serverProvider(configuration, iconHandlers)
+                .pipe(
+                    map(logServerStart)
+                );
+            })
+        );
+    })
+)
 .subscribe(
     undefined,
-    error => logger.error(error),
+    error => {
+        if (error instanceof FatalError) {
+            logger.error("Exiting on fatal error: %O", error);
+            process.exit(-1);
+        } else {
+            logger.error(error);
+        }
+    },
     undefined
 );

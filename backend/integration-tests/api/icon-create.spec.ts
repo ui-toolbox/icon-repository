@@ -1,5 +1,5 @@
 import { boilerplateSubscribe } from "../testUtils";
-
+import { flatMap, map } from "rxjs/operators";
 import {
     iconEndpointPath,
     manageTestResourcesBeforeAndAfter,
@@ -33,10 +33,12 @@ describe(iconEndpointPath, () => {
 
         const session = agent();
         setAuth(session.requestBuilder(), [])
-        .flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP }))
-        .flatMap(content => createIcon(
-                session.responseOK(resp => resp.status === 403).requestBuilder(),
-                iconName, content))
+        .pipe(
+            flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP })),
+            flatMap(content => createIcon(
+                    session.responseOK(resp => resp.status === 403).requestBuilder(),
+                    iconName, content))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -61,16 +63,18 @@ describe(iconEndpointPath, () => {
         ];
         const session = agent();
         setAuth(session.requestBuilder(), privileges)
-        .flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP}))
-        .flatMap(content => createIcon(session.requestBuilder(), iconName, content))
-        .flatMap(iconfileInfo => {
-            expect(iconfileInfo).toEqual({iconName, format, size, path: expectedIconInfo.paths[0].path});
-            return describeAllIcons(session.requestBuilder());
-        })
-        .map(iconInfoList => {
-            expect(iconInfoList.size).toEqual(1);
-            expect({...iconInfoList.get(0)}).toEqual({...expectedIconInfo});
-        })
+        .pipe(
+            flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP})),
+            flatMap(content => createIcon(session.requestBuilder(), iconName, content)),
+            flatMap(iconfileInfo => {
+                expect(iconfileInfo).toEqual({iconName, format, size, path: expectedIconInfo.paths[0].path});
+                return describeAllIcons(session.requestBuilder());
+            }),
+            map(iconInfoList => {
+                expect(iconInfoList.size).toEqual(1);
+                expect({...iconInfoList.get(0)}).toEqual({...expectedIconInfo});
+            })
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -82,24 +86,26 @@ describe(iconEndpointPath, () => {
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-            .flatMap(() => testIconInputData.toArray())
-            .flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconFileDesc1))
-            .flatMap(content => getCheckIconFile(session, {
-                name: sampleIconName1,
-                ...sampleIconFileDesc1,
-                content
-            }))
-            .flatMap(() => getDemoIconfileContent(sampleIconName2, sampleIconFileDesc2))
-            .flatMap(content => getCheckIconFile(session, {
-                name: sampleIconName2,
-                ...sampleIconFileDesc2,
-                content
-            }))
-            .flatMap(() => assertGitCleanStatus())
-            .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(iconDTOList =>
-                expect(new Set(iconDTOList.toArray()))
-                    .toEqual(new Set(getIngestedTestIconDataDescription())))
+            .pipe(
+                flatMap(() => testIconInputData.toArray()),
+                flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconFileDesc1)),
+                flatMap(content => getCheckIconFile(session, {
+                    name: sampleIconName1,
+                    ...sampleIconFileDesc1,
+                    content
+                })),
+                flatMap(() => getDemoIconfileContent(sampleIconName2, sampleIconFileDesc2)),
+                flatMap(content => getCheckIconFile(session, {
+                    name: sampleIconName2,
+                    ...sampleIconFileDesc2,
+                    content
+                })),
+                flatMap(() => assertGitCleanStatus()),
+                flatMap(() => describeAllIcons(session.requestBuilder())),
+                map(iconDTOList =>
+                    expect(new Set(iconDTOList.toArray()))
+                        .toEqual(new Set(getIngestedTestIconDataDescription())))
+            )
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -115,27 +121,33 @@ describe(iconEndpointPath, () => {
 
         const session = agent();
         addTestData(session.requestBuilder(), List.of(testIconInputData.get(0)))
-        .flatMap(() =>
-            getCurrentGitCommit()
-            .flatMap(gitSha1 => {
-                setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true");
-                return addTestData(
-                    session
-                        .responseOK(resp => resp.status === 500)
-                        .requestBuilder(),
-                    List.of(testIconInputData.get(1))
-                )
-                .flatMap(() => getCurrentGitCommit()
-                    .map(gitSha2 => expect(gitSha1).toEqual(gitSha2)))
-                .flatMap(() => getCheckIconFile(session, iconFileToFind1))
-                .flatMap(() => getCheckIconFile(session, iconFileToFind2));
-            }))
-        .flatMap(() => assertGitCleanStatus())
-        .flatMap(() => describeAllIcons(session.requestBuilder()))
-        .map(iconInfoList => {
-            expect(iconInfoList.size).toEqual(1);
-            expect(iconInfoList.get(0)).toEqual(getIngestedTestIconDataDescription()[0]);
-        })
+        .pipe(
+            flatMap(() =>
+                getCurrentGitCommit()
+                .pipe(
+                    flatMap(gitSha1 => {
+                        setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true");
+                        return addTestData(
+                            session
+                                .responseOK(resp => resp.status === 500)
+                                .requestBuilder(),
+                            List.of(testIconInputData.get(1))
+                        )
+                        .pipe(
+                            flatMap(() => getCurrentGitCommit()
+                                .pipe(map(gitSha2 => expect(gitSha1).toEqual(gitSha2)))),
+                            flatMap(() => getCheckIconFile(session, iconFileToFind1)),
+                            flatMap(() => getCheckIconFile(session, iconFileToFind2))
+                        );
+                    })
+                )),
+            flatMap(() => assertGitCleanStatus()),
+            flatMap(() => describeAllIcons(session.requestBuilder())),
+            map(iconInfoList => {
+                expect(iconInfoList.size).toEqual(1);
+                expect(iconInfoList.get(0)).toEqual(getIngestedTestIconDataDescription()[0]);
+            })
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 });

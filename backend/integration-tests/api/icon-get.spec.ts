@@ -3,6 +3,8 @@ import { testIconInputData, addTestData, getIngestedTestIconDataDescription } fr
 import { boilerplateSubscribe } from "../testUtils";
 import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
 
+import { flatMap, map } from "rxjs/operators";
+
 const allIconsPath = "/icons";
 
 describe(allIconsPath, () => {
@@ -12,9 +14,11 @@ describe(allIconsPath, () => {
     it("GET should return the description of all icons in the repository", done => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-            .flatMap(() => describeAllIcons(session.requestBuilder()))
-            .map(actualReply => expect(new Set(actualReply.toArray()))
-                                .toEqual(new Set(getIngestedTestIconDataDescription())))
+            .pipe(
+                flatMap(() => describeAllIcons(session.requestBuilder())),
+                map(actualReply => expect(new Set(actualReply.toArray()))
+                                    .toEqual(new Set(getIngestedTestIconDataDescription())))
+            )
             .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -28,8 +32,10 @@ describe(singleIconPath, () => {
     it ("GET should describe the icon", done => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-            .flatMap(() => describeIcon(session.requestBuilder(), getIngestedTestIconDataDescription()[0].name))
-            .map(actualReply => expect(actualReply).toEqual(getIngestedTestIconDataDescription()[0]))
+            .pipe(
+                flatMap(() => describeIcon(session.requestBuilder(), getIngestedTestIconDataDescription()[0].name)),
+                map(actualReply => expect(actualReply).toEqual(getIngestedTestIconDataDescription()[0]))
+            )
             .subscribe(boilerplateSubscribe(fail, done));
     });
 

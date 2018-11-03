@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import { flatMap, map, tap, catchError } from "rxjs/operators";
 
 import gitAccessFunctionsProvider, {
     GitAccessFunctions,
@@ -44,10 +45,12 @@ describe("git access functions", () => {
             };
             const user = "zazie";
             gitAFs.addIconFile(iconInfo, user)
-            .flatMap(() => getCurrentCommit())
-            .map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length))
-            .flatMap(() => assertGitCleanStatus())
-            .flatMap(() => assertFileInRepo(iconInfo))
+            .pipe(
+                flatMap(() => getCurrentCommit()),
+                map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length)),
+                flatMap(() => assertGitCleanStatus()),
+                flatMap(() => assertFileInRepo(iconInfo))
+            )
             .subscribe(boilerplateSubscribe(fail, done));
         });
 
@@ -67,13 +70,17 @@ describe("git access functions", () => {
             };
             const user = "zazie";
             gitAFs.addIconFile(iconInfo, user)
-            .do(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true"))
-            .flatMap(() => getCurrentCommit())
-            .flatMap(lastGoodSha1 => gitAFs.addIconFile(iconInfo1, user)
-                .map(() => fail("Expected an error to make exection skip this part"))
-                .catch(error => getCurrentCommit())
-                .map(currentSha1 => expect(currentSha1).toEqual(lastGoodSha1)))
-            .flatMap(() => assertGitCleanStatus())
+            .pipe(
+                tap(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true")),
+                flatMap(() => getCurrentCommit()),
+                flatMap(lastGoodSha1 => gitAFs.addIconFile(iconInfo1, user)
+                    .pipe(
+                        map(() => fail("Expected an error to make exection skip this part")),
+                        catchError(error => getCurrentCommit()),
+                        map(currentSha1 => expect(currentSha1).toEqual(lastGoodSha1))
+                    )),
+                flatMap(() => assertGitCleanStatus())
+            )
             .subscribe(boilerplateSubscribe(fail, done));
         });
     });

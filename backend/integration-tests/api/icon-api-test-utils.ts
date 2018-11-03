@@ -1,5 +1,6 @@
 import * as path from "path";
-import { Observable } from "rxjs";
+import { of } from "rxjs";
+import { flatMap, last } from "rxjs/operators";
 import { createIcon, RequestBuilder, setAuth, updateIcon, ingestIconfile } from "./api-client";
 import { List, Map } from "immutable";
 import { readFile } from "../../src/utils/rx";
@@ -7,7 +8,6 @@ import { IconFileData, IconFileDescriptor, IconDescriptor, IconFile } from "../.
 import clone from "../../src/utils/clone";
 import { defaultAuth } from "./api-test-utils";
 import { readFileSync } from "fs";
-import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { IconDTO, IconPathDTO } from "../../src/iconsHandlers";
 
 export interface Icon {
@@ -162,11 +162,15 @@ export const addTestData = (
     requestBuilder: RequestBuilder,
     testData: List<Icon>
 ) => {
-    return Observable.of(void 0)
-    .flatMap(() => testData.toArray())
-    .flatMap(icon =>
-        createIcon(requestBuilder, icon.name, icon.files.get(0).content)
-        .flatMap(() => icon.files.delete(0).toArray())
-        .flatMap(file => ingestIconfile(requestBuilder, icon.name, file.content)))
-    .last(void 0); // "reduce" could be also be used if the "return" value mattered
+    return of(void 0)
+    .pipe(
+        flatMap(() => testData.toArray()),
+        flatMap(icon =>
+            createIcon(requestBuilder, icon.name, icon.files.get(0).content)
+            .pipe(
+                flatMap(() => icon.files.delete(0).toArray()),
+                flatMap(file => ingestIconfile(requestBuilder, icon.name, file.content))
+            )),
+        last(void 0)
+    ); // "reduce" could be also be used if the "return" value mattered
 };

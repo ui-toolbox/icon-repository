@@ -1,3 +1,4 @@
+import { flatMap, map } from "rxjs/operators";
 import { boilerplateSubscribe } from "../testUtils";
 import {
     iconEndpointPath,
@@ -14,7 +15,7 @@ import {
 import { IconAttributes } from "../../src/icon";
 import { assertGitCleanStatus, assertFileInRepo, assertFileNotInRepo } from "../git/git-test-utils";
 import clone from "../../src/utils/clone";
-import { createIconfilePath } from "../../src/iconsHandlers";
+import { createIconfilePath, IconDTO } from "../../src/iconsHandlers";
 
 describe(`PATCH ${iconEndpointPath}`, () => {
 
@@ -28,12 +29,14 @@ describe(`PATCH ${iconEndpointPath}`, () => {
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), []))
-        .flatMap(() => updateIcon(
-            session.responseOK(resp => resp.status === 403).requestBuilder(),
-            oldIconName,
-            newIcon
-        ))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [])),
+            flatMap(() => updateIcon(
+                session.responseOK(resp => resp.status === 403).requestBuilder(),
+                oldIconName,
+                newIcon
+            ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -64,22 +67,26 @@ describe(`PATCH ${iconEndpointPath}`, () => {
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON ]))
-            .flatMap(() => updateIcon(
-                session.responseOK(resp => resp.status === 204).requestBuilder(),
-                oldIconName,
-                newIconAttributes
-            ))
-        .flatMap(() => describeAllIcons(session.requestBuilder()))
-        .map(iconInfoList => expect(iconInfoList.toArray()).toEqual(expectedIconDescriptors))
-        // Assert GIT status:
-        .flatMap(() => assertGitCleanStatus())
-        .flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(0)))
-        .flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(1)))
-        .flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(2)))
-        .flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(0) }))
-        .flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(1) }))
-        .flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(2) }))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON ])
+                .pipe(
+                    flatMap(() => updateIcon(
+                        session.responseOK(resp => resp.status === 204).requestBuilder(),
+                        oldIconName,
+                        newIconAttributes
+                    ))
+                )),
+            flatMap(() => describeAllIcons(session.requestBuilder())),
+            map(iconInfoList => expect(iconInfoList.toArray()).toEqual(expectedIconDescriptors)),
+            // Assert GIT status:
+            flatMap(() => assertGitCleanStatus()),
+            flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(0))),
+            flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(1))),
+            flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(2))),
+            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(0) })),
+            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(1) })),
+            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(2) }))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -94,36 +101,48 @@ describe(`POST ${iconEndpointPath}`, () => {
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [])
-            .flatMap(() => ingestIconfile(
-                session.responseOK(resp => resp.status === 403).requestBuilder(),
-                testIconInputData.get(0).name,
-                moreTestIconInputData.get(0).files.get(0).content
-            )))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [])
+                .pipe(
+                        flatMap(() => ingestIconfile(
+                        session.responseOK(resp => resp.status === 403).requestBuilder(),
+                        testIconInputData.get(0).name,
+                        moreTestIconInputData.get(0).files.get(0).content
+                    ))
+                ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it("should allow adding icon-files with UPDATE_ICON privilege", done => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON])
-            .flatMap(() => ingestIconfile(
-                session.responseOK(resp => resp.status === 200).requestBuilder(),
-                testIconInputData.get(0).name,
-                moreTestIconInputData.get(0).files.get(1).content
-            )))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON])
+                .pipe(
+                    flatMap(() => ingestIconfile(
+                        session.responseOK(resp => resp.status === 200).requestBuilder(),
+                        testIconInputData.get(0).name,
+                        moreTestIconInputData.get(0).files.get(1).content
+                    ))
+                ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it("should allow adding icon-files with ADD_ICONFILE privilege", done => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
-            .flatMap(() => ingestIconfile(
-                session.responseOK(resp => resp.status === 200).requestBuilder(),
-                testIconInputData.get(0).name,
-                moreTestIconInputData.get(0).files.get(1).content
-            )))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
+                .pipe(
+                    flatMap(() => ingestIconfile(
+                        session.responseOK(resp => resp.status === 200).requestBuilder(),
+                        testIconInputData.get(0).name,
+                        moreTestIconInputData.get(0).files.get(1).content
+                    ))
+                ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -141,32 +160,40 @@ describe(`POST ${iconEndpointPath}`, () => {
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
-            .flatMap(() => ingestIconfile(
-                session.responseOK(resp => resp.status === 200).requestBuilder(),
-                nameOfIconToUpdate,
-                iconfileToAdd.content
-            )))
-        .flatMap(iconfileInfo => {
-            expect(iconfileInfo).toEqual({iconName: nameOfIconToUpdate, ...addedIconfileDescription});
-            return describeIcon(session.requestBuilder(), nameOfIconToUpdate);
-        })
-        .map(iconDescription => {
-            expect(iconDescription.name).toEqual(expectedIconDescription.name);
-            expect(iconDescription.paths).toEqual(expectedIconDescription.paths);
-        })
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
+                .pipe(
+                        flatMap(() => ingestIconfile(
+                        session.responseOK(resp => resp.status === 200).requestBuilder(),
+                        nameOfIconToUpdate,
+                        iconfileToAdd.content
+                    ))
+                )),
+            flatMap(iconfileInfo => {
+                expect(iconfileInfo).toEqual({iconName: nameOfIconToUpdate, ...addedIconfileDescription});
+                return describeIcon(session.requestBuilder(), nameOfIconToUpdate);
+            }),
+            map(iconDescription => {
+                expect(iconDescription.name).toEqual(expectedIconDescription.name);
+                expect(iconDescription.paths).toEqual(expectedIconDescription.paths);
+            })
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
     it("should not allow adding icon-files with already existing format-size combinations", done => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
-            .flatMap(() => ingestIconfile(
-                session.responseOK(resp => resp.status === 409).requestBuilder(),
-                testIconInputData.get(0).name,
-                moreTestIconInputData.get(0).files.get(0).content
-            )))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
+                .pipe(
+                        flatMap(() => ingestIconfile(
+                        session.responseOK(resp => resp.status === 409).requestBuilder(),
+                        testIconInputData.get(0).name,
+                        moreTestIconInputData.get(0).files.get(0).content
+                    ))
+                ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 });

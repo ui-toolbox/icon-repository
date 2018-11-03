@@ -10,6 +10,8 @@ import {
 import { IconFileDescriptor, IconFile } from "../../src/icon";
 import { assertFileInRepo, assertFileNotInRepo } from "../git/git-test-utils";
 
+import { flatMap, map } from "rxjs/operators";
+
 describe("DEL icons/:name/<file>", () => {
 
     const agent = manageTestResourcesBeforeAndAfter();
@@ -20,15 +22,17 @@ describe("DEL icons/:name/<file>", () => {
 
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), []))
-        .flatMap(() => deleteIconFile(
-            session
-                .auth(uxAuth)
-                .responseOK(resp => resp.status === 403)
-                .requestBuilder(),
-            nameOfIconToDeleteFrom,
-            descOfIconFileToDelete
-        ))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [])),
+            flatMap(() => deleteIconFile(
+                session
+                    .auth(uxAuth)
+                    .responseOK(resp => resp.status === 403)
+                    .requestBuilder(),
+                nameOfIconToDeleteFrom,
+                descOfIconFileToDelete
+            ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -42,12 +46,14 @@ describe("DEL icons/:name/<file>", () => {
 
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ]))
-        .flatMap(() => deleteIconFile(
-            session.auth(uxAuth).requestBuilder(),
-            nameOfIconToDeleteFrom,
-            descOfIconFileToDelete
-        ))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
+            flatMap(() => deleteIconFile(
+                session.auth(uxAuth).requestBuilder(),
+                nameOfIconToDeleteFrom,
+                descOfIconFileToDelete
+            ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -57,15 +63,17 @@ describe("DEL icons/:name/<file>", () => {
 
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ]))
-        .flatMap(() => deleteIconFile(
-            session
-                .auth(uxAuth)
-                .responseOK(resp => resp.status === 404)
-                .requestBuilder(),
-            nameOfIconToDeleteFrom,
-            descOfIconFileToDelete
-        ))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
+            flatMap(() => deleteIconFile(
+                session
+                    .auth(uxAuth)
+                    .responseOK(resp => resp.status === 404)
+                    .requestBuilder(),
+                nameOfIconToDeleteFrom,
+                descOfIconFileToDelete
+            ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -80,15 +88,17 @@ describe("DEL icons/:name/<file>", () => {
         const session: Session = agent();
 
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ]))
-        .flatMap(() => deleteIconFile(
-            session
-                .auth(uxAuth)
-                .responseOK(resp => resp.status === 404)
-                .requestBuilder(),
-            nameOfIconToDeleteFrom,
-            descOfIconFileToDelete
-        ))
+        .pipe(
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
+            flatMap(() => deleteIconFile(
+                session
+                    .auth(uxAuth)
+                    .responseOK(resp => resp.status === 404)
+                    .requestBuilder(),
+                nameOfIconToDeleteFrom,
+                descOfIconFileToDelete
+            ))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -105,17 +115,19 @@ describe("DEL icons/:name/<file>", () => {
         const session: Session = agent();
 
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => assertFileInRepo(expectedIconFile))
-        .flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON ]))
-        .flatMap(() => deleteIconFile(
-            session.auth(uxAuth).requestBuilder(),
-            iconToDeleteFrom.name,
-            descOfIconFileToDelete
-        ))
-        .flatMap(() => describeAllIcons(session.requestBuilder()))
-        .map(iconsDesc =>
-            expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor))
-        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, descOfIconFileToDelete))
+        .pipe(
+            flatMap(() => assertFileInRepo(expectedIconFile)),
+            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON ])),
+            flatMap(() => deleteIconFile(
+                session.auth(uxAuth).requestBuilder(),
+                iconToDeleteFrom.name,
+                descOfIconFileToDelete
+            )),
+            flatMap(() => describeAllIcons(session.requestBuilder())),
+            map(iconsDesc =>
+                expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor)),
+            flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, descOfIconFileToDelete))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
@@ -133,27 +145,29 @@ describe("DEL icons/:name/<file>", () => {
         const session: Session = agent();
 
         addTestData(session.requestBuilder(), testIconInputData)
-        .flatMap(() => deleteIconFile(
-            session.requestBuilder(),
-            iconToDeleteFrom.name,
-            getIconFileDescToDelete(0)
-        ))
-        .flatMap(() => deleteIconFile(
-            session.requestBuilder(),
-            iconToDeleteFrom.name,
-            getIconFileDescToDelete(1)
-        ))
-        .flatMap(() => deleteIconFile(
-            session.requestBuilder(),
-            iconToDeleteFrom.name,
-            getIconFileDescToDelete(2)
-        ))
-        .flatMap(() => describeAllIcons(session.requestBuilder()))
-        .map(iconsDesc =>
-            expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor))
-        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(0)))
-        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(1)))
-        .flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(2)))
+        .pipe(
+            flatMap(() => deleteIconFile(
+                session.requestBuilder(),
+                iconToDeleteFrom.name,
+                getIconFileDescToDelete(0)
+            )),
+            flatMap(() => deleteIconFile(
+                session.requestBuilder(),
+                iconToDeleteFrom.name,
+                getIconFileDescToDelete(1)
+            )),
+            flatMap(() => deleteIconFile(
+                session.requestBuilder(),
+                iconToDeleteFrom.name,
+                getIconFileDescToDelete(2)
+            )),
+            flatMap(() => describeAllIcons(session.requestBuilder())),
+            map(iconsDesc =>
+                expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor)),
+            flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(0))),
+            flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(1))),
+            flatMap(() => assertFileNotInRepo(iconToDeleteFrom.name, getIconFileDescToDelete(2)))
+        )
         .subscribe(boilerplateSubscribe(fail, done));
     });
 

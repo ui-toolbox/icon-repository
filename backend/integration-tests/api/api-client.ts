@@ -68,7 +68,7 @@ export interface Auth {
 }
 
 export const describeIcon: (reqBulder: RequestBuilder, iconName: string) => Observable<IconDTO>
-= (reqBuilder, iconName) => Observable.create((observer: Observer<boolean>) => {
+= (reqBuilder, iconName) => Observable.create((observer: Observer<IconDTO>) => {
     reqBuilder
         .get(`/icons/${iconName}`)
         .ok(res => res.status === 200 || res.status === 404)

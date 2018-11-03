@@ -1,5 +1,5 @@
 import { Set } from "immutable";
-import * as Rx from "rxjs";
+import { of } from "rxjs";
 
 import {
     PrivilegesForUserGetter,
@@ -75,9 +75,9 @@ describe("allPrivilegesForUserGetterProvider", () => {
             "metropriv2",
             "metropriv3"
         ];
-        const privilegesForUserGetter: PrivilegesForUserGetter = userName => Rx.Observable.of(Set(directPrivsOfUser));
-        const rolesForUserGetter: RolesForUserGetter = userName => Rx.Observable.of(Set(rolesOfUser));
-        const privilegesForRoleGetter: PrivilegesForRoleGetter = role => Rx.Observable.of(Set(privsByRoles[role]));
+        const privilegesForUserGetter: PrivilegesForUserGetter = userName => of(Set(directPrivsOfUser));
+        const rolesForUserGetter: RolesForUserGetter = userName => of(Set(rolesOfUser));
+        const privilegesForRoleGetter: PrivilegesForRoleGetter = role => of(Set(privsByRoles[role]));
         const getAllPrivilegesForUser: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider({
             privilegesForUserGetter,
             rolesForUserGetter,
@@ -108,9 +108,9 @@ describe("allPrivilegesForUserGetterProvider", () => {
             "direct1",
             "direct2"
         ];
-        const privilegesForUserGetter: PrivilegesForUserGetter = userName => Rx.Observable.of(Set(directPrivsOfUser));
-        const rolesForUserGetter: RolesForUserGetter = userName => Rx.Observable.of(Set(rolesOfUser));
-        const privilegesForRoleGetter: PrivilegesForRoleGetter = role => Rx.Observable.of(Set(privsByRoles[role]));
+        const privilegesForUserGetter: PrivilegesForUserGetter = userName => of(Set(directPrivsOfUser));
+        const rolesForUserGetter: RolesForUserGetter = userName => of(Set(rolesOfUser));
+        const privilegesForRoleGetter: PrivilegesForRoleGetter = role => of(Set(privsByRoles[role]));
         const allPrivilegesForUserGetter: GetAllPrivilegesForUser = allPrivilegesForUserGetterProvider({
             privilegesForUserGetter,
             rolesForUserGetter,

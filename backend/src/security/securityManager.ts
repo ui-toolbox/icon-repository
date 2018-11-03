@@ -22,6 +22,7 @@ import randomstring from "./../utils/randomstring";
 
 import backdoors from "./backdoors";
 import { getAuthentication, Authentication, storeAuthentication, GetAllPrivilegesForUser } from "./common";
+import { map } from "rxjs/operators";
 
 const ONE_DAY_AS_SECS = 60 * 60 * 24;
 
@@ -84,10 +85,12 @@ const attachUserPrivilegesProvider: (getAllPrivilegesForUser: GetAllPrivilegesFo
     }
 
     return getAllPrivilegesForUser(getAuthentication(currentSession).username)
-    .map(privileges => {
-        storeAuthentication(currentSession, getAuthentication(currentSession).setPrivileges(privileges));
-        ctxLogger.info("Authentication after setting privileges %o", getAuthentication(currentSession));
-    });
+    .pipe(
+        map(privileges => {
+            storeAuthentication(currentSession, getAuthentication(currentSession).setPrivileges(privileges));
+            ctxLogger.info("Authentication after setting privileges %o", getAuthentication(currentSession));
+        })
+    );
 };
 
 const loginSuccessHandlerProvider: (attachUserPrivileges: AttachUserPrivileges, serverContextPath: string) => (

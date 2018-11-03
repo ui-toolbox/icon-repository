@@ -5,6 +5,7 @@ import * as Process from "process";
 
 import loggerFactory from "./utils/logger";
 import * as Rx from "rxjs";
+import { tap, map, flatMap, catchError, filter } from "rxjs/operators";
 import { fileExists, readTextFile } from "./utils/rx";
 import clone from "./utils/clone";
 
@@ -107,7 +108,7 @@ const configFilePath: string = getConfigFilePath();
 const ignoreJSONSyntaxError: (error: any) => Rx.Observable<any> = error => {
     if (error instanceof SyntaxError) {
         ctxLogger.error("Skipping syntax error...");
-        return Rx.Observable.of({});
+        return Rx.of({});
     } else {
         throw error;
     }
@@ -116,27 +117,33 @@ const ignoreJSONSyntaxError: (error: any) => Rx.Observable<any> = error => {
 export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) => Rx.Observable<T>
 = (filePath, proto, defaults) => {
     return fileExists(filePath)
-        .flatMap(exists => {
-            if (exists) {
-                ctxLogger.info(strformat("Updating configuration from %s...", configFilePath));
-                return readTextFile(filePath)
-                    .map(fileContent => JSON.parse(fileContent))
-                    .catch(error => ignoreJSONSyntaxError(error));
-            } else {
-                ctxLogger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
-                return Rx.Observable.of({});
-            }
-        })
-        .map(json => Object.assign(clone(defaults), json))
-        .do(conf => updateConfigurationDataWithEnvVarValues(proto, conf));
+        .pipe(
+            flatMap(exists => {
+                if (exists) {
+                    ctxLogger.info(strformat("Updating configuration from %s...", configFilePath));
+                    return readTextFile(filePath)
+                        .pipe(
+                            map(fileContent => JSON.parse(fileContent)),
+                            catchError(error => ignoreJSONSyntaxError(error))
+                        );
+                } else {
+                    ctxLogger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
+                    return Rx.of({});
+                }
+            }),
+            map(json => Object.assign(clone(defaults), json)),
+            tap(conf => updateConfigurationDataWithEnvVarValues(proto, conf))
+        );
 };
 
 const updateState: () => Rx.Observable<ConfigurationData> = () => {
     return readConfiguration(configFilePath, configurationDataProto, defaultSettings)
-        .do(conf => {
-            configurationData = conf;
-        })
-        .map(() => Object.freeze(configurationData));
+        .pipe(
+            tap(conf => {
+                configurationData = conf;
+            }),
+            map(() => Object.freeze(configurationData))
+        );
 };
 
 const watchConfigFile = (filePathToWatch: string) => {
@@ -147,16 +154,18 @@ const watchConfigFile = (filePathToWatch: string) => {
         switch (event) {
             case "rename": // Editing with vim results in this event
                 fileExists(filePathToWatch)
-                .do(exists => {
-                    ctxLogger.info(`Ooops! Configuration file was renamed: ${filePathToWatch}?`);
-                })
-                .filter(exists => exists)
-                .do(b => updateState())
-                .toPromise()
-                    .then(
-                        () => watchConfigFile(filePathToWatch),
-                        err => ctxLogger.info(strformat("Configuration error: %o", err))
-                    );
+                .pipe(
+                    tap(exists => {
+                        ctxLogger.info(`Ooops! Configuration file was renamed: ${filePathToWatch}?`);
+                    }),
+                    filter(exists => exists),
+                    tap(b => updateState())
+                )
+                .subscribe(
+                    () => watchConfigFile(filePathToWatch),
+                    err => ctxLogger.info(strformat("Configuration error: %o", err)),
+                    void 0
+                );
                 break;
             case "change":
                 updateState();
@@ -165,11 +174,12 @@ const watchConfigFile = (filePathToWatch: string) => {
     });
 };
 
-Rx.Observable
-.forkJoin(Rx.Observable.of(configFilePath), fileExists(configFilePath))
-.filter(value => value[1])
-    .do(value => watchConfigFile(value[0]))
-    .subscribe();
+Rx.forkJoin(Rx.of(configFilePath), fileExists(configFilePath))
+.pipe(
+    filter(value => value[1]),
+    tap(value => watchConfigFile(value[0]))
+)
+.subscribe();
 
 let watcher: fs.FSWatcher = null;
 

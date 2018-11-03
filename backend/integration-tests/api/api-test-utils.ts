@@ -1,5 +1,6 @@
 import * as http from "http";
 import { Observable } from "rxjs";
+import { flatMap, map } from "rxjs/operators";
 
 import configurationProvider from "../../src/configuration";
 import { ConfigurationData } from "../../src/configuration";
@@ -25,29 +26,33 @@ let localServerRef: Server;
 
 export const startServer: StartServer = customConfig => {
     return configurationProvider
-    .flatMap(configuration => {
-        const configData: ConfigurationData = Object.freeze({
-                ...configuration,
-                ...defaultTestServerconfig,
-                ...customConfig,
-                server_port: 0
-        });
-        return iconServiceProvider(
-            {
-                resetData: "always"
-            },
-            iconDAFsProvider(createConnectionProperties(configData)),
-            gitProvider(configData.icon_data_location_git)
-        )
-        .flatMap(iconService => {
-            const iconHandlers = iconHandlersProvider(iconService);
-            return serverProvider(configData, iconHandlers);
+    .pipe(
+        flatMap(configuration => {
+            const configData: ConfigurationData = Object.freeze({
+                    ...configuration,
+                    ...defaultTestServerconfig,
+                    ...customConfig,
+                    server_port: 0
+            });
+            return iconServiceProvider(
+                {
+                    resetData: "always"
+                },
+                iconDAFsProvider(createConnectionProperties(configData)),
+                gitProvider(configData.icon_data_location_git)
+            )
+            .pipe(
+                flatMap(iconService => {
+                    const iconHandlers = iconHandlersProvider(iconService);
+                    return serverProvider(configData, iconHandlers);
+                }),
+                map(server => {
+                    localServerRef = server;
+                    return server;
+                })
+            );
         })
-        .map(server => {
-            localServerRef = server;
-            return server;
-        });
-    });
+    );
 };
 
 export const startServerWithBackdoors: StartServer = customConfig =>
@@ -60,7 +65,7 @@ export const startTestServer = (done: () => void) =>
 export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
     deleteTestGitRepo()
-        .map(() => server.close())
+        .pipe(map(() => server.close()))
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
@@ -136,7 +141,7 @@ export const getCheckIconFile: (session: Session, iconFile: IconFile) => Observa
             format: iconFile.format, size: iconFile.size
         }
     )
-    .map(buffer => expect(Buffer.compare(iconFile.content, buffer)).toEqual(0));
+    .pipe(map(buffer => expect(Buffer.compare(iconFile.content, buffer)).toEqual(0)));
 
 export const iconEndpointPath = "/icons";
 export const iconFileEndpointPath = "/icons/:id/formats/:format/sizes/:size";

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction, Handler } from "express";
-import { Observable } from "rxjs";
+import { of } from "rxjs";
+import { flatMap, map } from "rxjs/operators";
 import { AuthenticationDataSource } from "../common";
 import loggerFactory from "../../../utils/logger";
 import { storeAuthentication, Authentication, GetAllPrivilegesForUser } from "../../common";
@@ -29,11 +30,18 @@ const basicAuthenticationHandlerProvider: BasicAuthenticationHandlerProvider
     const ctxLogger = loggerFactory("basic-authentication-handler");
     const currentCreds = getCredentials(req);
     authenticationDatasource(currentCreds)
-    .flatMap(matchFound => matchFound
-        ? getAllPrivilegesForUser(currentCreds.username)
-            .map(privileges => storeAuthentication(req.session, new Authentication(currentCreds.username, privileges)))
-            .map(() => next())
-        : Observable.of(res.set("WWW-Authenticate", "Basic").status(401).end()))
+    .pipe(
+        flatMap(matchFound => matchFound
+            ? getAllPrivilegesForUser(currentCreds.username)
+                .pipe(
+                    map(privileges => storeAuthentication(
+                        req.session,
+                        new Authentication(currentCreds.username, privileges)
+                    )),
+                    map(() => next())
+                )
+            : of(res.set("WWW-Authenticate", "Basic").status(401).end()))
+    )
     .subscribe(
         () => void 0,
         error => {
