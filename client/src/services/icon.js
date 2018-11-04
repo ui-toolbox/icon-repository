@@ -1,19 +1,31 @@
 import getEndpointUrl from '@/services/url';
 import { throwError } from '@/services/errors';
 
-export const describeIcon = iconName => fetch(getEndpointUrl(`/icons/${iconName}`), {
+export const describeAllIcons = () => fetch(getEndpointUrl(`/icon`), {
     method: 'GET',
     credentials: 'include'
 })
 .then(response => {
     if (response.status !== 200) {
-        return throwError('Failed to describe icon', response);
+        return throwError('Failed to fetch icon descriptions', response);
     } else {
         return response.json();
     }
 });
 
-export const createIcon = formData => fetch(getEndpointUrl("/icons"), {
+export const describeIcon = iconName => fetch(getEndpointUrl(`/icon/${iconName}`), {
+    method: 'GET',
+    credentials: 'include'
+})
+.then(response => {
+    if (response.status !== 200) {
+        return throwError('Failed to fetch icon description', response);
+    } else {
+        return response.json();
+    }
+});
+
+export const createIcon = formData => fetch(getEndpointUrl("/icon"), {
     method: 'POST',
     credentials: 'include',
     body: formData
@@ -26,7 +38,7 @@ export const createIcon = formData => fetch(getEndpointUrl("/icons"), {
     }
 });
 
-export const ingestIconfile = (iconName, formData) => fetch(getEndpointUrl(`/icons/${iconName}`), {
+export const ingestIconfile = (iconName, formData) => fetch(getEndpointUrl(`/icon/${iconName}`), {
     method: 'POST',
     credentials: 'include',
     body: formData
@@ -39,7 +51,7 @@ export const ingestIconfile = (iconName, formData) => fetch(getEndpointUrl(`/ico
     }
 });
 
-export const renameIcon = (oldName, newName) => fetch(getEndpointUrl(`/icons/${oldName}`), {
+export const renameIcon = (oldName, newName) => fetch(getEndpointUrl(`/icon/${oldName}`), {
     method: 'PATCH',
     headers: {
         "Content-Type": "application/json; charset=utf-8"
@@ -53,7 +65,7 @@ export const renameIcon = (oldName, newName) => fetch(getEndpointUrl(`/icons/${o
     }
 });
 
-export const deleteIcon = iconName => fetch(getEndpointUrl(`/icons/${iconName}`), {
+export const deleteIcon = iconName => fetch(getEndpointUrl(`/icon/${iconName}`), {
     method: 'DELETE',
     credentials: 'include'
 })
@@ -64,7 +76,7 @@ export const deleteIcon = iconName => fetch(getEndpointUrl(`/icons/${iconName}`)
 });
 
 export const addIconfile = (iconName, format, size, formData) => fetch(
-    getEndpointUrl(`/icons/${iconName}/formats/${format}/sizes/${size}`),
+    getEndpointUrl(`/icon/${iconName}/format/${format}/size/${size}`),
     {
         method: 'POST',
         credentials: 'include',

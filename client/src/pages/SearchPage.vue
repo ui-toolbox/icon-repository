@@ -49,7 +49,7 @@
 <script>
 import { getAppInfo, iconfileTypes } from '@/services/config';
 import * as userService from '@/services/user';
-import getEndpointUrl from '@/services/url';
+import { describeAllIcons } from '@/services/icon';
 import AppSettings from '@/components/AppSettings';
 import UserSettings from '@/components/UserSettings';
 import IconCell from '@/components/icons/IconCell';
@@ -110,9 +110,9 @@ export default {
   },
   methods: {
       loadIcons() {
-        const iconListUrl = getEndpointUrl('/icons');
-        this.$http.get(iconListUrl).then(function(response) {
-            this.icons = response.body;
+        describeAllIcons()
+        .then(iconDescriptions => {
+            this.icons = iconDescriptions;
         }, response => {
             if (process.env.NODE_ENV === 'development') {
                 this.icons = testIconData;

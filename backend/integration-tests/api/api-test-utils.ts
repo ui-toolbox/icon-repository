@@ -143,5 +143,5 @@ export const getCheckIconFile: (session: Session, iconFile: IconFile) => Observa
     )
     .pipe(map(buffer => expect(Buffer.compare(iconFile.content, buffer)).toEqual(0)));
 
-export const iconEndpointPath = "/icons";
-export const iconFileEndpointPath = "/icons/:id/formats/:format/sizes/:size";
+export const iconEndpointPath = "/icon";
+export const iconFileEndpointPath = "/icon/:id/format/:format/size/:size";

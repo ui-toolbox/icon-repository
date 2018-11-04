@@ -5,7 +5,7 @@ import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
 
 import { flatMap, map } from "rxjs/operators";
 
-const allIconsPath = "/icons";
+const allIconsPath = "/icon";
 
 describe(allIconsPath, () => {
 
@@ -44,7 +44,7 @@ describe(singleIconPath, () => {
         describeIcon(
             session
             .responseOK(resp => resp.status === 404)
-            .auth(uxAuth).requestBuilder(), "/icons/somenonexistentname")
+            .auth(uxAuth).requestBuilder(), "/icon/somenonexistentname")
             .subscribe(boilerplateSubscribe(fail, done));
     });
 

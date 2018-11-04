@@ -25,7 +25,7 @@ export default function() {
                 file: http.file(svgFile, `${iconName}-${size}.${format}`)
             };
 
-            const resCreate = http.post(`${__ENV.ICONREPO_BASE_URL}/icons`, data);
+            const resCreate = http.post(`${__ENV.ICONREPO_BASE_URL}/icon`, data);
             newIconDesc = JSON.parse(resCreate.body);
             check(resCreate, {
                 "is status 201": r => r.status === 201,
@@ -38,7 +38,7 @@ export default function() {
             const name = newIconDesc.iconName;
             const format = newIconDesc.format;
             const size = newIconDesc.size;
-            const resp = http.get(`${__ENV.ICONREPO_BASE_URL}/icons/${name}/formats/${format}/sizes/${size}`);
+            const resp = http.get(`${__ENV.ICONREPO_BASE_URL}/icon/${name}/format/${format}/size/${size}`);
             check(resp, {
                 "is status 200": r => r.status === 200,
                 "file length is 443 bytes": r => r.body.length === 443

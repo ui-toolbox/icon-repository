@@ -35,16 +35,16 @@ const serverProvider: (
 
     app.use(appConfig.server_url_context, express.static(appConfig.path_to_static_files));
 
-    const iconHandlers = iconHandlersProvider("/icons");
+    const iconHandlers = iconHandlersProvider("/icon");
 
-    router.get("/icons", iconHandlers.describeAllIcons);
-    router.post("/icons", upload.any(), iconHandlers.createIcon);
-    router.get("/icons/:name", iconHandlers.describeIcon);
-    router.post("/icons/:name", upload.any(), iconHandlers.ingestIconfile);
-    router.patch("/icons/:name", iconHandlers.updateIcon);
-    router.delete("/icons/:name", iconHandlers.deleteIcon);
-    router.get("/icons/:name/formats/:format/sizes/:size", iconHandlers.getIconFile);
-    router.delete("/icons/:name/formats/:format/sizes/:size", iconHandlers.deleteIconFile);
+    router.get("/icon", iconHandlers.describeAllIcons);
+    router.post("/icon", upload.any(), iconHandlers.createIcon);
+    router.get("/icon/:name", iconHandlers.describeIcon);
+    router.post("/icon/:name", upload.any(), iconHandlers.ingestIconfile);
+    router.patch("/icon/:name", iconHandlers.updateIcon);
+    router.delete("/icon/:name", iconHandlers.deleteIcon);
+    router.get("/icon/:name/format/:format/size/:size", iconHandlers.getIconFile);
+    router.delete("/icon/:name/format/:format/size/:size", iconHandlers.deleteIconFile);
     router.get("/app-info", appInfoHandlerProvider(
         appConfig.app_description,
         appConfig.package_root_dir));
