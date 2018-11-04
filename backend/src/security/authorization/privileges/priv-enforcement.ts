@@ -17,13 +17,13 @@ interface IEndPoint2REMap {
 type RequiredPrivilegesGetter = (url: string, requestMethod: string) => Set<string>;
 
 const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
-    "^/icons$": {
+    "^/icon$": {
         POST: [
             privilegeDictionary.CREATE_ICON
         ]
     },
-    // "/icons/:name
-    "^/icons/[^/]+$": {
+    // "/icon/:name
+    "^/icon/[^/]+$": {
         POST: [
             privilegeDictionary.UPDATE_ICON,
             privilegeDictionary.ADD_ICONFILE
@@ -38,8 +38,8 @@ const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
             privilegeDictionary.REMOVE_ICON
         ]
     },
-    // "/icons/:name/formats/:format/sizes/:size"
-    "^/icons/[^/]+/formats/[^/]+/sizes/[^/]+$": {
+    // "/icon/:name/format/:format/size/:size"
+    "^/icon/[^/]+/format/[^/]+/size/[^/]+$": {
         DELETE: [
             privilegeDictionary.REMOVE_ICON,
             privilegeDictionary.REMOVE_ICONFILE

@@ -52,9 +52,9 @@ describe(`PATCH ${iconEndpointPath}`, () => {
             name: newIconAttributes.name,
             modifiedBy: testAllIconDescriptor[1].modifiedBy,
             paths: [
-                { format: "png", size: "36px", path: `/icons/${newIconAttributes.name}/formats/png/sizes/36px` },
-                { format: "svg", size: "18px", path: `/icons/${newIconAttributes.name}/formats/svg/sizes/18px` },
-                { format: "svg", size: "24px", path: `/icons/${newIconAttributes.name}/formats/svg/sizes/24px` }
+                { format: "png", size: "36px", path: `/icon/${newIconAttributes.name}/format/png/size/36px` },
+                { format: "svg", size: "18px", path: `/icon/${newIconAttributes.name}/format/svg/size/18px` },
+                { format: "svg", size: "24px", path: `/icon/${newIconAttributes.name}/format/svg/size/24px` }
             ]
         };
         // Expected order is lexicographic by icon name: "cast..." first, "some icon name" second
@@ -154,7 +154,7 @@ describe(`POST ${iconEndpointPath}`, () => {
         const addedIconfileDescription = {
             format: iconfileToAdd.format,
             size: iconfileToAdd.size,
-            path: createIconfilePath("/icons", nameOfIconToUpdate, iconfileToAdd)
+            path: createIconfilePath("/icon", nameOfIconToUpdate, iconfileToAdd)
         };
         expectedIconDescription.paths.push(addedIconfileDescription);
 

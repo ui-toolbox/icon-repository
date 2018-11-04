@@ -12,7 +12,7 @@ import { assertFileInRepo, assertFileNotInRepo } from "../git/git-test-utils";
 
 import { flatMap, map } from "rxjs/operators";
 
-describe("DEL icons/:name/<file>", () => {
+describe("DEL /icon/:name/<file>", () => {
 
     const agent = manageTestResourcesBeforeAndAfter();
 

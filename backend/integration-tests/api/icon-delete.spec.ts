@@ -9,7 +9,7 @@ import clone from "../../src/utils/clone";
 
 import { flatMap, map } from "rxjs/operators";
 
-describe("DEL /icons", () => {
+describe("DEL /icon", () => {
 
     const agent = manageTestResourcesBeforeAndAfter();
 

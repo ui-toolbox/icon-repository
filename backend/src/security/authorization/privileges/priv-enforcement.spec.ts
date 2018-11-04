@@ -12,10 +12,10 @@ describe("requiredPrivilegesGetter", () => {
             "bobo format"
         ];
         const someEndPointPrivDesc = Object.freeze({
-            "^/icons$": {
+            "^/icon$": {
                 GET: expectedPrivs1
             },
-            "^/icons/[^/]+/formats/[^/]+$": {
+            "^/icon/[^/]+/format/[^/]+$": {
                 POST: expectedPrivs2
             }
         });
@@ -23,7 +23,7 @@ describe("requiredPrivilegesGetter", () => {
 
         const requiredPrivilegesGetter = requiredPrivilegesGetterProvider(someEndPointPrivDesc, someEndPointREMap);
 
-        expect(requiredPrivilegesGetter("/icons", "GET")).toEqual(Set(expectedPrivs1));
-        expect(requiredPrivilegesGetter("/icons/asdfqwerqasdf/formats/3x", "POST")).toEqual(Set(expectedPrivs2));
+        expect(requiredPrivilegesGetter("/icon", "GET")).toEqual(Set(expectedPrivs1));
+        expect(requiredPrivilegesGetter("/icon/asdfqwerqasdf/format/3x", "POST")).toEqual(Set(expectedPrivs2));
     });
 });

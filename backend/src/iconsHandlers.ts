@@ -31,7 +31,7 @@ interface UploadedFileDescriptor {
 }
 
 export const createIconfilePath = (baseUrl: string, iconName: string, iconfileDesc: IconFileDescriptor) =>
-    `${baseUrl}/${iconName}/formats/${iconfileDesc.format}/sizes/${iconfileDesc.size}`;
+    `${baseUrl}/${iconName}/format/${iconfileDesc.format}/size/${iconfileDesc.size}`;
 
 type CreateIconFilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPathDTO[];
 

@@ -142,18 +142,18 @@ export const getIngestedTestIconDataDescription: () => IconDTO[] = () => clone([
         name: "attach_money",
         modifiedBy: "ux",
         paths: [
-            { format: "png", size: "36px", path: "/icons/attach_money/formats/png/sizes/36px" },
-            { format: "svg", size: "18px", path: "/icons/attach_money/formats/svg/sizes/18px" },
-            { format: "svg", size: "24px", path: "/icons/attach_money/formats/svg/sizes/24px" }
+            { format: "png", size: "36px", path: "/icon/attach_money/format/png/size/36px" },
+            { format: "svg", size: "18px", path: "/icon/attach_money/format/svg/size/18px" },
+            { format: "svg", size: "24px", path: "/icon/attach_money/format/svg/size/24px" }
         ]
     },
     {
         name: "cast_connected",
         modifiedBy: "ux",
         paths: [
-            { format: "png", size: "36px", path: "/icons/cast_connected/formats/png/sizes/36px" },
-            { format: "svg", size: "24px", path: "/icons/cast_connected/formats/svg/sizes/24px" },
-            { format: "svg", size: "48px", path: "/icons/cast_connected/formats/svg/sizes/48px" }
+            { format: "png", size: "36px", path: "/icon/cast_connected/format/png/size/36px" },
+            { format: "svg", size: "24px", path: "/icon/cast_connected/format/svg/size/24px" },
+            { format: "svg", size: "48px", path: "/icon/cast_connected/format/svg/size/48px" }
         ]
     }
 ]);

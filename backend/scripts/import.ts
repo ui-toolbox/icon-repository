@@ -86,8 +86,8 @@ const addIconFile: (
     create: boolean) => Observable<void>
 = (iconName, format, size, content, create) => Observable.create((observer: Observer<void>) => {
     const url: string = create
-        ? `/icons`
-        : `/icons/${iconName}`;
+        ? `/icon`
+        : `/icon/${iconName}`;
 
     const request = create
         ? createSession().requestBuilder().post(url).field({name: iconName})

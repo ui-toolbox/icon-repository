@@ -25,10 +25,10 @@ describe("getAllIcons", () => {
             name,
             modifiedBy,
             paths: [
-                { format: "french", size: "great", path: iconPathRoot + "/cartouche/formats/french/sizes/great" },
-                { format: "french", size: "huge", path: iconPathRoot + "/cartouche/formats/french/sizes/huge" },
-                { format: "english", size: "OK", path: iconPathRoot + "/cartouche/formats/english/sizes/OK" },
-                { format: "english", size: "nice", path: iconPathRoot + "/cartouche/formats/english/sizes/nice" }
+                { format: "french", size: "great", path: iconPathRoot + "/cartouche/format/french/size/great" },
+                { format: "french", size: "huge", path: iconPathRoot + "/cartouche/format/french/size/huge" },
+                { format: "english", size: "OK", path: iconPathRoot + "/cartouche/format/english/size/OK" },
+                { format: "english", size: "nice", path: iconPathRoot + "/cartouche/format/english/size/nice" }
             ]
         };
 

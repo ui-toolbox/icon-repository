@@ -23,7 +23,7 @@ interface IconfileInfo {
 }
 
 export const getFilePath = (iconName: string, fileDescriptor: IconFileDescriptor) =>
-    `/icons/${iconName}/formats/${fileDescriptor.format}/sizes/${fileDescriptor.size}`;
+    `/icon/${iconName}/format/${fileDescriptor.format}/size/${fileDescriptor.size}`;
 
 export const setAuth: (
     requestBuilder: RequestBuilder,
@@ -51,7 +51,7 @@ export const describeAllIcons: (reqBuilder: RequestBuilder) => Observable<List<I
     const logger = loggerFactory("api-client: describe-all-icons");
     logger.info("START");
     reqBuilder
-        .get(`/icons`)
+        .get(`/icon`)
         .then(
             response => {
                 observer.next(List(response.body));
@@ -70,7 +70,7 @@ export interface Auth {
 export const describeIcon: (reqBulder: RequestBuilder, iconName: string) => Observable<IconDTO>
 = (reqBuilder, iconName) => Observable.create((observer: Observer<IconDTO>) => {
     reqBuilder
-        .get(`/icons/${iconName}`)
+        .get(`/icon/${iconName}`)
         .ok(res => res.status === 200 || res.status === 404)
         .then(
             response => {
@@ -117,7 +117,7 @@ export const createIcon: (
 => Observable<IconfileInfo>
 = (requestBuilder, iconName, initialIconFile) => Observable.create((observer: Observer<number>) =>
     requestBuilder
-        .post("/icons")
+        .post("/icon")
         .field({name: iconName})
         .attach(
             "icon",
@@ -139,7 +139,7 @@ export const ingestIconfile: (
     iconfileContent: Buffer) => Observable<IconfileInfo>
 = (requestBuilder, iconName, iconfileContent) => Observable.create((observer: Observer<IconfileInfo>) =>
     requestBuilder
-    .post(`/icons/${iconName}`)
+    .post(`/icon/${iconName}`)
     .attach(
         "icon",
         iconfileContent,
@@ -163,7 +163,7 @@ export const updateIcon: (
     const logger = loggerFactory("api-client: describe-all-icons");
     logger.info("START");
     requestBuilder
-    .patch(`/icons/${iconName}`)
+    .patch(`/icon/${iconName}`)
     .send(newIconAttributes)
     .then(
         () => {
@@ -182,7 +182,7 @@ export const deleteIcon: (
 ) => Observable<void>
 = (requestBuilder, iconName) => Observable.create((observer: Observer<void>) => {
     requestBuilder
-    .del(`/icons/${iconName}`)
+    .del(`/icon/${iconName}`)
     .then(
         result => {
             observer.next(void 0);
@@ -200,7 +200,7 @@ export const deleteIconFile: (
 ) => Observable<void>
 = (requestBuilder, iconName, iconFileDesc) => Observable.create((observer: Observer<void>) => {
     requestBuilder
-    .del(`/icons/${iconName}/formats/${iconFileDesc.format}/sizes/${iconFileDesc.size}`)
+    .del(`/icon/${iconName}/format/${iconFileDesc.format}/size/${iconFileDesc.size}`)
     .then(
         result => {
             observer.next(void 0);
