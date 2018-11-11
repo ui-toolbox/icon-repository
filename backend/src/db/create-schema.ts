@@ -2,7 +2,7 @@
 import {throwError as observableThrowError,  Observable, concat, pipe, throwError } from "rxjs";
 import { Pool } from "pg";
 
-import { IColumnsDefinition, ITableSpec, iconTableSpec, iconFileTableSpec } from "./db-schema";
+import { IColumnsDefinition, ITableSpec, iconTableSpec, iconfileTableSpec } from "./db-schema";
 import { query } from "./db";
 import loggerFactory from "../utils/logger";
 import { map, flatMap, catchError, retryWhen, delay, take, mapTo, tap } from "rxjs/operators";
@@ -48,7 +48,7 @@ export type CreateSchema = () => Observable<Pool>;
 export const createSchema: (pool: Pool) => CreateSchema
 = pool => () => dropCreateTable(pool, iconTableSpec)
     .pipe(
-        flatMap(() => dropCreateTable(pool, iconFileTableSpec)),
+        flatMap(() => dropCreateTable(pool, iconfileTableSpec)),
         mapTo(pool),
         retryOnError(2000, 30, "ECONNREFUSED"),
         catchError(error => {

@@ -5,7 +5,7 @@ import gitAccessFunctionsProvider, {
     GitAccessFunctions,
     GIT_COMMIT_FAIL_INTRUSIVE_TEST
 } from "../../src/git";
-import { IconFile } from "../../src/icon";
+import { Iconfile } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import {
@@ -35,16 +35,16 @@ describe("git access functions", () => {
         .subscribe(boilerplateSubscribe(fail, done));
     });
 
-    describe("should include addIconFile which", () => {
+    describe("should include addIconfile which", () => {
         it("should add an icon file", done => {
-            const iconInfo: IconFile = {
+            const iconInfo: Iconfile = {
                 name: "pizza",
                 format: "thin-crust",
                 size: "32cm",
                 content: crypto.randomBytes(1024)
             };
             const user = "zazie";
-            gitAFs.addIconFile(iconInfo, user)
+            gitAFs.addIconfile(iconInfo, user)
             .pipe(
                 flatMap(() => getCurrentCommit()),
                 map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length)),
@@ -56,24 +56,24 @@ describe("git access functions", () => {
 
         it("should throw an error, but preserve the last consistent git repo state, " +
                 "in case adding an icon file failse", done => {
-            const iconInfo: IconFile = {
+            const iconInfo: Iconfile = {
                 name: "pizza",
                 format: "thin-crust",
                 size: "32cm",
                 content: crypto.randomBytes(1024)
             };
-            const iconInfo1: IconFile = {
+            const iconInfo1: Iconfile = {
                 name: "pizza1",
                 format: "thin-crust1",
                 size: "32cm1",
                 content: crypto.randomBytes(1024)
             };
             const user = "zazie";
-            gitAFs.addIconFile(iconInfo, user)
+            gitAFs.addIconfile(iconInfo, user)
             .pipe(
                 tap(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true")),
                 flatMap(() => getCurrentCommit()),
-                flatMap(lastGoodSha1 => gitAFs.addIconFile(iconInfo1, user)
+                flatMap(lastGoodSha1 => gitAFs.addIconfile(iconInfo1, user)
                     .pipe(
                         map(() => fail("Expected an error to make exection skip this part")),
                         catchError(error => getCurrentCommit()),

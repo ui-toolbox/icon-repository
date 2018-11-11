@@ -3,7 +3,7 @@ import { flatMap, map } from "rxjs/operators";
 import {
     iconEndpointPath,
     manageTestResourcesBeforeAndAfter,
-    getCheckIconFile,
+    getCheckIconfile,
     defaultAuth} from "./api-test-utils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 
@@ -20,7 +20,7 @@ import {
     addTestData,
     getIngestedTestIconDataDescription,
     getDemoIconfileContent } from "./icon-api-test-utils";
-import { IconFile, IconFileDescriptor } from "../../src/icon";
+import { Iconfile, IconfileDescriptor } from "../../src/icon";
 
 describe(iconEndpointPath, () => {
 
@@ -80,24 +80,24 @@ describe(iconEndpointPath, () => {
 
     it ("POST should be capable of creating multiple icons in a row", done => {
         const sampleIconName1 = testIconInputData.get(0).name;
-        const sampleIconFileDesc1: IconFileDescriptor = testIconInputData.get(0).files.get(0);
+        const sampleIconfileDesc1: IconfileDescriptor = testIconInputData.get(0).files.get(0);
         const sampleIconName2 = testIconInputData.get(1).name;
-        const sampleIconFileDesc2: IconFileDescriptor = testIconInputData.get(1).files.get(1);
+        const sampleIconfileDesc2: IconfileDescriptor = testIconInputData.get(1).files.get(1);
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
             .pipe(
                 flatMap(() => testIconInputData.toArray()),
-                flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconFileDesc1)),
-                flatMap(content => getCheckIconFile(session, {
+                flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconfileDesc1)),
+                flatMap(content => getCheckIconfile(session, {
                     name: sampleIconName1,
-                    ...sampleIconFileDesc1,
+                    ...sampleIconfileDesc1,
                     content
                 })),
-                flatMap(() => getDemoIconfileContent(sampleIconName2, sampleIconFileDesc2)),
-                flatMap(content => getCheckIconFile(session, {
+                flatMap(() => getDemoIconfileContent(sampleIconName2, sampleIconfileDesc2)),
+                flatMap(content => getCheckIconfile(session, {
                     name: sampleIconName2,
-                    ...sampleIconFileDesc2,
+                    ...sampleIconfileDesc2,
                     content
                 })),
                 flatMap(() => assertGitCleanStatus()),
@@ -110,11 +110,11 @@ describe(iconEndpointPath, () => {
     });
 
     it ("POST should rollback to last consistent state, in case an error occurs", done => {
-        const iconFileToFind1: IconFile = {
+        const iconfileToFind1: Iconfile = {
             name: testIconInputData.get(0).name,
             ...testIconInputData.get(0).files.get(0)
         };
-        const iconFileToFind2: IconFile = {
+        const iconfileToFind2: Iconfile = {
             name: testIconInputData.get(0).name,
             ...testIconInputData.get(0).files.get(1)
         };
@@ -136,8 +136,8 @@ describe(iconEndpointPath, () => {
                         .pipe(
                             flatMap(() => getCurrentGitCommit()
                                 .pipe(map(gitSha2 => expect(gitSha1).toEqual(gitSha2)))),
-                            flatMap(() => getCheckIconFile(session, iconFileToFind1)),
-                            flatMap(() => getCheckIconFile(session, iconFileToFind2))
+                            flatMap(() => getCheckIconfile(session, iconfileToFind1)),
+                            flatMap(() => getCheckIconfile(session, iconfileToFind2))
                         );
                     })
                 )),

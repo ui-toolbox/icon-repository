@@ -1,11 +1,11 @@
 import { Set } from "immutable";
 
-export interface IconFileDescriptor {
+export interface IconfileDescriptor {
     readonly format: string;
     readonly size: string;
 }
 
-export interface IconFileData extends IconFileDescriptor {
+export interface IconfileData extends IconfileDescriptor {
     readonly content: Buffer;
 }
 
@@ -13,27 +13,27 @@ export interface IconAttributes {
     name: string;
 }
 
-export interface IconfileDescriptorEx extends IconFileDescriptor, IconAttributes {}
+export interface IconfileDescriptorEx extends IconfileDescriptor, IconAttributes {}
 
-export interface IconFile extends IconAttributes, IconFileData {}
+export interface Iconfile extends IconAttributes, IconfileData {}
 
 export class IconDescriptor implements IconAttributes {
     public readonly name: string;
     public readonly modifiedBy: string;
-    public readonly iconFiles: Set<IconFileDescriptor>;
+    public readonly iconfiles: Set<IconfileDescriptor>;
 
-    constructor(name: string, modifiedBy: string, iconFiles: Set<IconFileDescriptor>) {
+    constructor(name: string, modifiedBy: string, iconfiles: Set<IconfileDescriptor>) {
         this.name = name;
         this.modifiedBy = modifiedBy;
-        this.iconFiles = iconFiles || Set();
+        this.iconfiles = iconfiles || Set();
     }
 
-    public addIconFile(iconFile: IconFileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.name, this.modifiedBy, this.iconFiles.add(iconFile));
+    public addIconfile(iconfile: IconfileDescriptor): IconDescriptor {
+        return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles.add(iconfile));
     }
 
-    public removeIconFile(iconFile: IconFileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.name, this.modifiedBy, this.iconFiles.remove(iconFile));
+    public removeIconfile(iconfile: IconfileDescriptor): IconDescriptor {
+        return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles.remove(iconfile));
     }
 }
 
@@ -44,10 +44,10 @@ export class IconNotFound {
     }
 }
 
-export class IconFileAlreadyExists {
+export class IconfileAlreadyExists {
     public readonly message: string;
 
-    constructor(iconFile: IconFile) {
-        this.message = `A file ${iconFile.format}@${iconFile.size} for icon ${iconFile.name} already exists`;
+    constructor(iconfile: Iconfile) {
+        this.message = `A file ${iconfile.format}@${iconfile.size} for icon ${iconfile.name} already exists`;
     }
 }

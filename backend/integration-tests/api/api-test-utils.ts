@@ -7,9 +7,9 @@ import { Server } from "http";
 import iconHandlersProvider from "../../src/iconsHandlers";
 import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
-import { Auth, getIconFile } from "./api-client";
+import { Auth, getIconfile } from "./api-client";
 import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
-import { IconFile } from "../../src/icon";
+import { Iconfile } from "../../src/icon";
 import { createTestConfiguration } from "../service/service-test-utils";
 import { createDefaultIconService } from "../../src/app";
 
@@ -106,15 +106,15 @@ export const devAuth: Auth = {user: "dev", password: "dev"};
 
 export const defaultAuth: Auth = {user: "ux", password: "ux"};
 
-export const getCheckIconFile: (session: Session, iconFile: IconFile) => Observable<any>
-    = (session, iconFile) => getIconFile(
+export const getCheckIconfile: (session: Session, iconfile: Iconfile) => Observable<any>
+    = (session, iconfile) => getIconfile(
         session.requestBuilder(),
-        iconFile.name,
+        iconfile.name,
         {
-            format: iconFile.format, size: iconFile.size
+            format: iconfile.format, size: iconfile.size
         }
     )
-    .pipe(map(buffer => expect(Buffer.compare(iconFile.content, buffer)).toEqual(0)));
+    .pipe(map(buffer => expect(Buffer.compare(iconfile.content, buffer)).toEqual(0)));
 
 export const iconEndpointPath = "/icon";
-export const iconFileEndpointPath = "/icon/:id/format/:format/size/:size";
+export const iconfileEndpointPath = "/icon/:id/format/:format/size/:size";

@@ -4,14 +4,14 @@ import { Observable, of } from "rxjs";
 
 import { createTestPool,
     terminateTestPool,
-    getCheckIconFile,
+    getCheckIconfile,
     assertIconCount
  } from "./db-test-utils";
-import { IconFile } from "../../src/icon";
+import { Iconfile } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
-import { createIcon, getIconFile } from "../../src/db/db";
+import { createIcon, getIconfile } from "../../src/db/db";
 import { createSchema } from "../../src/db/create-schema";
 import { map, flatMap, tap, catchError } from "rxjs/operators";
 
@@ -25,18 +25,18 @@ describe("addIconToDBProvider", () => {
 
     it("should be capable to add a first icon", done => {
         const user = "zazie";
-        const iconFileInfo: IconFile = {
+        const iconfileInfo: Iconfile = {
             name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        createIcon(pool)(iconFileInfo, user)
+        createIcon(pool)(iconfileInfo, user)
         .pipe(
             flatMap(result => {
                 const expectedId = 1;
                 expect(result).toEqual(expectedId);
-                return getCheckIconFile(getIconFile(pool), iconFileInfo);
+                return getCheckIconfile(getIconfile(pool), iconfileInfo);
             })
         )
         .subscribe(boilerplateSubscribe(fail, done));
@@ -44,31 +44,31 @@ describe("addIconToDBProvider", () => {
 
     it("should be capable to add a second icon", done => {
         const user = "zazie";
-        const iconFileInfo1: IconFile = {
+        const iconfileInfo1: Iconfile = {
             name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: IconFile = {
+        const iconfileInfo2: Iconfile = {
             name: "animal-icon",
             format: "french",
             size: "huge",
             content: crypto.randomBytes(4096)
         };
-        createIcon(pool)(iconFileInfo1, user)
+        createIcon(pool)(iconfileInfo1, user)
         .pipe(
-            flatMap(result1 => createIcon(pool)(iconFileInfo2, user)
+            flatMap(result1 => createIcon(pool)(iconfileInfo2, user)
                 .pipe(
                     flatMap(result2 => {
                         const expectedId1 = 1;
                         const expectedId2 = 2;
                         expect(result1).toEqual(expectedId1);
                         expect(result2).toEqual(expectedId2);
-                        const getIconFileFromDB = getIconFile(pool);
-                        return getCheckIconFile(getIconFileFromDB, iconFileInfo1)
+                        const getIconfileFromDB = getIconfile(pool);
+                        return getCheckIconfile(getIconfileFromDB, iconfileInfo1)
                             .pipe(
-                                flatMap(() => getCheckIconFile(getIconFileFromDB, iconFileInfo2))
+                                flatMap(() => getCheckIconfile(getIconfileFromDB, iconfileInfo2))
                             );
                     })
                 )),
@@ -79,24 +79,24 @@ describe("addIconToDBProvider", () => {
 
     it("should rollback to last consistent state, in case an error occurs in sideEffect", done => {
         const user = "zazie";
-        const iconFileInfo1: IconFile = {
+        const iconfileInfo1: Iconfile = {
             name: "metro-icon",
             format: "french",
             size: "great",
             content: crypto.randomBytes(4096)
         };
-        const iconFileInfo2: IconFile = {
+        const iconfileInfo2: Iconfile = {
             name: "animal-icon",
             format: "french",
             size: "huge",
             content: crypto.randomBytes(4096)
         };
         const sideEffectErrorMessage = "Error in creating side effect";
-        createIcon(pool)(iconFileInfo1, user)
+        createIcon(pool)(iconfileInfo1, user)
         .pipe(
             tap(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true")),
             flatMap(result1 =>
-                createIcon(pool)(iconFileInfo2, user, () => { throw Error(sideEffectErrorMessage); })
+                createIcon(pool)(iconfileInfo2, user, () => { throw Error(sideEffectErrorMessage); })
                 .pipe(
                     map(() => fail("Expected an error to make exection skip this part")),
                     catchError(error => {
@@ -107,8 +107,8 @@ describe("addIconToDBProvider", () => {
                         expect(result2).toBeUndefined();
                         const expectedId1 = 1;
                         expect(result1).toEqual(expectedId1);
-                        const getIconFileFromDB = getIconFile(pool);
-                        return getCheckIconFile(getIconFileFromDB, iconFileInfo1)
+                        const getIconfileFromDB = getIconfile(pool);
+                        return getCheckIconfile(getIconfileFromDB, iconfileInfo1)
                             .pipe(
                                 flatMap(() => assertIconCount(pool, 1))
                             );

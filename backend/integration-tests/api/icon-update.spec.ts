@@ -63,7 +63,7 @@ describe(`PATCH ${iconEndpointPath}`, () => {
             changedIconDTO
         ];
 
-        const oldIngestedIconFiles = ingestedTestIconData.get(0).files;
+        const oldIngestedIconfiles = ingestedTestIconData.get(0).files;
 
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
@@ -83,9 +83,9 @@ describe(`PATCH ${iconEndpointPath}`, () => {
             flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(0))),
             flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(1))),
             flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(2))),
-            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(0) })),
-            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(1) })),
-            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconFiles.get(2) }))
+            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles.get(0) })),
+            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles.get(1) })),
+            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles.get(2) }))
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });

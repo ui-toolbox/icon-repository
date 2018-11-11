@@ -4,7 +4,7 @@ import { flatMap, last } from "rxjs/operators";
 import { createIcon, RequestBuilder, setAuth, updateIcon, ingestIconfile } from "./api-client";
 import { List, Map } from "immutable";
 import { readFile } from "../../src/utils/rx";
-import { IconFileData, IconFileDescriptor, IconDescriptor, IconFile } from "../../src/icon";
+import { IconfileData, IconfileDescriptor, IconDescriptor, Iconfile } from "../../src/icon";
 import clone from "../../src/utils/clone";
 import { defaultAuth } from "./api-test-utils";
 import { readFileSync } from "fs";
@@ -13,15 +13,15 @@ import { IconDTO, IconPathDTO } from "../../src/iconsHandlers";
 export interface Icon {
     readonly name: string;
     readonly modifiedBy: string;
-    readonly files: List<IconFileData>;
+    readonly files: List<IconfileData>;
 }
 
-export const getDemoIconfileContent = (iconName: string, iconfileDesc: IconFileDescriptor) =>
+export const getDemoIconfileContent = (iconName: string, iconfileDesc: IconfileDescriptor) =>
     readFile(path.join(
         __dirname, "..", "..", "..",
         "demo-data", iconfileDesc.format, iconfileDesc.size, `${iconName}.${iconfileDesc.format}`));
 
-export const getDemoIconfileContentSync = (iconName: string, iconfileDesc: IconFileDescriptor) =>
+export const getDemoIconfileContentSync = (iconName: string, iconfileDesc: IconfileDescriptor) =>
     readFileSync(path.join(
         __dirname, "..", "..", "..",
         "demo-data", iconfileDesc.format, iconfileDesc.size, `${iconName}.${iconfileDesc.format}`));
@@ -29,7 +29,7 @@ export const getDemoIconfileContentSync = (iconName: string, iconfileDesc: IconF
 interface TestIconDescriptor {
     name: string;
     modifiedBy: string;
-    files: List<IconFileDescriptor>;
+    files: List<IconfileDescriptor>;
 }
 
 const testIconInputDataDescriptor = List([

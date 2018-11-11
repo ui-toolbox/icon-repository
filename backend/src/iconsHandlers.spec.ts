@@ -2,7 +2,7 @@ import "jasmine";
 
 import { IconDTO, createIconDTO } from "./iconsHandlers";
 import { Set } from "immutable";
-import { IconFileDescriptor, IconDescriptor } from "./icon";
+import { IconfileDescriptor, IconDescriptor } from "./icon";
 
 describe("getAllIcons", () => {
     it("should return the list of icons with proper paths", () => {
@@ -13,13 +13,13 @@ describe("getAllIcons", () => {
 
         const name: string = "cartouche";
         const modifiedBy: string = "zazie";
-        const iconFiles: Set<IconFileDescriptor> = Set([
+        const iconfiles: Set<IconfileDescriptor> = Set([
             {format: "french", size: "great"},
             {format: "french", size: "huge"},
             {format: "english", size: "OK"},
             {format: "english", size: "nice"}
         ]);
-        const iconDesc: IconDescriptor = new IconDescriptor(name, modifiedBy, iconFiles);
+        const iconDesc: IconDescriptor = new IconDescriptor(name, modifiedBy, iconfiles);
 
         const expectedDTO: IconDTO = {
             name,

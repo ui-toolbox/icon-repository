@@ -2,7 +2,7 @@ import { SuperAgentRequest } from "superagent";
 import { Observable, Observer } from "rxjs";
 import { IconDTO } from "../../src/iconsHandlers";
 import { List } from "immutable";
-import { IconFileDescriptor, IconAttributes } from "../../src/icon";
+import { IconfileDescriptor, IconAttributes } from "../../src/icon";
 import loggerFactory from "../../src/utils/logger";
 
 export const authenticationBackdoorPath = "/backdoor/authentication";
@@ -22,7 +22,7 @@ interface IconfileInfo {
     path: string;
 }
 
-export const getFilePath = (iconName: string, fileDescriptor: IconFileDescriptor) =>
+export const getFilePath = (iconName: string, fileDescriptor: IconfileDescriptor) =>
     `/icon/${iconName}/format/${fileDescriptor.format}/size/${fileDescriptor.size}`;
 
 export const setAuth: (
@@ -92,13 +92,13 @@ export const describeIcon: (reqBulder: RequestBuilder, iconName: string) => Obse
         .catch(error => observer.error(error));
 });
 
-export const getIconFile: (
+export const getIconfile: (
     requestBuilder: RequestBuilder,
     iconName: string,
-    iconFileDesc: IconFileDescriptor) => Observable<Buffer>
-= (requestBuilder, iconName, iconFileDesc) => Observable.create((observer: Observer<Buffer>) => {
+    iconfileDesc: IconfileDescriptor) => Observable<Buffer>
+= (requestBuilder, iconName, iconfileDesc) => Observable.create((observer: Observer<Buffer>) => {
     requestBuilder
-        .get(getFilePath(iconName, iconFileDesc))
+        .get(getFilePath(iconName, iconfileDesc))
         .buffer(true)
         .then(
             response => {
@@ -115,13 +115,13 @@ export const createIcon: (
     iconName: string,
     initialIconfile: Buffer)
 => Observable<IconfileInfo>
-= (requestBuilder, iconName, initialIconFile) => Observable.create((observer: Observer<number>) =>
+= (requestBuilder, iconName, initialIconfile) => Observable.create((observer: Observer<number>) =>
     requestBuilder
         .post("/icon")
         .field({name: iconName})
         .attach(
             "icon",
-            initialIconFile,
+            initialIconfile,
             `${iconName}`
         )
         .then(
@@ -193,14 +193,14 @@ export const deleteIcon: (
     .catch(error => observer.error(error));
 });
 
-export const deleteIconFile: (
+export const deleteIconfile: (
     requestBuilder: RequestBuilder,
     iconName: string,
-    iconFileDesc: IconFileDescriptor
+    iconfileDesc: IconfileDescriptor
 ) => Observable<void>
-= (requestBuilder, iconName, iconFileDesc) => Observable.create((observer: Observer<void>) => {
+= (requestBuilder, iconName, iconfileDesc) => Observable.create((observer: Observer<void>) => {
     requestBuilder
-    .del(`/icon/${iconName}/format/${iconFileDesc.format}/size/${iconFileDesc.size}`)
+    .del(`/icon/${iconName}/format/${iconfileDesc.format}/size/${iconfileDesc.size}`)
     .then(
         result => {
             observer.next(void 0);

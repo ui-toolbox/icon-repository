@@ -2,8 +2,8 @@ import * as path from "path";
 import { Observable } from "rxjs";
 import { flatMap, map, mapTo } from "rxjs/operators";
 import { stat, rmdirMaybe, rmdir } from "../../src/utils/rx";
-import { createNewGitRepo, createGitCommandExecutor, getPathToIconFile } from "../../src/git";
-import { IconFile, IconFileDescriptor } from "../../src/icon";
+import { createNewGitRepo, createGitCommandExecutor, getPathToIconfile } from "../../src/git";
+import { Iconfile, IconfileDescriptor } from "../../src/icon";
 
 const SECONDS_IN_MILLIES = 1000;
 
@@ -35,9 +35,9 @@ export const assertGitCleanStatus = () => getGitStatus()
 .pipe(map(status => expect(status.substr(status.length - cleanStatusMessageTail.length))
                 .toEqual(cleanStatusMessageTail)));
 
-export const assertFileInRepo: (iconFileInfo: IconFile) => Observable<void>
-= iconFileInfo => {
-    const filePath = getPathToIconFile(repoDir, iconFileInfo.name, iconFileInfo.format, iconFileInfo.size);
+export const assertFileInRepo: (iconfileInfo: Iconfile) => Observable<void>
+= iconfileInfo => {
+    const filePath = getPathToIconfile(repoDir, iconfileInfo.name, iconfileInfo.format, iconfileInfo.size);
     return stat(filePath)
     .pipe(map(stats => {
         if (stats) {
@@ -50,9 +50,9 @@ export const assertFileInRepo: (iconFileInfo: IconFile) => Observable<void>
     }));
 };
 
-export const assertFileNotInRepo: (iconName: string, iconFileDesc: IconFileDescriptor) => Observable<void>
-= (iconName, iconFileDesc) => {
-    const filePath = getPathToIconFile(repoDir, iconName, iconFileDesc.format, iconFileDesc.size);
+export const assertFileNotInRepo: (iconName: string, iconfileDesc: IconfileDescriptor) => Observable<void>
+= (iconName, iconfileDesc) => {
+    const filePath = getPathToIconfile(repoDir, iconName, iconfileDesc.format, iconfileDesc.size);
     return stat(filePath)
     .pipe(
         map(stats => expect(stats).toBeNull()),

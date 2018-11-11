@@ -5,10 +5,10 @@ import { map } from "rxjs/operators";
 
 import {
     IconDescriptor,
-    IconFileDescriptor,
+    IconfileDescriptor,
     IconAttributes,
     IconNotFound,
-    IconFileAlreadyExists } from "./icon";
+    IconfileAlreadyExists } from "./icon";
 import { IconService, DescribeAllIcons, DescribeIcon } from "./iconsService";
 import { getAuthentication } from "./security/common";
 export interface IconHanlders {
@@ -18,8 +18,8 @@ export interface IconHanlders {
     readonly ingestIconfile: (req: Request, res: Response) => void;
     readonly updateIcon: (req: Request, res: Response) => void;
     readonly deleteIcon: (req: Request, res: Response) => void;
-    readonly getIconFile: (req: Request, res: Response) => void;
-    readonly deleteIconFile: (req: Request, res: Response) => void;
+    readonly getIconfile: (req: Request, res: Response) => void;
+    readonly deleteIconfile: (req: Request, res: Response) => void;
 }
 
 interface UploadedFileDescriptor {
@@ -30,21 +30,21 @@ interface UploadedFileDescriptor {
     readonly size: number;
 }
 
-export const createIconfilePath = (baseUrl: string, iconName: string, iconfileDesc: IconFileDescriptor) =>
+export const createIconfilePath = (baseUrl: string, iconName: string, iconfileDesc: IconfileDescriptor) =>
     `${baseUrl}/${iconName}/format/${iconfileDesc.format}/size/${iconfileDesc.size}`;
 
-type CreateIconFilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPathDTO[];
+type CreateIconfilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPathDTO[];
 
-const createIconFilePaths: CreateIconFilePaths
+const createIconfilePaths: CreateIconfilePaths
 = (baseUrl, iconDesc) =>
-    iconDesc.iconFiles.toArray()
+    iconDesc.iconfiles.toArray()
     .map(iconfileDescriptor =>
         ({
             ...iconfileDescriptor,
             path: createIconfilePath(baseUrl, iconDesc.name, iconfileDescriptor)
         }));
 
-export interface IconPathDTO extends IconFileDescriptor {
+export interface IconPathDTO extends IconfileDescriptor {
     readonly path: string;
 }
 
@@ -58,7 +58,7 @@ export const createIconDTO: (iconPathRoot: string, iconDesc: IconDescriptor) => 
 = (iconPathRoot, iconDesc) => ({
     name: iconDesc.name,
     modifiedBy: iconDesc.modifiedBy,
-    paths: createIconFilePaths(iconPathRoot, iconDesc)
+    paths: createIconfilePaths(iconPathRoot, iconDesc)
 });
 
 const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
@@ -142,7 +142,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             },
             error => {
                 ctxLogger.error("ingesting icon file %o failed: %o", req.files, error);
-                const statusCode = error instanceof IconFileAlreadyExists ? 409 : 500;
+                const statusCode = error instanceof IconfileAlreadyExists ? 409 : 500;
                 res.status(statusCode).send({error: error.message}).end();
             }
         );
@@ -191,9 +191,9 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         }
     },
 
-    getIconFile: (req: Request, res: Response) => {
+    getIconfile: (req: Request, res: Response) => {
         const ctxLogger = loggerFactory("iconfile-get-requesthandler");
-        iconService.getIconFile(req.params.name, req.params.format, req.params.size)
+        iconService.getIconfile(req.params.name, req.params.format, req.params.size)
         .toPromise()
         .then(
             result => {
@@ -213,7 +213,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         );
     },
 
-    deleteIconFile: (req: Request, res: Response) => {
+    deleteIconfile: (req: Request, res: Response) => {
         const ctxLogger = loggerFactory("iconfile-delete-requesthandler");
         if (!req.params.name) {
             ctxLogger.error("Missing icon name");
@@ -223,10 +223,10 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             res.status(400).send({error: "Missing format or size parameter"}).end();
         } else {
             const iconName = req.params.name;
-            const iconFileDesc: IconFileDescriptor = {format: req.params.format, size: req.params.size};
-            iconService.deleteIconFile(
+            const iconfileDesc: IconfileDescriptor = {format: req.params.format, size: req.params.size};
+            iconService.deleteIconfile(
                 iconName,
-                iconFileDesc, getAuthentication(req.session).username)
+                iconfileDesc, getAuthentication(req.session).username)
             .subscribe(
                 void 0,
                 error => {
