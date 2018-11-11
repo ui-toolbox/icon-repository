@@ -7,6 +7,7 @@ import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
 import csvSplitter from "./utils/csvSplitter";
 import { probeMetadata } from "./iconfileService";
+import { ConfigurationData } from "./configuration";
 
 export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;

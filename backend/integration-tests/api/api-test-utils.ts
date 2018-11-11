@@ -1,59 +1,32 @@
 import * as http from "http";
 import { Observable } from "rxjs";
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, mapTo, tap } from "rxjs/operators";
 
-import configurationProvider from "../../src/configuration";
-import { ConfigurationData } from "../../src/configuration";
-import iconDAFsProvider, { createConnectionProperties } from "../../src/db/db";
-import gitProvider from "../../src/git";
 import serverProvider from "../../src/server";
 import { Server } from "http";
-import iconServiceProvider from "../../src/iconsService";
 import iconHandlersProvider from "../../src/iconsHandlers";
 import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
 import { Auth, getIconFile } from "./api-client";
 import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
 import { IconFile } from "../../src/icon";
+import { createTestConfiguration } from "../service/service-test-utils";
+import { createDefaultIconService } from "../../src/app";
 
 type StartServer = (customServerConfig: any) => Observable<Server>;
 
-export const defaultTestServerconfig = Object.freeze({
-    authentication_type: "basic"
-});
-
 let localServerRef: Server;
 
-export const startServer: StartServer = customConfig => {
-    return configurationProvider
+export const startServer: StartServer = customConfig =>
+    createTestConfiguration(customConfig)
     .pipe(
-        flatMap(configuration => {
-            const configData: ConfigurationData = Object.freeze({
-                    ...configuration,
-                    ...defaultTestServerconfig,
-                    ...customConfig,
-                    server_port: 0
-            });
-            return iconServiceProvider(
-                {
-                    resetData: "always"
-                },
-                iconDAFsProvider(createConnectionProperties(configData)),
-                gitProvider(configData.icon_data_location_git)
-            )
+        flatMap(testConfiguration => createDefaultIconService(testConfiguration)
             .pipe(
-                flatMap(iconService => {
-                    const iconHandlers = iconHandlersProvider(iconService);
-                    return serverProvider(configData, iconHandlers);
-                }),
-                map(server => {
-                    localServerRef = server;
-                    return server;
-                })
-            );
-        })
+                flatMap(iconService => serverProvider(testConfiguration, iconHandlersProvider(iconService))),
+                map(server => localServerRef = server)
+            )),
+        mapTo(localServerRef)
     );
-};
 
 export const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
