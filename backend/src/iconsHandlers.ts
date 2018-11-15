@@ -20,6 +20,7 @@ export interface IconHanlders {
     readonly deleteIcon: (req: Request, res: Response) => void;
     readonly getIconfile: (req: Request, res: Response) => void;
     readonly deleteIconfile: (req: Request, res: Response) => void;
+    readonly release: () => void;
 }
 
 interface UploadedFileDescriptor {
@@ -237,7 +238,9 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
                 () => res.status(204).end()
             );
         }
-    }
+    },
+
+    release: iconService.release
 });
 
 export default iconHandlersProvider;

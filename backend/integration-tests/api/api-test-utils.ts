@@ -2,8 +2,7 @@ import * as http from "http";
 import { Observable } from "rxjs";
 import { flatMap, map, mapTo, tap } from "rxjs/operators";
 
-import serverProvider from "../../src/server";
-import { Server } from "http";
+import serverProvider, { Server } from "../../src/server";
 import iconHandlersProvider from "../../src/iconsHandlers";
 import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
@@ -23,22 +22,24 @@ export const startServer: StartServer = customConfig =>
         flatMap(testConfiguration => createDefaultIconService(testConfiguration)
             .pipe(
                 flatMap(iconService => serverProvider(testConfiguration, iconHandlersProvider(iconService))),
-                map(server => localServerRef = server)
-            )),
-        mapTo(localServerRef)
+                map(server => {
+                    localServerRef = server;
+                    return server;
+                })
+            ))
     );
 
-export const startServerWithBackdoors: StartServer = customConfig =>
+const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
-export const startTestServer = (done: () => void) =>
+const startTestServer = (done: () => void) =>
     startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
     .subscribe(boilerplateSubscribe(fail, done));
 
-export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
+const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
     deleteTestGitRepo()
-        .pipe(map(() => server.close()))
+        .pipe(map(server.shutdown))
     .subscribe(boilerplateSubscribe(fail, done));
 };
 

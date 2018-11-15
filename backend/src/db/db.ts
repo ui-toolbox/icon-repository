@@ -1,5 +1,5 @@
 
-import {throwError as observableThrowError,  Observable, Observer, of, throwError } from "rxjs";
+import { throwError as observableThrowError,  Observable, Observer, of } from "rxjs";
 import { flatMap, catchError, mapTo, finalize, map, reduce } from "rxjs/operators";
 import { List, Set } from "immutable";
 import { Pool, QueryResult } from "pg";
@@ -358,6 +358,7 @@ export interface IconDAFs {
     readonly addIconfileToIcon: AddIconfile;
     readonly deleteIconfile: DeleteIconfile;
     readonly describeAllIcons: DescribeAllIcons;
+    readonly release: () => void;
 }
 
 const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
@@ -372,7 +373,8 @@ const dbAccessProvider: (connectionProperties: ConnectionProperties) => IconDAFs
         getIconfile: getIconfile(pool),
         addIconfileToIcon: addIconfileToIcon(pool),
         deleteIconfile: deleteIconfile(pool),
-        describeAllIcons: describeAllIcons(pool)
+        describeAllIcons: describeAllIcons(pool),
+        release: () => pool.end()
     };
 };
 

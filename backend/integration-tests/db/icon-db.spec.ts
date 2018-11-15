@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import { Pool } from "pg";
-import { Observable, of } from "rxjs";
+import { of } from "rxjs";
 
 import { createTestPool,
     terminateTestPool,

@@ -157,7 +157,7 @@ configuration
     flatMap(server => {
         return importIcons()
         .pipe(
-            finalize(() => server.close)
+            finalize(() => server.shutdown())
         );
     })
 )

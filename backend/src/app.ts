@@ -4,7 +4,7 @@ import loggerFactory, { setDefaultLogLevel } from "./utils/logger";
 import configurationProvider, { ConfigurationData } from "./configuration";
 import iconDAFsProvider, { createConnectionProperties } from "./db/db";
 import gitAFsProvider from "./git";
-import serverProvider from "./server";
+import serverProvider, { Server } from "./server";
 
 import iconServiceProvider, { IconService } from "./iconsService";
 import iconHandlersProvider from "./iconsHandlers";
@@ -15,7 +15,7 @@ import { Observable } from "rxjs";
 
 let logger: Logger;
 
-const logServerStart = (server: http.Server) => {
+const logServerStart = (server: Server) => {
     const host = server.address().address;
     const port = server.address().port;
 

@@ -43,6 +43,7 @@ export interface IconService {
     readonly deleteIcon: DeleteIcon;
     readonly addIconfile: AddIconfile;
     readonly deleteIconfile: DeleteIconfile;
+    readonly release: () => void;
 }
 
 export const iconSizeListParser = csvSplitter;
@@ -156,7 +157,8 @@ const iconServiceProvider: (
             getIconfile,
             addIconfile,
             deleteIconfile,
-            describeAllIcons
+            describeAllIcons,
+            release: iconDAFs.release
         })
     );
 };
