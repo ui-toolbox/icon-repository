@@ -230,17 +230,6 @@ export const updateIcon: (pool: Pool) => UpdateIcon
         ));
 };
 
-type DeleteIconFromIconTable = (
-    executeQuery: ExecuteQuery,
-    iconName: string
-) => Observable<void>;
-
-const deleteIconFromIconTable: DeleteIconFromIconTable = (executeQuery, iconName) => {
-    const deleteIconSQL: string = "DELETE FROM icon WHERE name = $1";
-    return executeQuery(deleteIconSQL, [ iconName ])
-    .pipe(mapTo(void 0));
-};
-
 type DeleteIcon = (
     iconName: string,
     modifiedBy: string,
@@ -254,7 +243,7 @@ export const deleteIcon: (pool: Pool) => DeleteIcon
         .pipe(
             flatMap(iconDesc => iconDesc.iconfiles.toArray()),
             flatMap(iconfileDesc =>
-                deleteIconFromIconTable(executeQuery, iconName)
+                deleteIconfileBare(executeQuery, iconName, iconfileDesc, modifiedBy)
                 .pipe(mapTo(iconfileDesc))),
             reduce<IconfileDescriptor, Set<IconfileDescriptor>>((acc, iconfileDesc) => acc.add(iconfileDesc), Set()),
             flatMap((iconfileDescSet: Set<IconfileDescriptor>) =>
@@ -288,15 +277,14 @@ type AddIconfile = (
     modifiedBy: string,
     createSideEffect?: () => Observable<void>) => Observable<number>;
 
-const addIconfileToIcon: (pool: Pool) => AddIconfile
+export const addIconfileToIcon: (pool: Pool) => AddIconfile
 = pool => (iconfile, modifiedBy, createSideEffect) => {
     return tx(pool, (executeQuery: ExecuteQuery) => {
         return insertIconfileIntoTable(executeQuery, iconfile, modifiedBy)
         .pipe(
             flatMap(iconfileId =>
                 (createSideEffect ? createSideEffect() : of(void 0))
-                .pipe(map(() => iconfileId))),
-            catchError(error => handleUniqueConstraintViolation(error, iconfile))
+                .pipe(map(() => iconfileId)))
         );
     });
 };
@@ -341,7 +329,7 @@ type DeleteIconfile = (
     modifiedBy: string,
     createSideEffect?: () => Observable<void>) => Observable<void>;
 
-const deleteIconfile: (pool: Pool) => DeleteIconfile
+export const deleteIconfile: (pool: Pool) => DeleteIconfile
 = pool => (iconName, iconfileDesc, modifiedBy, createSideEffect) => {
     return tx(pool, (executeQuery: ExecuteQuery) =>
             deleteIconfileBare(executeQuery, iconName, iconfileDesc, modifiedBy)
