@@ -8,27 +8,28 @@ describe("backdoor to privileges", () => {
     it("mustn't be available by default", done => {
         startServer({})
         .pipe(
-            flatMap(server =>
-                superagent
+            flatMap(server => {
+                return superagent
                     .post(`${getBaseUrl()}/backdoor/authentication`)
                     .auth("ux", "ux")
                     .ok(resp => resp.status === 404)
                     .then(
                         () => {
-                            server.close();
+                            server.shutdown();
                             done();
                         },
                         error => {
-                            server.close();
+                            server.shutdown();
                             fail(error);
                             done();
                         }
                     )
                     .catch(error => {
-                        server.close();
+                        server.shutdown();
                         fail(error);
                         done();
-                    })
+                    });
+                }
             )
         )
         .subscribe(boilerplateSubscribe(fail, done));
@@ -44,17 +45,17 @@ describe("backdoor to privileges", () => {
                     .ok(resp => resp.status === 200)
                     .then(
                         () => {
-                            server.close();
+                            server.shutdown();
                             done();
                         },
                         error => {
-                            server.close();
+                            server.shutdown();
                             fail(error);
                             done();
                         }
                     )
                     .catch(error => {
-                        server.close();
+                        server.shutdown();
                         fail(error);
                         done();
                     })

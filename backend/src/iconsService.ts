@@ -2,15 +2,16 @@ import { List } from "immutable";
 import { Observable, of } from "rxjs";
 import { mapTo, map, flatMap } from "rxjs/operators";
 
-import { IconFile, IconDescriptor, IconFileDescriptor, IconAttributes, IconfileDescriptorEx } from "./icon";
+import { Iconfile, IconDescriptor, IconfileDescriptor, IconAttributes, IconfileDescriptorEx } from "./icon";
 import { IconDAFs } from "./db/db";
 import { GitAccessFunctions } from "./git";
 import csvSplitter from "./utils/csvSplitter";
 import { probeMetadata } from "./iconfileService";
+import { ConfigurationData } from "./configuration";
 
 export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
-type GetIconFile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
+type GetIconfile = (iconName: string, fileFormat: string, iconSize: string) => Observable<Buffer>;
 type CreateIcon = (
     iconName: string,
     initialIconfileContent: Buffer,
@@ -18,7 +19,7 @@ type CreateIcon = (
 type IngestIconfile = (
     iconName: string,
     content: Buffer,
-    modifiedBy: string) => Observable<IconFileDescriptor>;
+    modifiedBy: string) => Observable<IconfileDescriptor>;
 type UpdateIcon = (
     oldIconName: string,
     newIcon: IconAttributes,
@@ -27,21 +28,22 @@ type DeleteIcon = (
     iconName: string,
     modifiedBy: string
 ) => Observable<void>;
-type AddIconFile = (
-    iconFile: IconFile,
+type AddIconfile = (
+    iconfile: Iconfile,
     modifiedBy: string) => Observable<number>;
-type DeleteIconFile = (iconName: string, iconFileDesc: IconFileDescriptor, modifiedBy: string) => Observable<void>;
+type DeleteIconfile = (iconName: string, iconfileDesc: IconfileDescriptor, modifiedBy: string) => Observable<void>;
 
 export interface IconService {
     readonly describeAllIcons: DescribeAllIcons;
     readonly describeIcon: DescribeIcon;
-    readonly getIconFile: GetIconFile;
+    readonly getIconfile: GetIconfile;
     readonly createIcon: CreateIcon;
     readonly ingestIconfile: IngestIconfile;
     readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
-    readonly addIconFile: AddIconFile;
-    readonly deleteIconFile: DeleteIconFile;
+    readonly addIconfile: AddIconfile;
+    readonly deleteIconfile: DeleteIconfile;
+    readonly release: () => void;
 }
 
 export const iconSizeListParser = csvSplitter;
@@ -79,8 +81,8 @@ const iconServiceProvider: (
 
     const describeIcon: DescribeIcon = iconName => iconDAFs.describeIcon(iconName);
 
-    const getIconFile: GetIconFile = (iconId, fileFormat, iconSize) =>
-        iconDAFs.getIconFile(iconId, fileFormat, iconSize);
+    const getIconfile: GetIconfile = (iconId, fileFormat, iconSize) =>
+        iconDAFs.getIconfile(iconId, fileFormat, iconSize);
 
     const createIcon: CreateIcon = (iconName, initialIconfileContent, modifiedBy) =>
         probeMetadata(initialIconfileContent)
@@ -94,7 +96,7 @@ const iconServiceProvider: (
             flatMap(fixedIconfileInfo => iconDAFs.createIcon(
                 fixedIconfileInfo,
                 modifiedBy,
-                () => gitAFs.addIconFile(fixedIconfileInfo, modifiedBy))
+                () => gitAFs.addIconfile(fixedIconfileInfo, modifiedBy))
                 .pipe(
                     mapTo({
                         name: fixedIconfileInfo.name,
@@ -110,8 +112,8 @@ const iconServiceProvider: (
             flatMap(v => {
                 const format = v.type;
                 const size = `${v.height}${v.hUnits}`;
-                const iconFile: IconFile = { name: iconName, format, size, content };
-                return addIconFile(iconFile, modifiedBy)
+                const iconfile: Iconfile = { name: iconName, format, size, content };
+                return addIconfile(iconfile, modifiedBy)
                 .pipe(mapTo({format, size}));
             })
         );
@@ -127,21 +129,21 @@ const iconServiceProvider: (
         iconDAFs.deleteIcon(
             iconName,
             modifiedBy,
-            iconFileDescSet => gitAFs.deleteIcon(iconName, iconFileDescSet, modifiedBy)
+            iconfileDescSet => gitAFs.deleteIcon(iconName, iconfileDescSet, modifiedBy)
         );
 
-    const addIconFile: AddIconFile = (iconFile, modifiedBy) =>
-        iconDAFs.addIconFileToIcon(
-            iconFile,
+    const addIconfile: AddIconfile = (iconfile, modifiedBy) =>
+        iconDAFs.addIconfileToIcon(
+            iconfile,
             modifiedBy,
-            () => gitAFs.addIconFile(iconFile, modifiedBy));
+            () => gitAFs.addIconfile(iconfile, modifiedBy));
 
-    const deleteIconFile: DeleteIconFile = (iconName, iconFileDesc, modifiedBy) =>
-        iconDAFs.deleteIconFile(
+    const deleteIconfile: DeleteIconfile = (iconName, iconfileDesc, modifiedBy) =>
+        iconDAFs.deleteIconfile(
             iconName,
-            iconFileDesc,
+            iconfileDesc,
             modifiedBy,
-            () => gitAFs.deleteIconFile(iconName, iconFileDesc, modifiedBy)
+            () => gitAFs.deleteIconfile(iconName, iconfileDesc, modifiedBy)
         );
 
     return createNewRepoMaybe(iconRepoConfig.resetData, iconDAFs, gitAFs)
@@ -152,10 +154,11 @@ const iconServiceProvider: (
             ingestIconfile,
             updateIcon,
             deleteIcon,
-            getIconFile,
-            addIconFile,
-            deleteIconFile,
-            describeAllIcons
+            getIconfile,
+            addIconfile,
+            deleteIconfile,
+            describeAllIcons,
+            release: iconDAFs.release
         })
     );
 };

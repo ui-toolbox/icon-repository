@@ -3,7 +3,7 @@ import { setAuth, deleteIcon, describeAllIcons } from "./api-client";
 import { boilerplateSubscribe } from "../testUtils";
 import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
 import { addTestData, testIconInputData, getIngestedTestIconDataDescription } from "./icon-api-test-utils";
-import { IconFileDescriptor } from "../../src/icon";
+import { IconfileDescriptor } from "../../src/icon";
 import { assertFileNotInRepo } from "../git/git-test-utils";
 import clone from "../../src/utils/clone";
 
@@ -50,7 +50,7 @@ describe("DEL /icon", () => {
         const expectedAllIconsDescriptor = clone(getIngestedTestIconDataDescription());
         expectedAllIconsDescriptor.splice(0, 1);
 
-        const getIconFileDescToDelete: (iconFileIndex: number) => IconFileDescriptor
+        const getIconfileDescToDelete: (iconfileIndex: number) => IconfileDescriptor
             = index => ({
                 format: iconToDelete.files.get(index).format,
                 size: iconToDelete.files.get(index).size
@@ -69,9 +69,9 @@ describe("DEL /icon", () => {
             flatMap(() => describeAllIcons(session.requestBuilder())),
             map(iconsDesc =>
                 expect(iconsDesc.toArray()).toEqual(expectedAllIconsDescriptor)),
-            flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconFileDescToDelete(0))),
-            flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconFileDescToDelete(1))),
-            flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconFileDescToDelete(2)))
+            flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconfileDescToDelete(0))),
+            flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconfileDescToDelete(1))),
+            flatMap(() => assertFileNotInRepo(iconToDelete.name, getIconfileDescToDelete(2)))
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });

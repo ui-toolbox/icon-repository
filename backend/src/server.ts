@@ -1,23 +1,27 @@
-import * as http from "http";
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import * as helmet from "helmet";
 import * as multer from "multer";
-import * as Rx from "rxjs";
 
 import { IconHanlders } from "./iconsHandlers";
 
 import { ConfigurationData } from "./configuration";
 import securityManagerProvider from "./security/securityManager";
 import appInfoHandlerProvider from "./appInfoHandler";
+import { Observable, Observer } from "rxjs";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+export interface Server {
+    readonly address: () => { address: string, port: number };
+    readonly shutdown: () => void;
+}
+
 const serverProvider: (
     appConfig: ConfigurationData,
     iconHandlers: (iconPathRoot: string) => IconHanlders
-) => Rx.Observable<http.Server>
+) => Observable<Server>
 = (appConfig, iconHandlersProvider) => {
 
     const app = express();
@@ -43,15 +47,21 @@ const serverProvider: (
     router.post("/icon/:name", upload.any(), iconHandlers.ingestIconfile);
     router.patch("/icon/:name", iconHandlers.updateIcon);
     router.delete("/icon/:name", iconHandlers.deleteIcon);
-    router.get("/icon/:name/format/:format/size/:size", iconHandlers.getIconFile);
-    router.delete("/icon/:name/format/:format/size/:size", iconHandlers.deleteIconFile);
+    router.get("/icon/:name/format/:format/size/:size", iconHandlers.getIconfile);
+    router.delete("/icon/:name/format/:format/size/:size", iconHandlers.deleteIconfile);
     router.get("/app-info", appInfoHandlerProvider(
         appConfig.app_description,
         appConfig.package_root_dir));
 
-    return Rx.Observable.create((observer: Rx.Observer<http.Server>) => {
-        const server = app.listen(appConfig.server_port, appConfig.server_hostname, () => {
-            observer.next(server);
+    return Observable.create((observer: Observer<Server>) => {
+        const httpServer = app.listen(appConfig.server_port, appConfig.server_hostname, () => {
+            observer.next({
+                address: () => httpServer.address(),
+                shutdown: () => {
+                    iconHandlers.release();
+                    httpServer.close();
+                }
+            });
             observer.complete();
         });
     });

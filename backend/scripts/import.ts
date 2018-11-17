@@ -36,7 +36,7 @@ interface SourceFileDescriptor {
 
 const stripExtension = (fileName: string) => fileName.replace(/(.*)\.[^.]*$/, "$1");
 
-const iconFileCollector: () => Observable<SourceFileDescriptor>
+const iconfileCollector: () => Observable<SourceFileDescriptor>
 = () => {
     return readdir(sourceDir)
     .pipe(
@@ -78,7 +78,7 @@ const doesIconExist: (iconName: string) => Observable<boolean>
     )
     .pipe(map(icon => !!icon));
 
-const addIconFile: (
+const addIconfile: (
     iconName: string,
     format: string,
     size: string,
@@ -119,7 +119,7 @@ const addIconFile: (
 const enqueueJob = createSerializer("I M P O R T");
 let existingIcons: Set<string> = Set();
 
-const readAndUploadIconFile: (descriptor: SourceFileDescriptor) => Observable<void>
+const readAndUploadIconfile: (descriptor: SourceFileDescriptor) => Observable<void>
 = descriptor => {
     ctxLogger.debug("Processing icon file: %o", descriptor);
     return readFile(path.join(sourceDir, descriptor.format, descriptor.size, descriptor.filePath))
@@ -131,7 +131,7 @@ const readAndUploadIconFile: (descriptor: SourceFileDescriptor) => Observable<vo
             .pipe(
                 flatMap(iconExists => {
                     existingIcons = existingIcons.add(descriptor.name);
-                    return addIconFile(
+                    return addIconfile(
                         descriptor.name,
                         descriptor.format,
                         descriptor.size,
@@ -145,9 +145,9 @@ const readAndUploadIconFile: (descriptor: SourceFileDescriptor) => Observable<vo
 
 const importIcons: () => Observable<any> = () => {
     ctxLogger.info("Start importing from %s", sourceDir);
-    return iconFileCollector()
+    return iconfileCollector()
     .pipe(
-        flatMap(iconFileData => enqueueJob(() => readAndUploadIconFile(iconFileData)))
+        flatMap(iconfileData => enqueueJob(() => readAndUploadIconfile(iconfileData)))
     );
 };
 
@@ -157,7 +157,7 @@ configuration
     flatMap(server => {
         return importIcons()
         .pipe(
-            finalize(() => server.close)
+            finalize(() => server.shutdown())
         );
     })
 )

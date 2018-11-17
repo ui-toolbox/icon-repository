@@ -1,71 +1,45 @@
 import * as http from "http";
 import { Observable } from "rxjs";
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, mapTo, tap } from "rxjs/operators";
 
-import configurationProvider from "../../src/configuration";
-import { ConfigurationData } from "../../src/configuration";
-import iconDAFsProvider, { createConnectionProperties } from "../../src/db/db";
-import gitProvider from "../../src/git";
-import serverProvider from "../../src/server";
-import { Server } from "http";
-import iconServiceProvider from "../../src/iconsService";
+import serverProvider, { Server } from "../../src/server";
 import iconHandlersProvider from "../../src/iconsHandlers";
 import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { boilerplateSubscribe } from "../testUtils";
-import { Auth, getIconFile } from "./api-client";
+import { Auth, getIconfile } from "./api-client";
 import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
-import { IconFile } from "../../src/icon";
+import { Iconfile } from "../../src/icon";
+import { createTestConfiguration } from "../service/service-test-utils";
+import { createDefaultIconService } from "../../src/app";
 
 type StartServer = (customServerConfig: any) => Observable<Server>;
 
-export const defaultTestServerconfig = Object.freeze({
-    authentication_type: "basic"
-});
-
 let localServerRef: Server;
 
-export const startServer: StartServer = customConfig => {
-    return configurationProvider
+export const startServer: StartServer = customConfig =>
+    createTestConfiguration(customConfig)
     .pipe(
-        flatMap(configuration => {
-            const configData: ConfigurationData = Object.freeze({
-                    ...configuration,
-                    ...defaultTestServerconfig,
-                    ...customConfig,
-                    server_port: 0
-            });
-            return iconServiceProvider(
-                {
-                    resetData: "always"
-                },
-                iconDAFsProvider(createConnectionProperties(configData)),
-                gitProvider(configData.icon_data_location_git)
-            )
+        flatMap(testConfiguration => createDefaultIconService(testConfiguration)
             .pipe(
-                flatMap(iconService => {
-                    const iconHandlers = iconHandlersProvider(iconService);
-                    return serverProvider(configData, iconHandlers);
-                }),
+                flatMap(iconService => serverProvider(testConfiguration, iconHandlersProvider(iconService))),
                 map(server => {
                     localServerRef = server;
                     return server;
                 })
-            );
-        })
+            ))
     );
-};
 
-export const startServerWithBackdoors: StartServer = customConfig =>
+const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
-export const startTestServer = (done: () => void) =>
+const startTestServer = (done: () => void) =>
     startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
     .subscribe(boilerplateSubscribe(fail, done));
 
-export const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
+const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
     delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
     deleteTestGitRepo()
-        .pipe(map(() => server.close()))
+        .pipe(map(server.shutdown))
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
@@ -133,15 +107,15 @@ export const devAuth: Auth = {user: "dev", password: "dev"};
 
 export const defaultAuth: Auth = {user: "ux", password: "ux"};
 
-export const getCheckIconFile: (session: Session, iconFile: IconFile) => Observable<any>
-    = (session, iconFile) => getIconFile(
+export const getCheckIconfile: (session: Session, iconfile: Iconfile) => Observable<any>
+    = (session, iconfile) => getIconfile(
         session.requestBuilder(),
-        iconFile.name,
+        iconfile.name,
         {
-            format: iconFile.format, size: iconFile.size
+            format: iconfile.format, size: iconfile.size
         }
     )
-    .pipe(map(buffer => expect(Buffer.compare(iconFile.content, buffer)).toEqual(0)));
+    .pipe(map(buffer => expect(Buffer.compare(iconfile.content, buffer)).toEqual(0)));
 
 export const iconEndpointPath = "/icon";
-export const iconFileEndpointPath = "/icon/:id/format/:format/size/:size";
+export const iconfileEndpointPath = "/icon/:id/format/:format/size/:size";

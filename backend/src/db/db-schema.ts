@@ -26,7 +26,7 @@ export const iconTableSpec: ITableSpec = {
     ]
 };
 
-export const iconFileTableColumns =  {
+export const iconfileTableColumns =  {
     id: "serial primary key",
     icon_id: "int REFERENCES icon(id) ON DELETE CASCADE",
     file_format: "text",
@@ -34,9 +34,9 @@ export const iconFileTableColumns =  {
     content: "bytea"
 };
 
-export const iconFileTableSpec: ITableSpec = {
+export const iconfileTableSpec: ITableSpec = {
     tableName: "icon_file",
-    columns: iconFileTableColumns,
+    columns: iconfileTableColumns,
     col_constraints: [
         "UNIQUE (icon_id, file_format, icon_size)"
     ]

@@ -1,9 +1,9 @@
 import http from "k6/http";
 import { group, check } from "k6";
 
-const sampleIconFilePath = "../../demo-data/svg/48px/attach_money.svg";
+const sampleIconfilePath = "../../demo-data/svg/48px/attach_money.svg";
 const format = "svg";
-const svgFile = open(sampleIconFilePath);
+const svgFile = open(sampleIconfilePath);
 
 export let options = {
     batchPerHost: 6

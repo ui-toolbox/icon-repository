@@ -7,7 +7,7 @@ import {
     SerializableJobImpl,
     create as createSerializer
 } from "./utils/serializer";
-import { IconFile, IconFileDescriptor, IconDescriptor, IconAttributes, IconNotFound } from "./icon";
+import { Iconfile, IconfileDescriptor, IconDescriptor, IconAttributes, IconNotFound } from "./icon";
 import { commandExecutor } from "./utils/command-executor";
 import { Set, List } from "immutable";
 import { format as strformat } from "util";
@@ -56,102 +56,102 @@ const enqueueJob = createSerializer("G I T");
 const getFileName: (iconName: string, format: string, size: string) => string
     = (iconName, format, size) => `${iconName}@${size}.${format}`;
 
-interface IconFilePathComponents {
+interface IconfilePathComponents {
     pathToFormatDir: string;
     pathToSizeDir: string;
-    pathToIconFile: string;
-    pathToIconFileInRepo: string;
+    pathToIconfile: string;
+    pathToIconfileInRepo: string;
 }
 
 type GetPathComponents = (
     pathToIconRepository: string,
     iconName: string,
     format: string,
-    size: string) => IconFilePathComponents;
+    size: string) => IconfilePathComponents;
 
 const getPathComponents: GetPathComponents = (repo, iconName, format, size) => {
     const fileName = getFileName(iconName, format, size);
     const pathToFormatDir: string = path.join(repo, format);
     const pathToSizeDir: string = path.join(pathToFormatDir, size);
-    const pathToIconFile: string = path.join(pathToSizeDir, fileName);
-    const pathToIconFileInRepo: string = path.join(format, path.join(size, fileName));
+    const pathToIconfile: string = path.join(pathToSizeDir, fileName);
+    const pathToIconfileInRepo: string = path.join(format, path.join(size, fileName));
     return {
         pathToFormatDir,
         pathToSizeDir,
-        pathToIconFile,
-        pathToIconFileInRepo
+        pathToIconfile,
+        pathToIconfileInRepo
     };
 };
 
-const getPathComponents1 = (pathToIconRepository: string, iconFileInfo: IconFile) =>
+const getPathComponents1 = (pathToIconRepository: string, iconfileInfo: Iconfile) =>
     getPathComponents(
         pathToIconRepository,
-        iconFileInfo.name,
-        iconFileInfo.format,
-        iconFileInfo.size
+        iconfileInfo.name,
+        iconfileInfo.format,
+        iconfileInfo.size
     );
 
-export const getPathToIconFile: (pathToRepo: string, iconName: string, format: string, size: string) => string
-= (pathToRepo, iconName, format, size) => getPathComponents(pathToRepo, iconName, format, size).pathToIconFile;
+export const getPathToIconfile: (pathToRepo: string, iconName: string, format: string, size: string) => string
+= (pathToRepo, iconName, format, size) => getPathComponents(pathToRepo, iconName, format, size).pathToIconfile;
 
-const createIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => Observable<List<string>>
-= (pathToIconRepository, iconFileInfo) => {
-    const pathCompos = getPathComponents1(pathToIconRepository, iconFileInfo);
+const createIconfile: (pathToIconRepository: string, iconfileInfo: Iconfile) => Observable<List<string>>
+= (pathToIconRepository, iconfileInfo) => {
+    const pathCompos = getPathComponents1(pathToIconRepository, iconfileInfo);
     return mkdirMaybe(pathCompos.pathToFormatDir)
     .pipe(
         flatMap(() => mkdirMaybe(pathCompos.pathToSizeDir)),
-        flatMap(() => appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"})),
-        mapTo(List.of(pathCompos.pathToIconFileInRepo))
+        flatMap(() => appendFile(pathCompos.pathToIconfile, iconfileInfo.content, { flag: "w"})),
+        mapTo(List.of(pathCompos.pathToIconfileInRepo))
     );
 };
 
-const updateIconFile: (pathToIconRepository: string, iconFileInfo: IconFile) => Observable<List<string>>
-= (pathToIconRepository, iconFileInfo) => {
-    const pathCompos = getPathComponents1(pathToIconRepository, iconFileInfo);
-    return appendFile(pathCompos.pathToIconFile, iconFileInfo.content, { flag: "w"})
-    .pipe(mapTo(List.of(pathCompos.pathToIconFileInRepo)));
+const updateIconfile: (pathToIconRepository: string, iconfileInfo: Iconfile) => Observable<List<string>>
+= (pathToIconRepository, iconfileInfo) => {
+    const pathCompos = getPathComponents1(pathToIconRepository, iconfileInfo);
+    return appendFile(pathCompos.pathToIconfile, iconfileInfo.content, { flag: "w"})
+    .pipe(mapTo(List.of(pathCompos.pathToIconfileInRepo)));
 };
 
-const renameIconFiles: (
+const renameIconfiles: (
     pathToIconRepository: string,
     oldIcon: IconDescriptor,
     newIcon: IconAttributes
 ) => Observable<List<string>> = (pathToIconRepository, oldIcon, newIcon) =>
     of(void 0)
     .pipe(
-        flatMap(() => oldIcon.iconFiles.toArray()),
-        flatMap(iconFileDesc => {
-            const oldIconPaths: IconFilePathComponents = getPathComponents(
-                pathToIconRepository, oldIcon.name, iconFileDesc.format, iconFileDesc.size);
-            const newIconPaths: IconFilePathComponents = getPathComponents(
-                pathToIconRepository, newIcon.name, iconFileDesc.format, iconFileDesc.size);
-            return renameFile(oldIconPaths.pathToIconFile, newIconPaths.pathToIconFile)
-            .pipe(mapTo(List.of(oldIconPaths.pathToIconFileInRepo, newIconPaths.pathToIconFileInRepo)));
+        flatMap(() => oldIcon.iconfiles.toArray()),
+        flatMap(iconfileDesc => {
+            const oldIconPaths: IconfilePathComponents = getPathComponents(
+                pathToIconRepository, oldIcon.name, iconfileDesc.format, iconfileDesc.size);
+            const newIconPaths: IconfilePathComponents = getPathComponents(
+                pathToIconRepository, newIcon.name, iconfileDesc.format, iconfileDesc.size);
+            return renameFile(oldIconPaths.pathToIconfile, newIconPaths.pathToIconfile)
+            .pipe(mapTo(List.of(oldIconPaths.pathToIconfileInRepo, newIconPaths.pathToIconfileInRepo)));
         })
     );
 
-const deleteIconFile: (
+const deleteIconfile: (
     pathToIconRepository: string,
     iconName: string,
-    iconFileDesc: IconFileDescriptor
+    iconfileDesc: IconfileDescriptor
 ) => Observable<List<string>>
-= (pathToIconRepository, iconName, iconFileDesc) => {
+= (pathToIconRepository, iconName, iconfileDesc) => {
     const pathCompos = getPathComponents(
         pathToIconRepository,
         iconName,
-        iconFileDesc.format,
-        iconFileDesc.size
+        iconfileDesc.format,
+        iconfileDesc.size
     );
-    return deleteFile(pathCompos.pathToIconFile)
+    return deleteFile(pathCompos.pathToIconfile)
     .pipe(
         catchError((error: NodeJS.ErrnoException) => {
             if (error.code === "ENOENT") {
-                throw new IconNotFound(pathCompos.pathToIconFile);
+                throw new IconNotFound(pathCompos.pathToIconfile);
             } else {
                 return observableThrowError(error);
             }
         }),
-        mapTo(List.of(pathCompos.pathToIconFileInRepo))
+        mapTo(List.of(pathCompos.pathToIconfileInRepo))
     );
 };
 
@@ -174,26 +174,26 @@ const rollback: () => string[][] = () => [
     ["clean", "-qfdx"]
 ];
 
-interface IconFileJobTextProviders {
+interface IconfileJobTextProviders {
     logContext: string;
     getCommitMessage: (filesChanged: List<string>) => string;
 }
 
-type CreateIconFileJob = (
-    iconFileOperation: () => Observable<List<string>>,
-    messages: IconFileJobTextProviders,
+type CreateIconfileJob = (
+    iconfileOperation: () => Observable<List<string>>,
+    messages: IconfileJobTextProviders,
     userName: string,
     gitCommandExecutor: GitCommandExecutor
 ) => SerializableJobImpl;
 
-const createIconFileJob: CreateIconFileJob = (iconFileOperation, jobTexts, userName, gitCommandExecutor) => {
+const createIconfileJob: CreateIconfileJob = (iconfileOperation, jobTexts, userName, gitCommandExecutor) => {
     const ctxLogger = loggerFactory("git: " + jobTexts.logContext);
-    return () => iconFileOperation()
+    return () => iconfileOperation()
     .pipe(
-        flatMap(iconFilePathsInRepo => iconFilePathsInRepo.toArray()),
+        flatMap(iconfilePathsInRepo => iconfilePathsInRepo.toArray()),
         flatMap(oneFilePathInRepo => gitCommandExecutor(addToIndex(oneFilePathInRepo)).pipe(mapTo(oneFilePathInRepo))),
         reduce<string, List<string>>(
-            (fileList, oneIconFilePathInRepo) => fileList.push(oneIconFilePathInRepo),
+            (fileList, oneIconfilePathInRepo) => fileList.push(oneIconfilePathInRepo),
             List<string>()
         ),
         flatMap(fileList => gitCommandExecutor(commit(jobTexts.getCommitMessage(fileList), userName))),
@@ -213,19 +213,19 @@ const createIconFileJob: CreateIconFileJob = (iconFileOperation, jobTexts, userN
     );
 };
 
-type AddIconFile = (
-    iconFileInfo: IconFile,
+type AddIconfile = (
+    iconfileInfo: Iconfile,
     modifiedBy: string
 ) => Observable<void>;
 
-type UpdateIconFile = (
-    iconFileInfo: IconFile,
+type UpdateIconfile = (
+    iconfileInfo: Iconfile,
     modifiedBy: string
 ) => Observable<void>;
 
-type DeleteIconFile = (
+type DeleteIconfile = (
     iconName: string,
-    iconFileDesc: IconFileDescriptor,
+    iconfileDesc: IconfileDescriptor,
     modifiedBy: string
 ) => Observable<void>;
 
@@ -237,7 +237,7 @@ type UpdateIcon = (
 
 type DeleteIcon = (
     iconName: string,
-    iconFileDescSet: Set<IconFileDescriptor>,
+    iconfileDescSet: Set<IconfileDescriptor>,
     modifiedBy: string
 ) => Observable<void>;
 
@@ -245,8 +245,8 @@ export interface GitAccessFunctions {
     readonly getRepoLocation: () => string;
     readonly isRepoInitialized: IsRepoInitialized;
     readonly createNewGitRepo: CreateNewGitRepo;
-    readonly addIconFile: AddIconFile;
-    readonly deleteIconFile: DeleteIconFile;
+    readonly addIconfile: AddIconfile;
+    readonly deleteIconfile: DeleteIconfile;
     readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
 }
@@ -262,10 +262,10 @@ const defaultCommitMsgProvider = (messageBase: string) => (fileList: List<string
     return fileListAsText(fileList) + " " + messageBase;
 };
 
-const createIconFileJobTextProviders: (
+const createIconfileJobTextProviders: (
     logContext: string,
     getCommitMessage: (fileList: List<string>) => string
-) => IconFileJobTextProviders
+) => IconfileJobTextProviders
 = (logContext, getCommitMessage) => ({logContext, getCommitMessage});
 
 const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => {
@@ -278,28 +278,28 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
 
         createNewGitRepo: createNewGitRepo(localIconRepositoryLocation),
 
-        addIconFile: (iconFileInfo, modifiedBy) => enqueueJob(
-            createIconFileJob(
-                () => createIconFile(localIconRepositoryLocation, iconFileInfo),
-                createIconFileJobTextProviders("add icon file", defaultCommitMsgProvider("icon file(s) added")),
+        addIconfile: (iconfileInfo, modifiedBy) => enqueueJob(
+            createIconfileJob(
+                () => createIconfile(localIconRepositoryLocation, iconfileInfo),
+                createIconfileJobTextProviders("add icon file", defaultCommitMsgProvider("icon file(s) added")),
                 modifiedBy,
                 gitCommandExecutor
             )
         ),
 
-        deleteIconFile: (iconName, iconFileDesc, modifiedBy) => enqueueJob(
-            createIconFileJob(
-                () => deleteIconFile(localIconRepositoryLocation, iconName, iconFileDesc),
-                createIconFileJobTextProviders("delete icon file", defaultCommitMsgProvider("icon file(s) deleted")),
+        deleteIconfile: (iconName, iconfileDesc, modifiedBy) => enqueueJob(
+            createIconfileJob(
+                () => deleteIconfile(localIconRepositoryLocation, iconName, iconfileDesc),
+                createIconfileJobTextProviders("delete icon file", defaultCommitMsgProvider("icon file(s) deleted")),
                 modifiedBy,
                 gitCommandExecutor
             )
         ),
 
         updateIcon: (oldIcon, newIcon, modifiedBy) => enqueueJob(
-            createIconFileJob(
-                () => renameIconFiles(localIconRepositoryLocation, oldIcon, newIcon),
-                createIconFileJobTextProviders(
+            createIconfileJob(
+                () => renameIconfiles(localIconRepositoryLocation, oldIcon, newIcon),
+                createIconfileJobTextProviders(
                     `update icon files for icon "${oldIcon.name}"`,
                     defaultCommitMsgProvider(
                         `icon file(s) for icon ${oldIcon.name} updated to ${JSON.stringify(newIcon)}`
@@ -310,14 +310,14 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
             )
         ),
 
-        deleteIcon: (iconName, iconFileDescSet, modifiedBy) => enqueueJob(
-            createIconFileJob(
+        deleteIcon: (iconName, iconfileDescSet, modifiedBy) => enqueueJob(
+            createIconfileJob(
                 () => of(void 0)
                 .pipe(
-                    flatMap(() => iconFileDescSet.toArray()),
-                    flatMap(iconFileDesc => deleteIconFile(localIconRepositoryLocation, iconName, iconFileDesc))
+                    flatMap(() => iconfileDescSet.toArray()),
+                    flatMap(iconfileDesc => deleteIconfile(localIconRepositoryLocation, iconName, iconfileDesc))
                 ),
-                createIconFileJobTextProviders(
+                createIconfileJobTextProviders(
                     `delete all files for icon "${iconName}"`,
                     (fileList: List<string>) =>
                             `all file(s) for icon "${iconName}" deleted:\n\n${fileListAsText(fileList)}`
