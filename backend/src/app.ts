@@ -12,7 +12,7 @@ import { Logger } from "winston";
 import { flatMap, map } from "rxjs/operators";
 import { FatalError } from "./general-errors";
 import { Observable } from "rxjs";
-import iconRepositoryProvider from "./db/repositories/icon-repo";
+import iconRepositoryProvider from "./db/icon";
 
 let logger: Logger;
 

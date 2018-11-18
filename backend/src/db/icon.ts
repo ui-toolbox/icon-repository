@@ -1,6 +1,6 @@
-import { Observable, throwError, of } from "rxjs";
+import { Observable, throwError, of, forkJoin } from "rxjs";
 import { catchError, map, flatMap, mapTo, reduce } from "rxjs/operators";
-import { pgErrorCodes, query, ExecuteQuery, tx, ConnectionProperties, createPoolUsing } from "../db";
+import { pgErrorCodes, query, ExecuteQuery, tx, ConnectionProperties, createPoolUsing } from "./db";
 import { Pool } from "pg";
 import {
     IconNotFound,
@@ -8,9 +8,14 @@ import {
     IconfileDescriptor,
     IconfileAlreadyExists,
     IconAttributes,
-    IconDescriptor } from "../../icon";
+    IconDescriptor } from "../icon";
 import { Set, List } from "immutable";
-import createSchema, { CreateSchema } from "../create-schema";
+import createSchema, { CreateSchema } from "./create-schema";
+import {
+    MultiValuedPropertyElementRowProcessor,
+    MultiValuedPropertyElementCollector,
+    collectMultiValuedProperty } from "./entity-management";
+import { fetchTags } from "./tag";
 
 const handleUniqueConstraintViolation = (error: any, iconfile: Iconfile) => {
     return error.code === pgErrorCodes.unique_constraint_violation
@@ -38,28 +43,28 @@ const insertIconfileIntoTable: InsertIconfileIntoTable = (executeQuery, iconfile
     );
 };
 
-type AddIcon = (
-    iconInfo: Iconfile,
+type CreateIcon = (
+    iconfile: Iconfile,
     modifiedBy: string,
     createSideEffect?: () => Observable<void>
 ) => Observable<number>;
 
-type AddIconProvider = (pool: Pool) => AddIcon;
-export const createIcon: AddIconProvider = pool => (iconInfo, modifiedBy, createSideEffect) => {
-    const addIconSQL: string = "INSERT INTO icon(name, modified_by) " +
+type CreateIconProvider = (pool: Pool) => CreateIcon;
+export const createIcon: CreateIconProvider = pool => (iconfile, modifiedBy, createSideEffect) => {
+    const insertIconSQL: string = "INSERT INTO icon(name, modified_by) " +
                                 "VALUES($1, $2) RETURNING id";
-    const addIconParams = [iconInfo.name, modifiedBy];
+    const insertIconParams = [iconfile.name, modifiedBy];
     return tx<number>(
         pool,
-        executeQuery => executeQuery(addIconSQL, addIconParams)
+        executeQuery => executeQuery(insertIconSQL, insertIconParams)
                 .pipe(
-                    flatMap(addIconResult => {
-                        const iconId = addIconResult.rows[0].id;
+                    flatMap(insertIconResult => {
+                        const iconId = insertIconResult.rows[0].id;
                         return insertIconfileIntoTable(executeQuery, {
-                            name: iconInfo.name,
-                            format: iconInfo.format,
-                            size: iconInfo.size,
-                            content: iconInfo.content
+                            name: iconfile.name,
+                            format: iconfile.format,
+                            size: iconfile.size,
+                            content: iconfile.content
                         }, modifiedBy)
                         .pipe(
                             flatMap(() => createSideEffect ? createSideEffect() : of(void 0)),
@@ -197,7 +202,7 @@ export const deleteIconfile: (pool: Pool) => DeleteIconfile
 export interface IconRepository {
     readonly createSchema: CreateSchema;
     readonly describeIcon: DescribeIcon;
-    readonly createIcon: AddIcon;
+    readonly createIcon: CreateIcon;
     readonly updateIcon: UpdateIcon;
     readonly deleteIcon: DeleteIcon;
     readonly getIconfile: GetIconfile;
@@ -224,72 +229,92 @@ const iconRepositoryProvider: (connectionProperties: ConnectionProperties) => Ic
     };
 };
 
+const iconfileDescriptorRowProcessor: MultiValuedPropertyElementRowProcessor<IconfileDescriptor>
+= propElementRow => ({
+    entityId: propElementRow.icon_id,
+    propertyElement: {
+        format: propElementRow.file_format,
+        size: propElementRow.icon_size
+    }
+});
+
+const iconfileDescriptors: (sqlParams: any[]) => MultiValuedPropertyElementCollector<IconfileDescriptor>
+= sqlParams => ({
+    sql: "SELECT icon_id, file_format, icon_size FROM icon_file ORDER BY icon_id, file_format, icon_size",
+    sqlParams,
+    rowProcessor: iconfileDescriptorRowProcessor
+});
+
 type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export const describeAllIcons: (pool: Pool) => DescribeAllIcons
 = pool => () => {
-    const sql: string =
-                "SELECT icon.name as icon_name, " +
-                    "icon.id as icon_id, " +
-                    "icon.modified_by as modified_by, " +
-                    "icon_file.file_format as icon_file_format, " +
-                    "icon_file.icon_size as icon_size " +
-                "FROM icon, icon_file " +
-                    "WHERE icon.id = icon_file.icon_id " +
-                    "ORDER BY icon_name, icon_file_format, icon_size";
-    return query(pool, sql, [])
+    const iconsSQL = "SELECT id, name, modified_by FROM icon";
+    return query(pool, iconsSQL, [])
     .pipe(
-        map(result => result.rows.reduce(
-            (iconInfoList: List<IconDescriptor>, row: any) => {
-                const iconfile: IconfileDescriptor = {
-                    format: row.icon_file_format,
-                    size: row.icon_size
-                };
-                let lastIconInfo: IconDescriptor = iconInfoList.last();
-                let lastIndex: number = iconInfoList.size - 1;
-                if (!lastIconInfo || row.icon_name !== lastIconInfo.name) {
-                    lastIconInfo = new IconDescriptor(row.icon_name, row.modified_by, Set());
-                    lastIndex++;
-                }
-                return iconInfoList.set(lastIndex, lastIconInfo.addIconfile(iconfile));
-            },
-            List()
-        ))
+        flatMap(iconsResult => {
+            return forkJoin([
+                collectMultiValuedProperty(pool, iconfileDescriptors([])),
+                collectMultiValuedProperty(pool, fetchTags([]))
+            ])
+            .pipe(
+                map(fileAndTagMapArray => {
+                    return List(iconsResult.rows)
+                    .reduce(
+                        (iconDescList, currenIconRow) => iconDescList.push(new IconDescriptor(
+                            currenIconRow.name,
+                            currenIconRow.modified_by,
+                            Set(fileAndTagMapArray[0].get(currenIconRow.id)),
+                            Set(fileAndTagMapArray[1].get(currenIconRow.id))
+                        )),
+                        List()
+                    );
+                })
+            );
+        })
     );
 };
 
 type DescribeIconBare = (executeQuery: ExecuteQuery, iconName: string, forUpdate?: boolean)
 => Observable<IconDescriptor>;
 const describeIconBare: DescribeIconBare = (executeQuery, iconName, forUpdate = false) => {
-    const sql: string =
-                "SELECT icon.name as icon_name, " +
-                    "icon.id as icon_id, " +
-                    "icon.modified_by as modified_by, " +
-                    "icon_file.file_format as icon_file_format, " +
-                    "icon_file.icon_size as icon_size " +
-                "FROM icon, icon_file " +
-                    "WHERE icon.id = icon_file.icon_id AND " +
-                        "icon.name = $1 " +
-                    "ORDER BY icon_id, icon_file_format, icon_size" +
-                (forUpdate ? " FOR UPDATE" : "");
-    return executeQuery(sql, [iconName])
+    const iconSQL = "SELECT id, modified_by FROM icon WHERE name = $1" + (forUpdate ? " FOR UPDATE" : "");
+    const iconfilesSQL = "SELECT file_format, icon_size FROM icon_file " +
+                            "WHERE icon_id = $1 " +
+                            "ORDER BY file_format, icon_size" +
+                        (forUpdate ? " FOR UPDATE" : "");
+    const tagsSQL = "SELECT text FROM tag, icon_to_tags " +
+                        "WHERE icon_to_tags.icon_id = $1 " +
+                            "AND icon_to_tags.tag_id = tag.id" +
+                    (forUpdate ? " FOR UPDATE" : "");
+    return executeQuery(iconSQL, [iconName])
     .pipe(
-        map(result => result.rows.reduce(
-            (iconInfoList: List<IconDescriptor>, row: any) => {
-                const iconfile: IconfileDescriptor = {
-                    format: row.icon_file_format,
-                    size: row.icon_size
-                };
-                let lastIconInfo: IconDescriptor = iconInfoList.last();
-                let lastIndex: number = iconInfoList.size - 1;
-                if (!lastIconInfo || row.icon_name !== lastIconInfo.name) {
-                    lastIconInfo = new IconDescriptor(row.icon_name, row.modified_by, Set());
-                    lastIndex++;
-                }
-                return iconInfoList.set(lastIndex, lastIconInfo.addIconfile(iconfile));
-            },
-            List()
-        )),
-        map(list => list.get(0))
+        flatMap(result => {
+            if (result.rowCount === 0) {
+                throw new IconNotFound(iconName);
+            }
+
+            const iconId = result.rows[0].id;
+            const modifiedBy = result.rows[0].modified_by;
+            const initialIconInfo = new IconDescriptor(iconName, modifiedBy, Set(), Set());
+
+            return executeQuery(iconfilesSQL, [iconId])
+            .pipe(
+                map(iconfileResult => iconfileResult.rows.reduce(
+                        (icon: IconDescriptor, row: any) => icon.addIconfile({
+                            format: row.file_format,
+                            size: row.icon_size
+                        }),
+                        initialIconInfo
+                    )),
+                flatMap(iconInfo => executeQuery(tagsSQL, [iconId])
+                    .pipe(
+                        map(tagResult => tagResult.rows.reduce(
+                            (icon: IconDescriptor, row: any) => icon.addTag(row.text),
+                            iconInfo
+                        ))
+                    ))
+            );
+        })
     );
 };
 

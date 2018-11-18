@@ -1,13 +1,12 @@
 
 import { throwError as observableThrowError,  Observable, Observer, of } from "rxjs";
-import { flatMap, catchError, mapTo, finalize, map, reduce } from "rxjs/operators";
-import { List, Set } from "immutable";
+import { flatMap, catchError, mapTo, finalize, map } from "rxjs/operators";
 import { Pool, QueryResult } from "pg";
 
 import loggerFactory from "../utils/logger";
-import { createSchema, CreateSchema } from "./create-schema";
 
 export const pgErrorCodes = {
+    connection_refused: "ECONNREFUSED",
     unique_constraint_violation: "23505"
 };
 
@@ -83,7 +82,9 @@ export const query: (pool: Pool, statement: string, parameters: any[]) => Observ
     );
 };
 
-export type ExecuteQuery = (queryText: string, values?: any[]) => Observable<QueryResult>;
+export interface ExecuteQuery {
+    (queryText: string, values?: any[]): Observable<QueryResult>;
+}
 
 interface Connection {
     readonly executeQuery: ExecuteQuery;
@@ -98,7 +99,7 @@ const getPooledConnection: (pool: Pool) => Observable<Connection> = pool => Obse
             observer.next({
                 executeQuery: (queryText, values) => Observable.create(
                     (qryObserver: Observer<QueryResult>) => {
-                        ctxLogger.debug("Executing %s", queryText);
+                        ctxLogger.debug("Executing %s, %o", queryText, values);
                         client.query(queryText, values)
                         .then(
                             queryResult => {

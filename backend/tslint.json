@@ -5,7 +5,8 @@
     ],
     "jsRules": {},
     "rules": {
-        "max-classes-per-file": [false],
+        "max-classes-per-file": [false, 20],
+        "callable-types": [false],
         "ordered-imports": [false],
         "object-literal-sort-keys": [false],
         "trailing-comma": [true, {"multiline": "never", "singleline": "never"}],

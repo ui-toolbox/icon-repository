@@ -2,11 +2,11 @@ import { randomBytes } from "crypto";
 import { Pool } from "pg";
 import { flatMap, map} from "rxjs/operators";
 
-import { manageTestResourcesBeforeAndAfter } from "../../db-test-utils";
-import { Iconfile, IconfileDescriptor } from "../../../../src/icon";
-import { query } from "../../../../src/db/db";
-import { boilerplateSubscribe } from "../../../testUtils";
-import { createIcon, deleteIconfile } from "../../../../src/db/repositories/icon-repo";
+import { manageTestResourcesBeforeAndAfter } from "./db-test-utils";
+import { Iconfile, IconfileDescriptor } from "../../src/icon";
+import { query } from "../../src/db/db";
+import { boilerplateSubscribe } from "../testUtils";
+import { createIcon, deleteIconfile } from "../../src/db/icon";
 
 describe("deleteIconFromDB", () => {
 

@@ -6,7 +6,7 @@ import { Iconfile, IconDescriptor, IconfileDescriptor, IconAttributes, IconfileD
 import { GitRepository } from "./git";
 import csvSplitter from "./utils/csvSplitter";
 import { probeMetadata } from "./iconfileService";
-import { IconRepository } from "./db/repositories/icon-repo";
+import { IconRepository } from "./db/icon";
 
 export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;

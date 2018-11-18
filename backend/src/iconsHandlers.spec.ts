@@ -19,7 +19,7 @@ describe("getAllIcons", () => {
             {format: "english", size: "OK"},
             {format: "english", size: "nice"}
         ]);
-        const iconDesc: IconDescriptor = new IconDescriptor(name, modifiedBy, iconfiles);
+        const iconDesc: IconDescriptor = new IconDescriptor(name, modifiedBy, iconfiles, Set());
 
         const expectedDTO: IconDTO = {
             name,

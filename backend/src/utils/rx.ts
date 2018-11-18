@@ -171,15 +171,20 @@ export const retryOnError: (
 ) => <T>(source: Observable<T>) => Observable<T>
 = (delayMsecs, retryCount, errorCode) => source => {
     return source.pipe(
-        retryWhen(error => concat(
-            error
+        retryWhen(errors => concat(
+            errors
             .pipe(
-                takeWhile(err => err.code === errorCode),
+                map(err => {
+                    if (err.code === errorCode) {
+                        return err;
+                    }
+                    throw err;
+                }),
                 tap(err => retryOnErrorLogger.warn("Retrying on %s", err.code)),
                 delay(delayMsecs),
                 take(retryCount)
             ),
-            throwError(error)
+            errors.pipe(map(err => { throw err; }))
         ))
     );
 };
