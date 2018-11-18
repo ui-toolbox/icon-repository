@@ -1,8 +1,8 @@
 import * as crypto from "crypto";
 import { flatMap, map, tap, catchError } from "rxjs/operators";
 
-import gitAccessFunctionsProvider, {
-    GitAccessFunctions,
+import gitRepositoryProvider, {
+    GitRepository,
     GIT_COMMIT_FAIL_INTRUSIVE_TEST
 } from "../../src/git";
 import { Iconfile } from "../../src/icon";
@@ -18,10 +18,10 @@ import {
 
 describe("git access functions", () => {
 
-    let gitAFs: GitAccessFunctions;
+    let gitRepository: GitRepository;
 
     beforeAll(() => {
-        gitAFs = gitAccessFunctionsProvider(getTestRepoDir());
+        gitRepository = gitRepositoryProvider(getTestRepoDir());
     });
 
     beforeEach(done => {
@@ -44,7 +44,7 @@ describe("git access functions", () => {
                 content: crypto.randomBytes(1024)
             };
             const user = "zazie";
-            gitAFs.addIconfile(iconInfo, user)
+            gitRepository.addIconfile(iconInfo, user)
             .pipe(
                 flatMap(() => getCurrentCommit()),
                 map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length)),
@@ -69,11 +69,11 @@ describe("git access functions", () => {
                 content: crypto.randomBytes(1024)
             };
             const user = "zazie";
-            gitAFs.addIconfile(iconInfo, user)
+            gitRepository.addIconfile(iconInfo, user)
             .pipe(
                 tap(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true")),
                 flatMap(() => getCurrentCommit()),
-                flatMap(lastGoodSha1 => gitAFs.addIconfile(iconInfo1, user)
+                flatMap(lastGoodSha1 => gitRepository.addIconfile(iconInfo1, user)
                     .pipe(
                         map(() => fail("Expected an error to make exection skip this part")),
                         catchError(error => getCurrentCommit()),

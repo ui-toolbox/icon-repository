@@ -1,4 +1,4 @@
-import { createPool, query, GetIconfile, createConnectionProperties } from "../../src/db/db";
+import { createPool, query, createConnectionProperties } from "../../src/db/db";
 import { Pool } from "pg";
 import { Observable } from "rxjs";
 import { iconTableSpec } from "../../src/db/db-schema";
@@ -7,6 +7,7 @@ import { getDefaultConfiguration } from "../../src/configuration";
 import { map } from "rxjs/operators";
 import createSchema from "../../src/db/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
+import { GetIconfile } from "../../src/db/repositories/icon-repo";
 
 export const assertIconCount = (connPool: Pool, expectedCount: number) =>
     query(connPool, `SELECT count(*) from ${iconTableSpec.tableName}`, [])

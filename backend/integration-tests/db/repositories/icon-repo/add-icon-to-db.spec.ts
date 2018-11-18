@@ -5,12 +5,12 @@ import {
     getCheckIconfile,
     assertIconCount,
     manageTestResourcesBeforeAndAfter
- } from "./db-test-utils";
-import { Iconfile } from "../../src/icon";
-import { boilerplateSubscribe } from "../testUtils";
-import { setEnvVar } from "../../src/configuration.spec";
-import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
-import { createIcon, getIconfile } from "../../src/db/db";
+ } from "../../db-test-utils";
+import { Iconfile } from "../../../../src/icon";
+import { boilerplateSubscribe } from "../../../testUtils";
+import { setEnvVar } from "../../../../src/configuration.spec";
+import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../../../src/git";
+import { createIcon, getIconfile } from "../../../../src/db/repositories/icon-repo";
 import { map, flatMap, tap, catchError } from "rxjs/operators";
 
 describe("addIconToDB", () => {

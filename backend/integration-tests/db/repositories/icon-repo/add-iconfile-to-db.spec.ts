@@ -1,12 +1,12 @@
 import { randomBytes } from "crypto";
-import { manageTestResourcesBeforeAndAfter } from "./db-test-utils";
+import { manageTestResourcesBeforeAndAfter } from "../../db-test-utils";
 import { Pool } from "pg";
 
-import { IconfileDescriptor, Iconfile, IconfileAlreadyExists } from "../../src/icon";
+import { IconfileDescriptor, Iconfile, IconfileAlreadyExists } from "../../../../src/icon";
 import { flatMap, map, catchError} from "rxjs/operators";
-import { createIcon, deleteIconfile, query, addIconfileToIcon } from "../../src/db/db";
-import { boilerplateSubscribe } from "../testUtils";
-import { throwError, Observable, of } from "rxjs";
+import { createIcon, addIconfileToIcon } from "../../../../src/db/repositories/icon-repo";
+import { boilerplateSubscribe } from "../../../testUtils";
+import { of } from "rxjs";
 
 describe("addIconfileToDB", () => {
 
