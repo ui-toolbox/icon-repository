@@ -15,7 +15,7 @@ import {
     MultiValuedPropertyElementRowProcessor,
     MultiValuedPropertyElementCollector,
     collectMultiValuedProperty } from "./entity-management";
-import { fetchTags } from "./tag";
+import { fetchTags, AddTag, addTag } from "./tag";
 
 const handleUniqueConstraintViolation = (error: any, iconfile: Iconfile) => {
     return error.code === pgErrorCodes.unique_constraint_violation
@@ -209,6 +209,7 @@ export interface IconRepository {
     readonly addIconfileToIcon: AddIconfile;
     readonly deleteIconfile: DeleteIconfile;
     readonly describeAllIcons: DescribeAllIcons;
+    readonly addTag: AddTag;
     readonly release: () => void;
 }
 
@@ -225,6 +226,7 @@ const iconRepositoryProvider: (connectionProperties: ConnectionProperties) => Ic
         addIconfileToIcon: addIconfileToIcon(pool),
         deleteIconfile: deleteIconfile(pool),
         describeAllIcons: describeAllIcons(pool),
+        addTag: addTag(pool),
         release: () => pool.end()
     };
 };

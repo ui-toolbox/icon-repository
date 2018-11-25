@@ -31,6 +31,10 @@ type AddIconfile = (
     iconfile: Iconfile,
     modifiedBy: string) => Observable<number>;
 type DeleteIconfile = (iconName: string, iconfileDesc: IconfileDescriptor, modifiedBy: string) => Observable<void>;
+type AddTag = (
+    iconName: string,
+    tag: string,
+    modifiedBy: string) => Observable<void>;
 
 export interface IconService {
     readonly describeAllIcons: DescribeAllIcons;
@@ -42,6 +46,7 @@ export interface IconService {
     readonly deleteIcon: DeleteIcon;
     readonly addIconfile: AddIconfile;
     readonly deleteIconfile: DeleteIconfile;
+    readonly addTag: AddTag;
     readonly release: () => void;
 }
 
@@ -145,6 +150,8 @@ const iconServiceProvider: (
             () => gitRepository.deleteIconfile(iconName, iconfileDesc, modifiedBy)
         );
 
+    const addTag: AddTag = (iconName, tag, modifiedBy) => iconRepository.addTag(iconName, tag);
+
     return createNewRepoMaybe(iconRepoConfig.resetData, iconRepository, gitRepository)
     .pipe(
         mapTo({
@@ -157,6 +164,7 @@ const iconServiceProvider: (
             addIconfile,
             deleteIconfile,
             describeAllIcons,
+            addTag,
             release: iconRepository.release
         })
     );

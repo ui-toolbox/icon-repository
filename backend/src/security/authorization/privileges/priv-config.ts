@@ -9,7 +9,9 @@ export const privilegeDictionary = Object.freeze({
     UPDATE_ICON: "UPDATE_ICON",
     ADD_ICONFILE: "ADD_ICONFILE",
     REMOVE_ICONFILE: "REMOVE_ICONFILE",
-    REMOVE_ICON: "REMOVE_ICON"
+    REMOVE_ICON: "REMOVE_ICON",
+    ADD_TAG: "ADD_TAG",
+    REMOVE_TAG: "REMOVE_TAG"
 });
 
 const privilegesByRoles: Map<string, Set<string>> = Map({
@@ -17,7 +19,9 @@ const privilegesByRoles: Map<string, Set<string>> = Map({
         privilegeDictionary.CREATE_ICON,
         privilegeDictionary.UPDATE_ICON,
         privilegeDictionary.REMOVE_ICONFILE,
-        privilegeDictionary.REMOVE_ICON
+        privilegeDictionary.REMOVE_ICON,
+        privilegeDictionary.ADD_TAG,
+        privilegeDictionary.REMOVE_TAG
     ])
 });
 

@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { Observable, of } from "rxjs";
-import { flatMap, mapTo, refCount } from "rxjs/operators";
+import { flatMap, mapTo } from "rxjs/operators";
 import { Set } from "immutable";
 import { query, ExecuteQuery, tx } from "./db";
 import { map } from "rxjs/operators";
@@ -32,8 +32,8 @@ const addTagReferenceToIcon: AddTagReferenceToIcon = (executeQuery, tagId, iconN
     return executeQuery(addRefSQL, [tagId, iconName]).pipe(mapTo(void 0));
 };
 
-export type AddTag = (pool: Pool) => (iconName: string, tag: string) => Observable<void>;
-export const addTag: AddTag = pool =>
+export type AddTag = (iconName: string, tag: string) => Observable<void>;
+export const addTag: (pool: Pool) => AddTag = pool =>
 (iconName, tag) => tx<void>(
     pool,
     executeQuery =>

@@ -44,6 +44,12 @@ const privilegesForEndPoints: IEndPointPrivilegeDescriptor = Object.freeze({
             privilegeDictionary.REMOVE_ICON,
             privilegeDictionary.REMOVE_ICONFILE
         ]
+    },
+    // "/icon/:name/tag"
+    "^/icon/[^/]+/tag$": {
+        POST: [
+            privilegeDictionary.ADD_TAG
+        ]
     }
 });
 

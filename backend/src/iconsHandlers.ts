@@ -20,6 +20,7 @@ export interface IconHanlders {
     readonly deleteIcon: (req: Request, res: Response) => void;
     readonly getIconfile: (req: Request, res: Response) => void;
     readonly deleteIconfile: (req: Request, res: Response) => void;
+    readonly addTag: (req: Request, res: Response) => void;
     readonly release: () => void;
 }
 
@@ -30,6 +31,8 @@ interface UploadedFileDescriptor {
     readonly buffer: Buffer;
     readonly size: number;
 }
+
+const getUsername = (session: any) => getAuthentication(session).username;
 
 export const createIconfilePath = (baseUrl: string, iconName: string, iconfileDesc: IconfileDescriptor) =>
     `${baseUrl}/${iconName}/format/${iconfileDesc.format}/size/${iconfileDesc.size}`;
@@ -106,7 +109,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         const iconName = req.body.name;
         const initialIconfileContent = (req.files as any)[0].buffer;
         ctxLogger.debug("iconName: %s", iconName);
-        iconService.createIcon(iconName, initialIconfileContent, getAuthentication(req.session).username)
+        iconService.createIcon(iconName, initialIconfileContent, getUsername(req.session))
         .subscribe(
             iconfileDescEx => {
                 ctxLogger.debug("Icon %o created: %o", iconfileDescEx, iconName);
@@ -130,7 +133,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         ctxLogger.debug("START");
         const file: UploadedFileDescriptor = (req as any).files[0];
         const iconName: string = req.params.name;
-        iconService.ingestIconfile(iconName, file.buffer, getAuthentication(req.session).username)
+        iconService.ingestIconfile(iconName, file.buffer, getUsername(req.session))
         .subscribe(
             iconfileDesc => {
                 ctxLogger.debug("Icon file '%o' for icon '%s' ingested", iconfileDesc, iconName);
@@ -159,7 +162,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             ctxLogger.error(errmsg);
             res.status(400).send({ error: errmsg }).end();
         } else {
-            iconService.updateIcon(oldIconName, newIcon, getAuthentication(req.session).username)
+            iconService.updateIcon(oldIconName, newIcon, getUsername(req.session))
             .subscribe(
                 result => {
                     ctxLogger.info("Icon %s updated: %o", oldIconName, newIcon);
@@ -180,7 +183,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             res.status(400).send({error: "Icon name must be specified"}).end();
         } else {
             const iconName = req.params.name;
-            iconService.deleteIcon(iconName, getAuthentication(req.session).username)
+            iconService.deleteIcon(iconName, getUsername(req.session))
             .subscribe(
                 void 0,
                 error => {
@@ -227,7 +230,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             const iconfileDesc: IconfileDescriptor = {format: req.params.format, size: req.params.size};
             iconService.deleteIconfile(
                 iconName,
-                iconfileDesc, getAuthentication(req.session).username)
+                iconfileDesc, getUsername(req.session))
             .subscribe(
                 void 0,
                 error => {
@@ -236,6 +239,32 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
                     res.status(status).send({error: error.message});
                 },
                 () => res.status(204).end()
+            );
+        }
+    },
+
+    addTag:  (req: Request, res: Response) => {
+        const ctxLogger = loggerFactory("add-tag-requesthandler");
+        if (!req.params.name) {
+            ctxLogger.error("Missing icon name");
+            res.status(400).send({error: "Icon name must be specified"}).end();
+        } else if (!req.body.tag) {
+            ctxLogger.error("Missing tag text");
+            res.status(400).send({error: "Tag must be specified"}).end();
+        } else {
+            iconService.addTag(
+                req.params.name,
+                req.body.tag,
+                getUsername(req.session)
+            )
+            .subscribe(
+                void 0,
+                error => {
+                    ctxLogger.error(format("Could not add tag %s to %s: %o", req.params.name, req.body.tag, error));
+                    const status = error instanceof IconNotFound ? 404 : 500;
+                    res.status(status).send({error: error.message});
+                },
+                () => res.status(200).end()
             );
         }
     },

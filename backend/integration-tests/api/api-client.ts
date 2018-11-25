@@ -1,7 +1,7 @@
 import { SuperAgentRequest } from "superagent";
 import { Observable, Observer } from "rxjs";
 import { IconDTO } from "../../src/iconsHandlers";
-import { List } from "immutable";
+import { List, Set } from "immutable";
 import { IconfileDescriptor, IconAttributes } from "../../src/icon";
 import loggerFactory from "../../src/utils/logger";
 
@@ -204,6 +204,56 @@ export const deleteIconfile: (
     .then(
         result => {
             observer.next(void 0);
+            observer.complete();
+        },
+        error => observer.error(error)
+    )
+    .catch(error => observer.error(error));
+});
+
+export const addTag: (
+    requestBuilder: RequestBuilder,
+    iconName: string,
+    tag: string
+) => Observable<void>
+= (requestBuilder, iconName, tag) => Observable.create((observer: Observer<void>) => {
+    requestBuilder
+    .post(`/icon/${iconName}/tag`)
+    .send({tag})
+    .then(
+        () => {
+            observer.next(void 0);
+            observer.complete();
+        },
+        error => observer.error(error)
+    )
+    .catch(error => observer.error(error));
+});
+
+export const getTags: (
+    requestBuilder: RequestBuilder
+) => Observable<Set<string>>
+= requestBuilder => Observable.create((observer: Observer<Set<string>>) => {
+    requestBuilder
+    .get(`/tag`)
+    .then(
+        response => Set(response.body),
+        error => observer.error(error)
+    )
+    .catch(error => observer.error);
+});
+
+export const deleteTag: (
+    requestBuilder: RequestBuilder,
+    iconName: string,
+    tag: string
+) => Observable<number>
+= (requestBuilder, iconName, tag) => Observable.create((observer: Observer<number>) => {
+    requestBuilder
+    .del(`/icon/${iconName}/tag/${tag}`)
+    .then(
+        response => {
+            observer.next(response.body.remainingReferenceCount);
             observer.complete();
         },
         error => observer.error(error)
