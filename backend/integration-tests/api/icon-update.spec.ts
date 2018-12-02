@@ -48,14 +48,15 @@ describe(`PATCH ${iconEndpointPath}`, () => {
             name: "some new icon name"
         });
 
-        const changedIconDTO = {
+        const changedIconDTO: IconDTO = {
             name: newIconAttributes.name,
             modifiedBy: testAllIconDescriptor[1].modifiedBy,
             paths: [
                 { format: "png", size: "36px", path: `/icon/${newIconAttributes.name}/format/png/size/36px` },
                 { format: "svg", size: "18px", path: `/icon/${newIconAttributes.name}/format/svg/size/18px` },
                 { format: "svg", size: "24px", path: `/icon/${newIconAttributes.name}/format/svg/size/24px` }
-            ]
+            ],
+            tags: []
         };
         // Expected order is lexicographic by icon name: "cast..." first, "some icon name" second
         const expectedIconDescriptors = [

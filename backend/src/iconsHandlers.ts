@@ -21,6 +21,8 @@ export interface IconHanlders {
     readonly getIconfile: (req: Request, res: Response) => void;
     readonly deleteIconfile: (req: Request, res: Response) => void;
     readonly addTag: (req: Request, res: Response) => void;
+    readonly getTags: (req: Request, res: Response) => void;
+    readonly removeTag: (req: Request, res: Response) => void;
     readonly release: () => void;
 }
 
@@ -56,13 +58,15 @@ export interface IconDTO {
     readonly name: string;
     readonly modifiedBy: string;
     readonly paths: IconPathDTO[];
+    readonly tags: string[];
 }
 
 export const createIconDTO: (iconPathRoot: string, iconDesc: IconDescriptor) => IconDTO
 = (iconPathRoot, iconDesc) => ({
     name: iconDesc.name,
     modifiedBy: iconDesc.modifiedBy,
-    paths: createIconfilePaths(iconPathRoot, iconDesc)
+    paths: createIconfilePaths(iconPathRoot, iconDesc),
+    tags: iconDesc.tags.toArray()
 });
 
 const describeAllIcons: (getter: DescribeAllIcons, iconPathRoot: string) => (req: Request, res: Response) => void
@@ -89,6 +93,40 @@ const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Reques
         iconDTO => iconDTO ? res.send(iconDTO) : res.status(404).end(),
         error => {
             log.error("Failed to retrieve icon description", error);
+            res.status(500).send({error: error.message});
+        },
+        void 0
+    );
+};
+
+const getTags: (req: Request, res: Response, iconService: IconService) => void = (req, res, iconService) => {
+    const log = loggerFactory(`${req.url} request handler`);
+    iconService.getTags()
+    .subscribe(
+        tagSet => {
+            log.debug("returning %o", tagSet);
+            res.status(200).send(tagSet.toArray()).end();
+        },
+        error => {
+            log.error("Failed fetch tags", error);
+            res.status(500).send({error: error.message});
+        },
+        void 0
+    );
+};
+
+const removeTag: (req: Request, res: Response, iconService: IconService) => void = (req, res, iconService) => {
+    const log = loggerFactory(`${req.url} request handler`);
+    const iconName = req.params.name;
+    const tag = req.params.tag;
+    iconService.removeTag(iconName, tag, getUsername(req.session))
+    .subscribe(
+        remainingReferenceCount => {
+            log.debug("returning %o", remainingReferenceCount);
+            res.status(200).send({remainingReferenceCount}).end();
+        },
+        error => {
+            log.error("Failed to remove tag %s from %s: %o", tag, iconName, error);
             res.status(500).send({error: error.message});
         },
         void 0
@@ -243,6 +281,8 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         }
     },
 
+    getTags: (req: Request, res: Response) => getTags(req, res, iconService),
+
     addTag:  (req: Request, res: Response) => {
         const ctxLogger = loggerFactory("add-tag-requesthandler");
         if (!req.params.name) {
@@ -268,6 +308,8 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             );
         }
     },
+
+    removeTag: (req: Request, res: Response) => removeTag(req, res, iconService),
 
     release: iconService.release
 });

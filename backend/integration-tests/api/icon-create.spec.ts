@@ -55,7 +55,8 @@ describe(iconEndpointPath, () => {
                 path: getFilePath(iconName, {format, size}),
                 format,
                 size
-            }]
+            }],
+            tags: []
         };
 
         const privileges = [

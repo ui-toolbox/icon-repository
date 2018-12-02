@@ -1,4 +1,4 @@
-import { List } from "immutable";
+import { List, Set } from "immutable";
 import { Observable, of } from "rxjs";
 import { mapTo, map, flatMap } from "rxjs/operators";
 
@@ -31,10 +31,15 @@ type AddIconfile = (
     iconfile: Iconfile,
     modifiedBy: string) => Observable<number>;
 type DeleteIconfile = (iconName: string, iconfileDesc: IconfileDescriptor, modifiedBy: string) => Observable<void>;
+type GetTags = () => Observable<Set<string>>;
 type AddTag = (
     iconName: string,
     tag: string,
     modifiedBy: string) => Observable<void>;
+type RemoveTag = (
+    iconName: string,
+    tag: string,
+    modifiedBy: string) => Observable<number>;
 
 export interface IconService {
     readonly describeAllIcons: DescribeAllIcons;
@@ -46,7 +51,9 @@ export interface IconService {
     readonly deleteIcon: DeleteIcon;
     readonly addIconfile: AddIconfile;
     readonly deleteIconfile: DeleteIconfile;
+    readonly getTags: GetTags;
     readonly addTag: AddTag;
+    readonly removeTag: RemoveTag;
     readonly release: () => void;
 }
 
@@ -150,7 +157,10 @@ const iconServiceProvider: (
             () => gitRepository.deleteIconfile(iconName, iconfileDesc, modifiedBy)
         );
 
+    const getTags: GetTags = () => iconRepository.getTags();
+
     const addTag: AddTag = (iconName, tag, modifiedBy) => iconRepository.addTag(iconName, tag);
+    const removeTag: RemoveTag = (iconName, tag, modifiedBy) => iconRepository.removeTag(iconName, tag);
 
     return createNewRepoMaybe(iconRepoConfig.resetData, iconRepository, gitRepository)
     .pipe(
@@ -164,7 +174,9 @@ const iconServiceProvider: (
             addIconfile,
             deleteIconfile,
             describeAllIcons,
+            getTags,
             addTag,
+            removeTag,
             release: iconRepository.release
         })
     );

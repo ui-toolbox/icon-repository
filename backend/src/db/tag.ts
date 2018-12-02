@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { Observable, of } from "rxjs";
-import { flatMap, mapTo } from "rxjs/operators";
+import { flatMap, mapTo, reduce, tap } from "rxjs/operators";
 import { Set } from "immutable";
 import { query, ExecuteQuery, tx } from "./db";
 import { map } from "rxjs/operators";
@@ -31,6 +31,16 @@ const addTagReferenceToIcon: AddTagReferenceToIcon = (executeQuery, tagId, iconN
     const addRefSQL = "INSERT INTO icon_to_tags(icon_id, tag_id) SELECT id, $1 FROM icon WHERE name = $2";
     return executeQuery(addRefSQL, [tagId, iconName]).pipe(mapTo(void 0));
 };
+
+export type GetTags = () => Observable<Set<string>>;
+export const getTags: (pool: Pool) => GetTags = pool => () =>
+    query(pool, "SELECT text FROM tag", [])
+    .pipe(
+        map(tagsResult => tagsResult.rows.reduce<Set<string>>(
+            (tags, tagResultRow) => tags.add(tagResultRow.text),
+            Set()
+        ))
+    );
 
 export type AddTag = (iconName: string, tag: string) => Observable<void>;
 export const addTag: (pool: Pool) => AddTag = pool =>
@@ -69,8 +79,8 @@ const removeTagReferenceFromIcon: RemoveTagReferenceFromIcon = (executeQuery, ta
     );
 };
 
-export type RemoveTag = (pool: Pool) => (iconName: string, tag: string) => Observable<number>;
-export const removeTag: RemoveTag = pool =>
+export type RemoveTag = (iconName: string, tag: string) => Observable<number>;
+export const removeTag: (pool: Pool) => RemoveTag = pool =>
 (iconName, tag) => tx<number>(
     pool,
     executeQuery =>

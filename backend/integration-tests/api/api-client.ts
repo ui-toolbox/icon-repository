@@ -237,13 +237,16 @@ export const getTags: (
     requestBuilder
     .get(`/tag`)
     .then(
-        response => Set(response.body),
+        response => {
+            observer.next(Set(response.body));
+            observer.complete();
+        },
         error => observer.error(error)
     )
     .catch(error => observer.error);
 });
 
-export const deleteTag: (
+export const removeTag: (
     requestBuilder: RequestBuilder,
     iconName: string,
     tag: string
