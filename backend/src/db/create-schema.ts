@@ -63,6 +63,7 @@ export const createSchema: (pool: Pool) => CreateSchema
             const result = error.code === pgErrorCodes.connection_refused
                 ? new FatalError("Cannot connect to database")
                 : new Error(error.code);
+            ctxLogger.error("Error while creating schema: %o", error);
             return throwError(result);
         })
     );
