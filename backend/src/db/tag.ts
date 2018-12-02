@@ -100,7 +100,7 @@ const tagsRowProcessor: MultiValuedPropertyElementRowProcessor<string>
         propertyElement: propElementRow.text
     });
 
-export const fetchTags: (sqlParams: any[]) => MultiValuedPropertyElementCollector<string>
+export const tagCollector: (sqlParams: any[]) => MultiValuedPropertyElementCollector<string>
     = sqlParams => ({
         sql: "SELECT icon_id, text FROM tag, icon_to_tags WHERE icon_to_tags.tag_id = tag.id",
         sqlParams,

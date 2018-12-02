@@ -15,7 +15,7 @@ import {
     MultiValuedPropertyElementRowProcessor,
     MultiValuedPropertyElementCollector,
     collectMultiValuedProperty } from "./entity-management";
-import { fetchTags, AddTag, addTag, GetTags, getTags, RemoveTag, removeTag } from "./tag";
+import { tagCollector, AddTag, addTag, GetTags, getTags, RemoveTag, removeTag } from "./tag";
 
 const handleUniqueConstraintViolation = (error: any, iconfile: Iconfile) => {
     return error.code === pgErrorCodes.unique_constraint_violation
@@ -244,7 +244,7 @@ const iconfileDescriptorRowProcessor: MultiValuedPropertyElementRowProcessor<Ico
     }
 });
 
-const iconfileDescriptors: (sqlParams: any[]) => MultiValuedPropertyElementCollector<IconfileDescriptor>
+const iconfileDescriptorCollector: (sqlParams: any[]) => MultiValuedPropertyElementCollector<IconfileDescriptor>
 = sqlParams => ({
     sql: "SELECT icon_id, file_format, icon_size FROM icon_file ORDER BY icon_id, file_format, icon_size",
     sqlParams,
@@ -259,8 +259,8 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
     .pipe(
         flatMap(iconsResult => {
             return forkJoin([
-                collectMultiValuedProperty(pool, iconfileDescriptors([])),
-                collectMultiValuedProperty(pool, fetchTags([]))
+                collectMultiValuedProperty(pool, iconfileDescriptorCollector([])),
+                collectMultiValuedProperty(pool, tagCollector([]))
             ])
             .pipe(
                 map(fileAndTagMapArray => {
