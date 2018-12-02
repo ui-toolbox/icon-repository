@@ -3,6 +3,5 @@
 /node_modules/
 /build/
 /docker/dist/
-package-lock.json
 /log
 
