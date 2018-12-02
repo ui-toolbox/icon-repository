@@ -1,4 +1,5 @@
 
+import { format as sformat } from "util";
 import {throwError as observableThrowError,  Observable, concat, pipe, throwError } from "rxjs";
 import { Pool } from "pg";
 
@@ -62,7 +63,7 @@ export const createSchema: (pool: Pool) => CreateSchema
         catchError(error => {
             const result = error.code === pgErrorCodes.connection_refused
                 ? new FatalError("Cannot connect to database")
-                : new Error(error.code);
+                : new Error(sformat("Error while creating schema: %s", error.code));
             ctxLogger.error("Error while creating schema: %o", error);
             return throwError(result);
         })
