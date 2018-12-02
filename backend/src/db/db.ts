@@ -14,7 +14,8 @@ import {
 import loggerFactory from "../utils/logger";
 import { createSchema, CreateSchema } from "./create-schema";
 
-const pgErrorCodes = {
+export const pgErrorCodes = {
+    connection_refused: "ECONNREFUSED",
     unique_constraint_violation: "23505"
 };
 

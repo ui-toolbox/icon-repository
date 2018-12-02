@@ -6,20 +6,25 @@ import { boilerplateSubscribe } from "../../integration-tests/testUtils";
 describe("retryOnError", () => {
     it("should retry 'n' times", done => {
         const retryDelay = 200;
-        const retryCount = 5;
-        const errorCode = "TEST ERROR";
-        let tryCount = 0;
+        const expectedRetryCount = 5;
+        const errorCodeToRetryOn = "TEST ERROR";
+        const expectedFinalErrorCode = errorCodeToRetryOn;
+        let actualRetryCount = -1; // The first increment (to 0) won't be an actual REtry yet
+        let finalThrownErrorChecked = false;
         const source = interval(100);
         source.pipe(
             tap(val => {
-                tryCount++;
-                throw {code: errorCode};
+                actualRetryCount++;
+                throw {code: errorCodeToRetryOn};
             }),
-            retryOnError(retryDelay, retryCount, errorCode),
+            retryOnError(retryDelay, expectedRetryCount, errorCodeToRetryOn),
             catchError(error => {
-                return of(void 0);
+                finalThrownErrorChecked = true;
+                expect(error).toEqual({code: expectedFinalErrorCode});
+                return of(error);
             }),
-            map(() => expect(tryCount).toEqual(retryCount))
+            map(() => expect(actualRetryCount).toEqual(expectedRetryCount)),
+            map(() => expect(finalThrownErrorChecked).toBeTruthy())
         )
         .subscribe(boilerplateSubscribe(fail, done));
     });
@@ -28,16 +33,18 @@ describe("retryOnError", () => {
         const retryDelay = 200;
         const retryCount = 5;
         const nonRetryErrorIdx = 3;
-        const errorCode = "TEST ERROR";
+        const errorCodeToRetryOn = "TEST ERROR";
+        const expectedFinalErrorCode = "something else";
         let tryCount = 0;
         const source = interval(100);
         source.pipe(
             tap(val => {
                 tryCount++;
-                throw {code: tryCount < nonRetryErrorIdx ? errorCode : "something else"};
+                throw {code: tryCount < nonRetryErrorIdx ? errorCodeToRetryOn :  expectedFinalErrorCode};
             }),
-            retryOnError(retryDelay, retryCount, errorCode),
+            retryOnError(retryDelay, retryCount, errorCodeToRetryOn),
             catchError(error => {
+                expect(error).toEqual({code: expectedFinalErrorCode});
                 return of(void 0);
             }),
             map(() => expect(tryCount).toEqual(nonRetryErrorIdx))
