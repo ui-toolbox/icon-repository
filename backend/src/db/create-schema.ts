@@ -3,7 +3,7 @@ import {throwError as observableThrowError,  Observable, concat, pipe, throwErro
 import { Pool } from "pg";
 
 import { IColumnsDefinition, ITableSpec, iconTableSpec, iconfileTableSpec } from "./db-schema";
-import { query } from "./db";
+import { query, pgErrorCodes } from "./db";
 import loggerFactory from "../utils/logger";
 import { map, flatMap, catchError, retryWhen, delay, take, mapTo, tap } from "rxjs/operators";
 import { retryOnError } from "../utils/rx";
@@ -50,9 +50,12 @@ export const createSchema: (pool: Pool) => CreateSchema
     .pipe(
         flatMap(() => dropCreateTable(pool, iconfileTableSpec)),
         mapTo(pool),
-        retryOnError(2000, 30, "ECONNREFUSED"),
+        retryOnError(2000, 30, pgErrorCodes.connection_refused),
         catchError(error => {
-            return throwError(new FatalError("Cannot connect to database"));
+            const result = error.code === pgErrorCodes.connection_refused
+                ? new FatalError("Cannot connect to database")
+                : new Error(error.code);
+            return throwError(result);
         })
     );
 
