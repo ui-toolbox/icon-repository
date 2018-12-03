@@ -1,4 +1,4 @@
-import { map } from "rxjs/operators";
+import { map, last } from "rxjs/operators";
 import configurationProvider, { ConfigurationData } from "../../src/configuration";
 import { Observable } from "rxjs";
 
@@ -11,6 +11,7 @@ export type CreateTestConfiguration = (customConfig: any) => Observable<Configur
 export const createTestConfiguration: CreateTestConfiguration
 = customConfig => configurationProvider
 .pipe(
+    last(),
     map(configuration => Object.freeze({
         ...configuration,
         ...defaultTestServerconfig,

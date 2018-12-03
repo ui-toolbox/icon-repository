@@ -215,9 +215,12 @@ export interface IconRepository {
     readonly release: () => void;
 }
 
+let localPoolRef: Pool;
+
 const iconRepositoryProvider: (connectionProperties: ConnectionProperties) => IconRepository
 = connectionProperties => {
     const pool = createPoolUsing(connectionProperties);
+    localPoolRef = pool;
     return {
         createSchema: createSchema(pool),
         describeIcon: describeIcon(pool),
@@ -231,7 +234,12 @@ const iconRepositoryProvider: (connectionProperties: ConnectionProperties) => Ic
         getTags: getTags(pool),
         addTag: addTag(pool),
         removeTag: removeTag(pool),
-        release: () => pool.end()
+        release: () => {
+            if (localPoolRef) {
+                localPoolRef.end();
+                localPoolRef = undefined;
+            }
+        }
     };
 };
 

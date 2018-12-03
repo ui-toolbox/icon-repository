@@ -45,12 +45,22 @@ let pool: Pool;
 export const terminateTestPool = () => (done: () => void) => {
     if (pool) {
         pool.end();
+        pool = undefined;
     }
     done();
 };
 
 export const manageTestResourcesBeforeAndAfter: () => () => Pool = () => {
-    beforeAll(createTestPool(p => pool = p, fail));
+    beforeAll(createTestPool(
+        p => {
+            if (pool) {
+                throw new Error("Database connection pool already initialized");
+            } else {
+                pool = p;
+            }
+        },
+        fail
+    ));
     afterAll(terminateTestPool());
     beforeEach(done => createSchema(pool)().subscribe(boilerplateSubscribe(fail, done)));
     afterEach(() => delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST);
