@@ -1,8 +1,15 @@
 
+import { format as sformat } from "util";
 import {throwError as observableThrowError,  Observable, concat, pipe, throwError } from "rxjs";
 import { Pool } from "pg";
 
-import { IColumnsDefinition, ITableSpec, iconTableSpec, iconfileTableSpec } from "./db-schema";
+import {
+    IColumnsDefinition,
+    ITableSpec,
+    iconTableSpec,
+    iconfileTableSpec,
+    iconToTagsTableSpec,
+    tagTableSpec } from "./db-schema";
 import { query, pgErrorCodes } from "./db";
 import loggerFactory from "../utils/logger";
 import { map, flatMap, catchError, retryWhen, delay, take, mapTo, tap } from "rxjs/operators";
@@ -49,12 +56,15 @@ export const createSchema: (pool: Pool) => CreateSchema
 = pool => () => dropCreateTable(pool, iconTableSpec)
     .pipe(
         flatMap(() => dropCreateTable(pool, iconfileTableSpec)),
+        flatMap(() => dropCreateTable(pool, tagTableSpec)),
+        flatMap(() => dropCreateTable(pool, iconToTagsTableSpec)),
         mapTo(pool),
         retryOnError(2000, 30, pgErrorCodes.connection_refused),
         catchError(error => {
             const result = error.code === pgErrorCodes.connection_refused
                 ? new FatalError("Cannot connect to database")
-                : new Error(error.code);
+                : new Error(sformat("Error while creating schema: %s", error.code));
+            ctxLogger.error("Error while creating schema: %o", error);
             return throwError(result);
         })
     );

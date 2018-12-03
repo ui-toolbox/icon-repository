@@ -4,8 +4,9 @@ import { flatMap, map} from "rxjs/operators";
 
 import { manageTestResourcesBeforeAndAfter } from "./db-test-utils";
 import { Iconfile } from "../../src/icon";
-import { createIcon, deleteIcon, query } from "../../src/db/db";
+import { query } from "../../src/db/db";
 import { boilerplateSubscribe } from "../testUtils";
+import { createIcon, deleteIcon } from "../../src/db/icon";
 
 describe("deleteIconFromDB", () => {
 

@@ -49,6 +49,9 @@ const serverProvider: (
     router.delete("/icon/:name", iconHandlers.deleteIcon);
     router.get("/icon/:name/format/:format/size/:size", iconHandlers.getIconfile);
     router.delete("/icon/:name/format/:format/size/:size", iconHandlers.deleteIconfile);
+    router.get("/tag", iconHandlers.getTags);
+    router.post("/icon/:name/tag", iconHandlers.addTag);
+    router.delete("/icon/:name/tag/:tag", iconHandlers.removeTag);
     router.get("/app-info", appInfoHandlerProvider(
         appConfig.app_description,
         appConfig.package_root_dir));

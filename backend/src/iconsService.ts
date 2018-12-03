@@ -1,13 +1,12 @@
-import { List } from "immutable";
+import { List, Set } from "immutable";
 import { Observable, of } from "rxjs";
 import { mapTo, map, flatMap } from "rxjs/operators";
 
 import { Iconfile, IconDescriptor, IconfileDescriptor, IconAttributes, IconfileDescriptorEx } from "./icon";
-import { IconDAFs } from "./db/db";
-import { GitAccessFunctions } from "./git";
+import { GitRepository } from "./git";
 import csvSplitter from "./utils/csvSplitter";
 import { probeMetadata } from "./iconfileService";
-import { ConfigurationData } from "./configuration";
+import { IconRepository } from "./db/icon";
 
 export type DescribeAllIcons = () => Observable<List<IconDescriptor>>;
 export type DescribeIcon = (iconName: string) => Observable<IconDescriptor>;
@@ -32,6 +31,15 @@ type AddIconfile = (
     iconfile: Iconfile,
     modifiedBy: string) => Observable<number>;
 type DeleteIconfile = (iconName: string, iconfileDesc: IconfileDescriptor, modifiedBy: string) => Observable<void>;
+type GetTags = () => Observable<Set<string>>;
+type AddTag = (
+    iconName: string,
+    tag: string,
+    modifiedBy: string) => Observable<void>;
+type RemoveTag = (
+    iconName: string,
+    tag: string,
+    modifiedBy: string) => Observable<number>;
 
 export interface IconService {
     readonly describeAllIcons: DescribeAllIcons;
@@ -43,6 +51,9 @@ export interface IconService {
     readonly deleteIcon: DeleteIcon;
     readonly addIconfile: AddIconfile;
     readonly deleteIconfile: DeleteIconfile;
+    readonly getTags: GetTags;
+    readonly addTag: AddTag;
+    readonly removeTag: RemoveTag;
     readonly release: () => void;
 }
 
@@ -52,37 +63,37 @@ export interface IconRepoSettings {
     readonly resetData: string;
 }
 
-const isNewRepoNeeded: (resetData: string, gitAFs: GitAccessFunctions) => Observable<boolean>
-= (resetData, gitAFs) =>
+const isNewRepoNeeded: (resetData: string, gitRepository: GitRepository) => Observable<boolean>
+= (resetData, gitRepository) =>
     resetData === "always"
         ? of(true)
         : resetData === "init"
-            ? gitAFs.isRepoInitialized().pipe(map(initialized => !initialized))
+            ? gitRepository.isRepoInitialized().pipe(map(initialized => !initialized))
             : of(false);
 
-const createNewRepoMaybe = (resetData: string, iconDAFs: IconDAFs, gitAFs: GitAccessFunctions) => {
-    return isNewRepoNeeded(resetData, gitAFs)
+const createNewRepoMaybe = (resetData: string, iconRepository: IconRepository, gitRepository: GitRepository) => {
+    return isNewRepoNeeded(resetData, gitRepository)
     .pipe(
         flatMap(needed => needed
-            ? iconDAFs.createSchema()
-                .pipe(flatMap(gitAFs.createNewGitRepo))
+            ? iconRepository.createSchema()
+                .pipe(flatMap(gitRepository.createNewGitRepo))
             : of(undefined))
     );
 };
 
 const iconServiceProvider: (
     iconRepoSettings: IconRepoSettings,
-    iconDAFs: IconDAFs,
-    gitAFs: GitAccessFunctions
+    iconRepository: IconRepository,
+    gitRepository: GitRepository
 ) => Observable<IconService>
-= (iconRepoConfig, iconDAFs, gitAFs) => {
+= (iconRepoConfig, iconRepository, gitRepository) => {
 
-    const describeAllIcons: DescribeAllIcons = () => iconDAFs.describeAllIcons();
+    const describeAllIcons: DescribeAllIcons = () => iconRepository.describeAllIcons();
 
-    const describeIcon: DescribeIcon = iconName => iconDAFs.describeIcon(iconName);
+    const describeIcon: DescribeIcon = iconName => iconRepository.describeIcon(iconName);
 
     const getIconfile: GetIconfile = (iconId, fileFormat, iconSize) =>
-        iconDAFs.getIconfile(iconId, fileFormat, iconSize);
+        iconRepository.getIconfile(iconId, fileFormat, iconSize);
 
     const createIcon: CreateIcon = (iconName, initialIconfileContent, modifiedBy) =>
         probeMetadata(initialIconfileContent)
@@ -93,10 +104,10 @@ const iconServiceProvider: (
                 size: `${v.height}${v.hUnits}`,
                 content: initialIconfileContent
             })),
-            flatMap(fixedIconfileInfo => iconDAFs.createIcon(
+            flatMap(fixedIconfileInfo => iconRepository.createIcon(
                 fixedIconfileInfo,
                 modifiedBy,
-                () => gitAFs.addIconfile(fixedIconfileInfo, modifiedBy))
+                () => gitRepository.addIconfile(fixedIconfileInfo, modifiedBy))
                 .pipe(
                     mapTo({
                         name: fixedIconfileInfo.name,
@@ -119,34 +130,39 @@ const iconServiceProvider: (
         );
 
     const updateIcon: UpdateIcon = (oldIconName, newIcon, modifiedBy) =>
-        iconDAFs.updateIcon(
+        iconRepository.updateIcon(
             oldIconName,
             newIcon,
             modifiedBy,
-            (oldIconDescriptor: IconDescriptor) => gitAFs.updateIcon(oldIconDescriptor, newIcon, modifiedBy));
+            (oldIconDescriptor: IconDescriptor) => gitRepository.updateIcon(oldIconDescriptor, newIcon, modifiedBy));
 
     const deleteIcon: DeleteIcon = (iconName: string, modifiedBy: string) =>
-        iconDAFs.deleteIcon(
+        iconRepository.deleteIcon(
             iconName,
             modifiedBy,
-            iconfileDescSet => gitAFs.deleteIcon(iconName, iconfileDescSet, modifiedBy)
+            iconfileDescSet => gitRepository.deleteIcon(iconName, iconfileDescSet, modifiedBy)
         );
 
     const addIconfile: AddIconfile = (iconfile, modifiedBy) =>
-        iconDAFs.addIconfileToIcon(
+        iconRepository.addIconfileToIcon(
             iconfile,
             modifiedBy,
-            () => gitAFs.addIconfile(iconfile, modifiedBy));
+            () => gitRepository.addIconfile(iconfile, modifiedBy));
 
     const deleteIconfile: DeleteIconfile = (iconName, iconfileDesc, modifiedBy) =>
-        iconDAFs.deleteIconfile(
+        iconRepository.deleteIconfile(
             iconName,
             iconfileDesc,
             modifiedBy,
-            () => gitAFs.deleteIconfile(iconName, iconfileDesc, modifiedBy)
+            () => gitRepository.deleteIconfile(iconName, iconfileDesc, modifiedBy)
         );
 
-    return createNewRepoMaybe(iconRepoConfig.resetData, iconDAFs, gitAFs)
+    const getTags: GetTags = () => iconRepository.getTags();
+
+    const addTag: AddTag = (iconName, tag, modifiedBy) => iconRepository.addTag(iconName, tag);
+    const removeTag: RemoveTag = (iconName, tag, modifiedBy) => iconRepository.removeTag(iconName, tag);
+
+    return createNewRepoMaybe(iconRepoConfig.resetData, iconRepository, gitRepository)
     .pipe(
         mapTo({
             describeIcon,
@@ -158,7 +174,10 @@ const iconServiceProvider: (
             addIconfile,
             deleteIconfile,
             describeAllIcons,
-            release: iconDAFs.release
+            getTags,
+            addTag,
+            removeTag,
+            release: iconRepository.release
         })
     );
 };

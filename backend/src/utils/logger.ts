@@ -34,6 +34,11 @@ export const setDefaultLogLevel = (logLevel: string) => {
     defaultLogLevel = logLevel;
 };
 
+export const updateDefaultLogLevel = (logLevel: string) => {
+    defaultLogLevel = logLevel;
+    loggers.valueSeq().forEach(logger => logger.level = logLevel);
+};
+
 export const getDefaultLogLevel = () => defaultLogLevel;
 
 export default loggerFactory;

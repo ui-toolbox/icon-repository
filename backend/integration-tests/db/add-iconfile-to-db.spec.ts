@@ -4,9 +4,9 @@ import { Pool } from "pg";
 
 import { IconfileDescriptor, Iconfile, IconfileAlreadyExists } from "../../src/icon";
 import { flatMap, map, catchError} from "rxjs/operators";
-import { createIcon, deleteIconfile, query, addIconfileToIcon } from "../../src/db/db";
+import { createIcon, addIconfileToIcon } from "../../src/db/icon";
 import { boilerplateSubscribe } from "../testUtils";
-import { throwError, Observable, of } from "rxjs";
+import { of } from "rxjs";
 
 describe("addIconfileToDB", () => {
 

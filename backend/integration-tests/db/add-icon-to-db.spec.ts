@@ -1,4 +1,4 @@
-import * as crypto from "crypto";
+import { randomBytes } from "crypto";
 import { of } from "rxjs";
 
 import {
@@ -10,7 +10,7 @@ import { Iconfile } from "../../src/icon";
 import { boilerplateSubscribe } from "../testUtils";
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
-import { createIcon, getIconfile } from "../../src/db/db";
+import { createIcon, getIconfile } from "../../src/db/icon";
 import { map, flatMap, tap, catchError } from "rxjs/operators";
 
 describe("addIconToDB", () => {
@@ -23,7 +23,7 @@ describe("addIconToDB", () => {
             name: "metro-icon",
             format: "french",
             size: "great",
-            content: crypto.randomBytes(4096)
+            content: randomBytes(4096)
         };
         createIcon(getPool())(iconfileInfo, user)
         .pipe(
@@ -42,13 +42,13 @@ describe("addIconToDB", () => {
             name: "metro-icon",
             format: "french",
             size: "great",
-            content: crypto.randomBytes(4096)
+            content: randomBytes(4096)
         };
         const iconfileInfo2: Iconfile = {
             name: "animal-icon",
             format: "french",
             size: "huge",
-            content: crypto.randomBytes(4096)
+            content: randomBytes(4096)
         };
         createIcon(getPool())(iconfileInfo1, user)
         .pipe(
@@ -77,13 +77,13 @@ describe("addIconToDB", () => {
             name: "metro-icon",
             format: "french",
             size: "great",
-            content: crypto.randomBytes(4096)
+            content: randomBytes(4096)
         };
         const iconfileInfo2: Iconfile = {
             name: "animal-icon",
             format: "french",
             size: "huge",
-            content: crypto.randomBytes(4096)
+            content: randomBytes(4096)
         };
         const sideEffectErrorMessage = "Error in creating side effect";
         createIcon(getPool())(iconfileInfo1, user)

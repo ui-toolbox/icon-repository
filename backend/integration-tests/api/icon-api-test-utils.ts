@@ -145,7 +145,8 @@ export const getIngestedTestIconDataDescription: () => IconDTO[] = () => clone([
             { format: "png", size: "36px", path: "/icon/attach_money/format/png/size/36px" },
             { format: "svg", size: "18px", path: "/icon/attach_money/format/svg/size/18px" },
             { format: "svg", size: "24px", path: "/icon/attach_money/format/svg/size/24px" }
-        ]
+        ],
+        tags: []
     },
     {
         name: "cast_connected",
@@ -154,7 +155,8 @@ export const getIngestedTestIconDataDescription: () => IconDTO[] = () => clone([
             { format: "png", size: "36px", path: "/icon/cast_connected/format/png/size/36px" },
             { format: "svg", size: "24px", path: "/icon/cast_connected/format/svg/size/24px" },
             { format: "svg", size: "48px", path: "/icon/cast_connected/format/svg/size/48px" }
-        ]
+        ],
+        tags: []
     }
 ]);
 

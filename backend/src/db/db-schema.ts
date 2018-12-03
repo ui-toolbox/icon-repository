@@ -41,3 +41,22 @@ export const iconfileTableSpec: ITableSpec = {
         "UNIQUE (icon_id, file_format, icon_size)"
     ]
 };
+
+export const tagTableSpec: ITableSpec = {
+    tableName: "tag",
+    columns: {
+        id: "serial primary key",
+        text: "text"
+    },
+    col_constraints: [
+        "UNIQUE (text)"
+    ]
+};
+
+export const iconToTagsTableSpec: ITableSpec = {
+    tableName: "icon_to_tags",
+    columns: {
+        icon_id: "int REFERENCES icon(id) ON DELETE CASCADE",
+        tag_id: "int REFERENCES tag(id) ON DELETE CASCADE"
+    }
+};

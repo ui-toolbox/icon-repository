@@ -1,6 +1,6 @@
 import * as http from "http";
-import { Observable } from "rxjs";
-import { flatMap, map, mapTo, tap } from "rxjs/operators";
+import { Observable, pipe } from "rxjs";
+import { flatMap, map, tap } from "rxjs/operators";
 
 import serverProvider, { Server } from "../../src/server";
 import iconHandlersProvider from "../../src/iconsHandlers";
@@ -11,6 +11,9 @@ import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
 import { Iconfile } from "../../src/icon";
 import { createTestConfiguration } from "../service/service-test-utils";
 import { createDefaultIconService } from "../../src/app";
+import loggerFactory from "../../src/utils/logger";
+
+const log = loggerFactory("api-test-utils");
 
 type StartServer = (customServerConfig: any) => Observable<Server>;
 
@@ -23,8 +26,13 @@ export const startServer: StartServer = customConfig =>
             .pipe(
                 flatMap(iconService => serverProvider(testConfiguration, iconHandlersProvider(iconService))),
                 map(server => {
-                    localServerRef = server;
-                    return server;
+                    if (localServerRef) {
+                        log.warn("server is already initialized");
+                        throw new Error("server is already initialized");
+                    } else {
+                        localServerRef = server;
+                        return server;
+                    }
                 })
             ))
     );
@@ -36,10 +44,14 @@ const startTestServer = (done: () => void) =>
     startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
     .subscribe(boilerplateSubscribe(fail, done));
 
-const tearDownGitRepoAndServer = (server: Server, done: () => void) => {
+export const shutdownDownServer = () => {
+    localServerRef.shutdown();
+    localServerRef = undefined;
+};
+
+const tearDownGitRepoAndServer = (done: () => void) => {
     delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
-    deleteTestGitRepo()
-        .pipe(map(server.shutdown))
+    deleteTestGitRepo().pipe(map(() => shutdownDownServer()))
     .subscribe(boilerplateSubscribe(fail, done));
 };
 
@@ -93,7 +105,7 @@ export class Session {
 
 export const manageTestResourcesBeforeAndAfter: () => () => Session = () => {
     beforeEach(done => startTestServer(done));
-    afterEach(done => tearDownGitRepoAndServer(localServerRef, done));
+    afterEach(done => tearDownGitRepoAndServer(done));
     return () => new Session(getBaseUrl(), agent(), void 0, void 0);
 };
 

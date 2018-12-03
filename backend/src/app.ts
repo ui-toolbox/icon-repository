@@ -2,8 +2,8 @@ import * as http from "http";
 
 import loggerFactory, { setDefaultLogLevel } from "./utils/logger";
 import configurationProvider, { ConfigurationData } from "./configuration";
-import iconDAFsProvider, { createConnectionProperties } from "./db/db";
-import gitAFsProvider from "./git";
+import { createConnectionProperties } from "./db/db";
+import gitRepositoryProvider from "./git";
 import serverProvider, { Server } from "./server";
 
 import iconServiceProvider, { IconService } from "./iconsService";
@@ -12,6 +12,7 @@ import { Logger } from "winston";
 import { flatMap, map } from "rxjs/operators";
 import { FatalError } from "./general-errors";
 import { Observable } from "rxjs";
+import iconRepositoryProvider from "./db/icon";
 
 let logger: Logger;
 
@@ -57,6 +58,6 @@ export const createDefaultIconService: (configuration: ConfigurationData) => Obs
     {
         resetData: configuration.icon_data_create_new
     },
-    iconDAFsProvider(createConnectionProperties(configuration)),
-    gitAFsProvider(configuration.icon_data_location_git)
+    iconRepositoryProvider(createConnectionProperties(configuration)),
+    gitRepositoryProvider(configuration.icon_data_location_git)
 );

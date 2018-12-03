@@ -19,7 +19,7 @@ describe("getAllIcons", () => {
             {format: "english", size: "OK"},
             {format: "english", size: "nice"}
         ]);
-        const iconDesc: IconDescriptor = new IconDescriptor(name, modifiedBy, iconfiles);
+        const iconDesc: IconDescriptor = new IconDescriptor(name, modifiedBy, iconfiles, Set());
 
         const expectedDTO: IconDTO = {
             name,
@@ -29,7 +29,8 @@ describe("getAllIcons", () => {
                 { format: "french", size: "huge", path: iconPathRoot + "/cartouche/format/french/size/huge" },
                 { format: "english", size: "OK", path: iconPathRoot + "/cartouche/format/english/size/OK" },
                 { format: "english", size: "nice", path: iconPathRoot + "/cartouche/format/english/size/nice" }
-            ]
+            ],
+            tags: []
         };
 
         expect(JSON.parse(JSON.stringify(createIconDTO(iconPathRoot, iconDesc)))).toEqual(expectedDTO);

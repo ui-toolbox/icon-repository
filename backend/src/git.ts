@@ -241,7 +241,7 @@ type DeleteIcon = (
     modifiedBy: string
 ) => Observable<void>;
 
-export interface GitAccessFunctions {
+export interface GitRepository {
     readonly getRepoLocation: () => string;
     readonly isRepoInitialized: IsRepoInitialized;
     readonly createNewGitRepo: CreateNewGitRepo;
@@ -251,7 +251,7 @@ export interface GitAccessFunctions {
     readonly deleteIcon: DeleteIcon;
 }
 
-type GitAFsProvider = (localIconRepositoryLocation: string) => GitAccessFunctions;
+type GitRepositoryProvider = (localIconRepositoryLocation: string) => GitRepository;
 
 const addPathInRepo: (fiText: string, pathInRepo: string) => string
 = (fileListText, pathInRepo) => fileListText + (fileListText.length > 0 ? "\n" : "") + pathInRepo;
@@ -268,7 +268,7 @@ const createIconfileJobTextProviders: (
 ) => IconfileJobTextProviders
 = (logContext, getCommitMessage) => ({logContext, getCommitMessage});
 
-const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation => {
+const gitRepositoryProvider: GitRepositoryProvider = localIconRepositoryLocation => {
     const gitCommandExecutor: GitCommandExecutor = createGitCommandExecutor(localIconRepositoryLocation);
 
     return {
@@ -329,4 +329,4 @@ const gitAccessFunctionsProvider: GitAFsProvider = localIconRepositoryLocation =
     };
 };
 
-export default gitAccessFunctionsProvider;
+export default gitRepositoryProvider;
