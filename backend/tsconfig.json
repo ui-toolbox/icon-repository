@@ -16,6 +16,6 @@
     "include": [
         "./src/**/*",
         "./integration-tests/**/*",
-        "./scripts/**/*",
+        "./scripts/**/*", "jasmine-reporters.js",
     ]
 }

@@ -14,16 +14,10 @@ describe("backdoor to privileges", () => {
                     .auth("ux", "ux")
                     .ok(resp => resp.status === 404)
                     .then(
-                        done,
-                        error => {
-                            fail(error);
-                            done();
-                        }
+                        void 0,
+                        error => fail(error)
                     )
-                    .catch(error => {
-                        fail(error);
-                        done();
-                    })
+                    .catch(error => fail(error))
             ),
             finalize(() => shutdownDownServer())
         )
@@ -39,16 +33,10 @@ describe("backdoor to privileges", () => {
                     .auth("ux", "ux")
                     .ok(resp => resp.status === 200)
                     .then(
-                        done,
-                        error => {
-                            fail(error);
-                            done();
-                        }
+                        void 0,
+                        error => fail(error)
                     )
-                    .catch(error => {
-                        fail(error);
-                        done();
-                    })
+                    .catch(error => fail(error))
             ),
             finalize(() => shutdownDownServer())
         )
@@ -70,19 +58,10 @@ describe(authenticationBackdoorPath, () => {
                 session.requestBuilder()
                 .get("/backdoor/authentication")
                 .then(
-                    result => {
-                        expect(result.body).toEqual(testPrivileges);
-                        done();
-                    },
-                    error => {
-                        fail(error);
-                        done();
-                    }
+                    result => expect(result.body).toEqual(testPrivileges),
+                    error => fail(error)
                 )
-                .catch(error => {
-                    fail(error);
-                    done();
-                })
+                .catch(error => fail(error))
             )
         )
         .subscribe(boilerplateSubscribe(fail, done));
