@@ -64,7 +64,7 @@
     "dev:import": "export ICON_REPO_CONFIG_PROFILE=dev; export ICON_DATA_CREATE_NEW=always; npm run import",
     "dev": "export ICON_REPO_CONFIG_PROFILE=dev; npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build build/src/app.js\"",
     "dev:oidc": "export ICON_REPO_CONFIG_PROFILE=dev-oidc-wcontext npm run compile && concurrently --kill-others \"tsc --watch\" \"nodemon --watch build build/src/app.js\"",
-    "test": "export ICON_REPO_CONFIG_PROFILE=dev; npm run lint && npm run compile && node run-tests.js",
+    "test": "export ICON_REPO_CONFIG_PROFILE=dev; export IGNORE_CONFIG_FILE_CHANGE=true; npm run lint && npm run compile && node run-tests.js",
     "build:backend": "rm -rf build && npm run test",
     "db:createTables": "npm run compile && node -e 'require(\"./build/scripts/create-schema\").default();'"
   },

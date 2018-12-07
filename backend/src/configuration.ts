@@ -136,15 +136,16 @@ export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) 
         );
 };
 
-const updateState: () => Rx.Observable<ConfigurationData> = () => {
-    return readConfiguration(configFilePath, configurationDataProto, defaultSettings)
+const updateState: () => Rx.Observable<ConfigurationData> = () =>
+    readConfiguration(configFilePath, configurationDataProto, defaultSettings)
         .pipe(
             tap(conf => {
                 configurationData = conf;
             }),
             map(() => Object.freeze(configurationData))
         );
-};
+
+let watcher: fs.FSWatcher = null;
 
 const watchConfigFile = (filePathToWatch: string) => {
     if (watcher != null) {
@@ -174,13 +175,15 @@ const watchConfigFile = (filePathToWatch: string) => {
     });
 };
 
-Rx.forkJoin(Rx.of(configFilePath), fileExists(configFilePath))
-.pipe(
-    filter(value => value[1]),
-    tap(value => watchConfigFile(value[0]))
-)
-.subscribe();
-
-let watcher: fs.FSWatcher = null;
+if (process.env.IGNORE_CONFIG_FILE_CHANGE !== "true") {
+    Rx.forkJoin(Rx.of(configFilePath), fileExists(configFilePath))
+    .pipe(
+        filter(value => value[1]),
+        tap(value => watchConfigFile(value[0]))
+    )
+    .subscribe();
+} else {
+    ctxLogger.info("Ignoring changes in configuration file");
+}
 
 export default updateState();
