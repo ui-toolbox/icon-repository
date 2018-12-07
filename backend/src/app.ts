@@ -1,18 +1,12 @@
-import * as http from "http";
-
 import loggerFactory, { setDefaultLogLevel } from "./utils/logger";
-import configurationProvider, { ConfigurationData } from "./configuration";
-import { createConnectionProperties } from "./db/db";
-import gitRepositoryProvider from "./git";
+import configurationProvider from "./configuration";
 import serverProvider, { Server } from "./server";
 
-import iconServiceProvider, { IconService } from "./iconsService";
 import iconHandlersProvider from "./iconsHandlers";
 import { Logger } from "winston";
 import { flatMap, map } from "rxjs/operators";
 import { FatalError } from "./general-errors";
-import { Observable } from "rxjs";
-import iconRepositoryProvider from "./db/icon";
+import { createDefaultIconService } from "./app-assembly";
 
 let logger: Logger;
 
@@ -51,13 +45,4 @@ configurationProvider
         }
     },
     undefined
-);
-
-export const createDefaultIconService: (configuration: ConfigurationData) => Observable<IconService>
-= configuration => iconServiceProvider(
-    {
-        resetData: configuration.icon_data_create_new
-    },
-    iconRepositoryProvider(createConnectionProperties(configuration)),
-    gitRepositoryProvider(configuration.icon_data_location_git)
 );

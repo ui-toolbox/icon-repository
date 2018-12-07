@@ -1,6 +1,6 @@
 import * as http from "http";
-import { Observable, pipe } from "rxjs";
-import { flatMap, map, tap } from "rxjs/operators";
+import { Observable } from "rxjs";
+import { flatMap, map } from "rxjs/operators";
 
 import serverProvider, { Server } from "../../src/server";
 import iconHandlersProvider from "../../src/iconsHandlers";
@@ -10,24 +10,25 @@ import { Auth, getIconfile } from "./api-client";
 import { SuperAgent, SuperAgentRequest, agent, Response } from "superagent";
 import { Iconfile } from "../../src/icon";
 import { createTestConfiguration } from "../service/service-test-utils";
-import { createDefaultIconService } from "../../src/app";
 import loggerFactory from "../../src/utils/logger";
+import { createDefaultIconService } from "../../src/app-assembly";
 
-const log = loggerFactory("api-test-utils");
+const logger = loggerFactory("api-test-utils");
 
 type StartServer = (customServerConfig: any) => Observable<Server>;
 
 let localServerRef: Server;
 
-export const startServer: StartServer = customConfig =>
-    createTestConfiguration(customConfig)
+export const startServer: StartServer = customConfig => {
+    logger.debug("Test server is being started");
+    return createTestConfiguration(customConfig)
     .pipe(
         flatMap(testConfiguration => createDefaultIconService(testConfiguration)
             .pipe(
                 flatMap(iconService => serverProvider(testConfiguration, iconHandlersProvider(iconService))),
                 map(server => {
                     if (localServerRef) {
-                        log.warn("server is already initialized");
+                        logger.warn("server is already initialized");
                         throw new Error("server is already initialized");
                     } else {
                         localServerRef = server;
@@ -36,6 +37,7 @@ export const startServer: StartServer = customConfig =>
                 })
             ))
     );
+};
 
 const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
