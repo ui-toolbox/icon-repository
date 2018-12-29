@@ -11,7 +11,7 @@ const getAuthorizationHeader: (req: Request) => string
 const getCredentials: (req: Request) => {username: string, password: string}
 = req => {
     const b64auth = getAuthorizationHeader(req).split(" ")[1] || "";
-    const strauth = new Buffer(b64auth, "base64").toString();
+    const strauth = Buffer.from(b64auth, "base64").toString();
     const splitIndex = strauth.indexOf(":");
     const login = strauth.substring(0, splitIndex);
     const password = strauth.substring(splitIndex + 1);

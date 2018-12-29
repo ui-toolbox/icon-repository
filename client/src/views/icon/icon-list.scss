@@ -1,0 +1,100 @@
+$ic-color-text: #455156;
+
+.top-header {
+  position: relative;
+  height: 80px;
+  color: $ic-color-text;
+}
+.brand-logo {
+  fill: $ic-color-text;
+}
+.inner-wrapper {
+  height: auto;
+}
+.branding {
+  position: absolute;
+  left: 40px;
+  margin: 10px 0;
+  .app-title {
+    margin-bottom: 10px;
+  }
+}
+.right-control-group {
+  position: absolute;
+  right: 0;
+  .search {
+    float: left;
+    text-align: center;
+    .search-title {
+      height: 24px;
+      font-size: 20px;
+      line-height: 24px;
+    }
+    .search-input-wrapper {
+      margin: 0 auto;
+      position: relative;
+      input {
+        width: 100%;
+      }
+    }
+    .search-icon {
+      position: absolute;
+      top: 24px;
+      left: 10px;
+      font-size: 36px;
+    }
+    .search-input {
+      width: 100%;
+      border: 4px solid #FFD999;
+      border-radius: 26px;
+      background-color: #FFFFFF;
+      font-size: 20px;
+      height: 42px;
+      line-height: 48px;
+      padding: 0 20px 0 40px;
+      color: $ic-color-text;
+      margin-top: 15px;
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+  .user-area {
+    margin: 15px;
+  }
+}
+
+.action-bar {
+  margin: 50px 60px 50px 30px;
+
+  .add-icon {
+    float: right;
+    span {
+        vertical-align: middle;
+    }
+  }
+}
+
+$icon-grid-size: 160px;
+.icon-grid {
+  width: 100%;
+  display: flex;
+  margin: 0 0 0 50px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-content: flex-start;
+  .grid-cell {
+    display: block;
+    width: $icon-grid-size;
+    height: $icon-grid-size;
+    margin: 10px;
+    flex: 1 0 $icon-grid-size;
+    max-width: $icon-grid-size;
+  }
+}
+img {
+  vertical-align:middle;
+}
+a {
+  color: #42b983;
+}

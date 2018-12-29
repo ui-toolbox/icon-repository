@@ -39,7 +39,7 @@ const getUsername = (session: any) => getAuthentication(session).username;
 export const createIconfilePath = (baseUrl: string, iconName: string, iconfileDesc: IconfileDescriptor) =>
     `${baseUrl}/${iconName}/format/${iconfileDesc.format}/size/${iconfileDesc.size}`;
 
-type CreateIconfilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPathDTO[];
+type CreateIconfilePaths = (baseUrl: string, iconDesc: IconDescriptor) => IconPath[];
 
 const createIconfilePaths: CreateIconfilePaths
 = (baseUrl, iconDesc) =>
@@ -50,14 +50,20 @@ const createIconfilePaths: CreateIconfilePaths
             path: createIconfilePath(baseUrl, iconDesc.name, iconfileDescriptor)
         }));
 
-export interface IconPathDTO extends IconfileDescriptor {
+export interface IconPath extends IconfileDescriptor {
     readonly path: string;
+}
+
+// TODO: have this extend IconfileDescriptorEx instead of IconfileDescriptor
+export interface IngestedIconfileDTO extends IconfileDescriptor {
+    iconName: string;
+    path: string;
 }
 
 export interface IconDTO {
     readonly name: string;
     readonly modifiedBy: string;
-    readonly paths: IconPathDTO[];
+    readonly paths: IconPath[];
     readonly tags: string[];
 }
 
@@ -92,8 +98,12 @@ const describeIcon: (getter: DescribeIcon, iconPathRoot: string) => (req: Reques
     .subscribe(
         iconDTO => iconDTO ? res.send(iconDTO) : res.status(404).end(),
         error => {
-            log.error("Failed to retrieve icon description", error);
-            res.status(500).send({error: error.message});
+            if (error instanceof IconNotFound) {
+                res.status(404).end();
+            } else {
+                log.error("Failed to retrieve icon description %O", error);
+                res.status(500).send({error: error.message});
+            }
         },
         void 0
     );
@@ -151,7 +161,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         .subscribe(
             iconfileDescEx => {
                 ctxLogger.debug("Icon %o created: %o", iconfileDescEx, iconName);
-                const iconfileInfo = {
+                const iconfileInfo: IngestedIconfileDTO = {
                     iconName: iconfileDescEx.name,
                     format: iconfileDescEx.format,
                     size: iconfileDescEx.size,
@@ -175,7 +185,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
         .subscribe(
             iconfileDesc => {
                 ctxLogger.debug("Icon file '%o' for icon '%s' ingested", iconfileDesc, iconName);
-                const iconfileInfo = {
+                const iconfileInfo: IngestedIconfileDTO = {
                     iconName,
                     ...iconfileDesc,
                     path: createIconfilePath(iconPathRoot, iconName, iconfileDesc)

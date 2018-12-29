@@ -8,7 +8,7 @@ import { IconfileData, IconfileDescriptor, IconDescriptor, Iconfile } from "../.
 import clone from "../../src/utils/clone";
 import { defaultAuth } from "./api-test-utils";
 import { readFileSync } from "fs";
-import { IconDTO, IconPathDTO } from "../../src/iconsHandlers";
+import { IconDTO, IconPath } from "../../src/iconsHandlers";
 
 export interface Icon {
     readonly name: string;
