@@ -1,0 +1,10 @@
+.tag-collection {
+    display: inline;
+    span.bp3-tag.bp3-minimal {
+        margin: 1px;
+        cursor: pointer;
+        &[data-selected="true"] {
+            background-color: rgb(173, 216, 230);
+        }
+    }
+}

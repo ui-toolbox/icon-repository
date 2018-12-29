@@ -31,7 +31,7 @@ export default (
 ) => {
 
     const encodedClientCredentials = () => {
-        return new Buffer(clientID + ":" + clientSecret).toString("base64");
+        return Buffer.from(clientID + ":" + clientSecret).toString("base64");
     };
 
     const requestAuthorizationToken: (code: string) => Observable<IAuthorizationToken> = code => {

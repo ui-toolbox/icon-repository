@@ -45,7 +45,7 @@ dist_frontend() {
     mkdir -p "$dist_dir/frontend/" 
     npm install \
         && rm -rf dist \
-        && npm run build \
+        && npm run dist \
         && cp -a "${repo_root}"/client/dist/* "$dist_dir/frontend/" \
     || return 1
     cd -

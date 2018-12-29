@@ -1,0 +1,18 @@
+import * as React from "react";
+import { IconDescriptor } from "../../services/icon";
+import { preferredIconfileUrl } from "../../services/icon";
+
+import "./icon-cell.scss";
+
+export interface IconCellProps {
+    readonly icon: IconDescriptor;
+    readonly reqestDetails: () => void;
+}
+
+export const IconCell = (props: IconCellProps) =>
+    <div className="icon-cell" onClick={props.reqestDetails}>
+        <div className="icon-preview">
+            <img src={preferredIconfileUrl(props.icon)} height="30"/>
+        </div>
+        <div className="icon-name">{props.icon.name}</div>
+    </div>;

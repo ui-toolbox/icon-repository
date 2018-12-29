@@ -21,7 +21,7 @@ fetch(url, {
 .then(
     response => {
         if (response.status < 200 || response.status >= 300) {
-            log.error("Request failed: ", url, response.status);
+            log.error("Request failed: %s, %d", url, response.status);
             observer.error(response.status);
             throwErrorWOStackTrace(util.format(
                 "Request to %s failed with %o", url, response.status
@@ -35,7 +35,7 @@ fetch(url, {
         }
     },
     error => {
-        log.error("Request failed: ", url, error);
+        log.error("Request failed: %s, %o", url, error);
         observer.error(error);
     }
 )
