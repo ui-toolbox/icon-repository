@@ -16,6 +16,7 @@ import {
     MultiValuedPropertyElementCollector,
     collectMultiValuedProperty } from "./entity-management";
 import { tagCollector, AddTag, addTag, GetTags, getTags, RemoveTag, removeTag } from "./tag";
+import { ExecuteDataUpgrade, executeDataUpgrade } from "./data-upgrade";
 
 const handleUniqueConstraintViolation = (error: any, iconfile: Iconfile) => {
     return error.code === pgErrorCodes.unique_constraint_violation
@@ -201,6 +202,7 @@ export const deleteIconfile: (pool: Pool) => DeleteIconfile
 
 export interface IconRepository {
     readonly createSchema: CreateSchema;
+    readonly upgradeData: ExecuteDataUpgrade;
     readonly describeIcon: DescribeIcon;
     readonly createIcon: CreateIcon;
     readonly updateIcon: UpdateIcon;
@@ -223,6 +225,7 @@ const iconRepositoryProvider: (connectionProperties: ConnectionProperties) => Ic
     localPoolRef = pool;
     return {
         createSchema: createSchema(pool),
+        upgradeData: executeDataUpgrade(pool),
         describeIcon: describeIcon(pool),
         updateIcon: updateIcon(pool),
         createIcon: createIcon(pool),

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { IconCell } from "./icon-cell";
-import { describeAllIcons, IconDescriptor } from "../../services/icon";
+import { describeAllIcons, IconDescriptor, getTags } from "../../services/icon";
 import { Set } from "immutable";
 import { fetchConfig, AppInfo } from "../../services/config";
 import { AppSettgins } from "../app-settings";
@@ -37,6 +37,7 @@ interface IconListState {
     readonly searchQuery: string;
     readonly selectedIcon: IconDescriptor;
     readonly iconDetailDialogVisible: boolean;
+    readonly allTags: Set<string>;
 }
 
 export class IconList extends React.Component<{}, IconListState> {
@@ -50,7 +51,8 @@ export class IconList extends React.Component<{}, IconListState> {
             icons: Set([]),
             searchQuery: "",
             selectedIcon: null,
-            iconDetailDialogVisible: false
+            iconDetailDialogVisible: false,
+            allTags: Set([])
         };
     }
 
@@ -67,6 +69,10 @@ export class IconList extends React.Component<{}, IconListState> {
         .then(
             icons => this.setState(prevState => ({ ...prevState, icons })),
             error => { throw error; }
+        );
+        getTags()
+        .then(
+            tags => this.setState({allTags: Set(tags)})
         );
     }
 
@@ -155,7 +161,8 @@ export class IconList extends React.Component<{}, IconListState> {
                 handleIconDelete={() => this.handleIconDelete()}
                 requestClose={() => this.setState({iconDetailDialogVisible: false})}
                 editable={hasUpdateIconPrivilege(this.state.settings.userInfo)}
-                startInEdit={this.detailsDialogForCreate}/>;
+                startInEdit={this.detailsDialogForCreate}
+                tags={this.state.allTags}/>;
         } else {
             return null;
         }
@@ -167,7 +174,8 @@ export class IconList extends React.Component<{}, IconListState> {
             : this.state.icons;
         this.setState({
             icons: tmp.add(icon),
-            selectedIcon: icon
+            selectedIcon: icon,
+            allTags: this.state.allTags.union(icon.tags)
         });
     }
 

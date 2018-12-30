@@ -91,7 +91,7 @@ interface Connection {
     readonly release: () => void;
 }
 
-const getPooledConnection: (pool: Pool) => Observable<Connection> = pool => Observable.create(
+export const getPooledConnection: (pool: Pool) => Observable<Connection> = pool => Observable.create(
     (observer: Observer<Connection>) => pool.connect((err, client, done) => {
         if (err) {
             observer.error(err);
@@ -111,7 +111,10 @@ const getPooledConnection: (pool: Pool) => Observable<Connection> = pool => Obse
                         .catch(error => qryObserver.error(error));
                     }
                 ),
-                release: done
+                release: () => {
+                    ctxLogger.info("Pooled connection is being released...");
+                    done();
+                }
             });
             observer.complete();
         }

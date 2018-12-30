@@ -17,6 +17,10 @@ var server = new WebpackDevServer(compiler, {
       target: restService,
       secure: false
     },
+    '/tag': {
+      target: restService,
+      secure: false
+    },
     '/app-info': {
       target: restService,
       secure: false

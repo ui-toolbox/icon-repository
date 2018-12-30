@@ -175,3 +175,47 @@ export const preferredIconfileUrl = (icon: IconDescriptor) => urlOfIconfile(icon
 
 export const indexInIconfileListOfType = (iconfileList: List<IconfileDescriptor>, iconfileType: IconPath) =>
     iconfileList.findIndex(iconfile => iconfile.format === iconfileType.format && iconfile.size === iconfileType.size);
+
+export const getTags: () => Promise<List<string>> = () => fetch(getEndpointUrl("/tag"), {
+    method: "GET",
+    credentials: "include"
+})
+.then(response => {
+    if (response.status !== 200) {
+        return throwError("Failed to retrieve tags", response);
+    } else {
+        return response.json();
+    }
+})
+.then(
+    (json: string[]) => List(json)
+);
+
+export const addTag: (iconName: string, tagText: string) => Promise<void>
+= (iconName, tagText) => fetch(getEndpointUrl(`/icon/${iconName}/tag`), {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json; charset=utf-8"
+    },
+    credentials: "include",
+    body: JSON.stringify({tag: tagText})
+})
+.then(response => {
+    if (response.status !== 200) {
+        return throwError("Failed to add tag", response);
+    }
+});
+
+export const removeTag: (iconName: string, tag: string) => Promise<void>
+= (iconName, tag) => fetch(getEndpointUrl(`/icon/${iconName}/tag/${tag}`), {
+    method: "DELETE",
+    headers: {
+        "Content-Type": "application/json; charset=utf-8"
+    },
+    credentials: "include"
+})
+.then(response => {
+    if (response.status !== 200) {
+        return throwError("Failed to remove tag", response);
+    }
+});

@@ -9,7 +9,7 @@ interface SelectFileToUploadProps {
 
 export const SelectFileToUpload = (props: SelectFileToUploadProps) =>
 <div className="upload-container">
-    <div className="upload--picture-card" style={ {width: "100%", padding: "30px 20px"} }>
+    <div className="upload--picture-card">
         <input type="file" name="" id=""
                 onChange={event => {
                     props.handleSelectedFile(event.target.files[0]);

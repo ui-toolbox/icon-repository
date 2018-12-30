@@ -1,7 +1,6 @@
-import { IconfilePortal } from "./iconfile-portal";
-import { List, Map } from "immutable";
+import { List, Map, Set } from "immutable";
 import * as React from "react";
-import { Dialog, Classes, Button, Icon, IconName } from "@blueprintjs/core";
+import { Dialog, Classes, Icon, IconName, AnchorButton } from "@blueprintjs/core";
 
 import {
     IconDescriptor,
@@ -13,11 +12,14 @@ import {
     deleteIconfile,
     deleteIcon,
     IconfileDescriptor,
-    getIconfileType} from "../../services/icon";
+    getIconfileType,
+    addTag,
+    removeTag} from "../../services/icon";
 import { TagCollection } from "../tag-collection";
 import { renderMapAsTable } from "../layout-util";
 import getUrl from "../../services/url";
 import { showSuccessMessage, showErrorMessage } from "../../services/toasters";
+import { IconfilePortal } from "./iconfile-portal";
 
 import "./icon-details-dialog.scss";
 
@@ -30,15 +32,18 @@ interface IconDetailsDialogProps {
     readonly requestClose: () => void;
     readonly editable: boolean;
     readonly startInEdit: boolean;
+    readonly tags: Set<string>;
 }
 
 interface IconDetailsDialogState {
     readonly iconName: string;
     readonly modifiedBy: string;
     readonly iconfileList: List<IconPathWithUrl>;
+    readonly iconTags: List<string>;
     readonly selectedIconfileIndex: number;
     readonly previouslySelectedIconFile: number;
     readonly inEdit: boolean;
+    readonly allTags: Set<string>;
 }
 
 const staticDialogOptions = {
@@ -60,10 +65,12 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
         this.state = {
             iconName: props.iconDescriptor ? props.iconDescriptor.name : null,
             iconfileList: props.iconDescriptor ? createIconfileList(props.iconDescriptor.paths) : List.of(),
+            iconTags: props.iconDescriptor ? props.iconDescriptor.tags.toList() : List.of(),
             selectedIconfileIndex: this.initialIconfileSelection(),
             modifiedBy: props.iconDescriptor ? props.iconDescriptor.modifiedBy : "<none>",
             previouslySelectedIconFile: -1,
-            inEdit: props.startInEdit
+            inEdit: props.startInEdit,
+            allTags: props.tags
         };
     }
 
@@ -86,7 +93,8 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
                             "Modified by",
                             <TagCollection
                                         tags={List.of("collaborators")}
-                                        selectedIndex={0}/>,
+                                        selectedIndex={0}
+                                        tagsAvailableForAddition={Set.of()}/>,
                             "Available formats",
                             <TagCollection
                                         tags={this.iconfileFormats()}
@@ -95,18 +103,22 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
                                         tagRemovalRequest={
                                             this.state.inEdit
                                                 ? tagText => this.iconfileDeletionRequest(tagText)
-                                                : undefined}/>,
+                                                : undefined}
+                                        tagsAvailableForAddition={Set.of()}/>,
                             "Tags",
-                            <TagCollection
-                                        tags={List.of("<Coming soon...>")}
-                                        selectedIndex={0}/>
+                            this.createTagList()
                         ))}
                     </div>
                 </div>
             </div>
             <div className={Classes.DIALOG_FOOTER}>
-                <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-                    <Button onClick={this.handleClose}>Close</Button>
+                <div className="dialog-footer-actions">
+                    <AnchorButton
+                            href={this.pathOfSelectedIconfile()}
+                            download={this.downloadName()}
+                            disabled={!this.pathOfSelectedIconfile()}>
+                        Download
+                    </AnchorButton>
                 </div>
             </div>
         </Dialog>;
@@ -116,6 +128,13 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
         return this.state.selectedIconfileIndex >= 0
         ? this.state.iconfileList.get(this.state.selectedIconfileIndex).url
         : undefined;
+    }
+
+    private downloadName() {
+        const iconfile = this.state.iconfileList.get(this.state.selectedIconfileIndex);
+        return iconfile
+            ? `${this.state.iconName}@${iconfile.size}.${iconfile.format}`
+            : "";
     }
 
     private initialIconfileSelection() {
@@ -132,10 +151,12 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
         const newState: IconDetailsDialogState = {
             iconName: uploadedFile.iconName,
             iconfileList: newIconfileList,
+            iconTags: this.state.iconTags,
             selectedIconfileIndex: indexInIconfileListOfType(newIconfileList, uploadedFile),
             previouslySelectedIconFile: this.state.previouslySelectedIconFile,
             modifiedBy: this.props.username,
-            inEdit: false
+            inEdit: false,
+            allTags: this.state.allTags
         };
         this.setState(newState);
         this.notifyOfUpdate();
@@ -206,7 +227,7 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
             name: this.state.iconName,
             modifiedBy: this.state.modifiedBy,
             paths: this.state.iconfileList.toSet(),
-            tags: null
+            tags: this.state.iconTags.toSet()
         });
     }
 
@@ -225,6 +246,48 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
         return this.props.editable && toShow
             ? <Icon className={`title-control ${className}`} icon={iconName} onClick={action}/>
             : null;
+    }
+
+    private createTagList() {
+        if (this.state.inEdit) {
+            return <TagCollection
+                    tags={this.state.iconTags}
+                    selectedIndex={0}
+                    tagAdditionRequest={tagToAdd => this.addTagToIcon(tagToAdd)}
+                    tagRemovalRequest={index => this.removeTag(index)}
+                    tagsAvailableForAddition={this.state.allTags}/>;
+        } else {
+            return <TagCollection
+                tags={this.state.iconTags}
+                selectedIndex={0}
+                tagsAvailableForAddition={Set.of()}/>;
+        }
+    }
+
+    private addTagToIcon(tagToAdd: string) {
+        addTag(this.state.iconName, tagToAdd)
+        .then(
+            () => {
+                this.setState({
+                    allTags: this.state.allTags.add(tagToAdd),
+                    iconTags: this.state.iconTags.push(tagToAdd)
+                });
+                this.notifyOfUpdate();
+            },
+            error => showErrorMessage(error)
+        )
+        .catch(error => showErrorMessage(error));
+    }
+
+    private removeTag(index: number) {
+        const tagText: string = this.state.iconTags.get(index);
+        removeTag(this.state.iconName, tagText)
+        .then(
+            () => {
+                this.setState({iconTags: this.state.iconTags.remove(index)});
+                this.notifyOfUpdate();
+            }
+        );
     }
 
     private handleClose = () => this.props.requestClose();

@@ -69,5 +69,5 @@
     "db:createTables": "npm run compile && node -e 'require(\"./build/scripts/create-schema\").default();'"
   },
   "author": "peter.dunay.kovacs@gmail.com",
-  "license": "Apache-2.0"
+  "license": "MIT"
 }

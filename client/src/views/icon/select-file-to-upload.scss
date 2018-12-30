@@ -9,14 +9,16 @@
     }
 
     .upload--picture-card {
+        display: flex;
+        height: 150px;
+        width: 100%;
+        justify-content: center; /* align horizontal */
+        align-items: center; /* align vertical */
+        padding: 30px 20px;
         color: lightgray;
         border-style: dashed;
         border-color: lightgray;
         border-radius: 6px;
-        display: flex;
-        height: 150px;
-        justify-content: center; /* align horizontal */
-        align-items: center; /* align vertical */
         &:hover {
             color: lightblue;
             border-color: lightblue;

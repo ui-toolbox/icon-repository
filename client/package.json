@@ -17,6 +17,16 @@
     "url": "git+ssh://git@bitbucket.org/bitmover/iconrepo-client.git"
   },
   "author": "peter.dunay.kovacs@gmail.com",
+  "contributors": [
+    {
+      "name": "Endre András",
+      "email": "eandras@chemaxon.com"
+    },
+    {
+      "name": "Alexandra Ziolkowska",
+      "email": "aziolkowska@chemaxon.com"
+    }
+  ],
   "license": "MIT",
   "homepage": "https://bitbucket.org/bitmover/iconrepo-client#readme",
   "devDependencies": {
