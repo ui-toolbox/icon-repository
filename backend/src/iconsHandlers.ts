@@ -299,7 +299,7 @@ const iconHandlersProvider: (iconService: IconService) => (iconPathRoot: string)
             ctxLogger.error("Missing icon name");
             res.status(400).send({error: "Icon name must be specified"}).end();
         } else if (!req.body.tag) {
-            ctxLogger.error("Missing tag text");
+            ctxLogger.error("Missing tag text for \"%s\": %o", req.params.name, req.body);
             res.status(400).send({error: "Tag must be specified"}).end();
         } else {
             iconService.addTag(

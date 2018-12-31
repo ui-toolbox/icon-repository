@@ -1,6 +1,6 @@
 
 import { format as sformat } from "util";
-import {throwError as observableThrowError,  Observable, concat, pipe, throwError } from "rxjs";
+import { Observable, throwError } from "rxjs";
 import { Pool } from "pg";
 
 import {
