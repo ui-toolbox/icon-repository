@@ -1,5 +1,5 @@
 
-import { throwError as observableThrowError,  Observable, Observer, of } from "rxjs";
+import { throwError as observableThrowError,  Observable, Observer, of, throwError } from "rxjs";
 import { flatMap, catchError, mapTo, finalize, map } from "rxjs/operators";
 import { Pool, QueryResult } from "pg";
 
@@ -7,7 +7,8 @@ import loggerFactory from "../utils/logger";
 
 export const pgErrorCodes = {
     connection_refused: "ECONNREFUSED",
-    unique_constraint_violation: "23505"
+    unique_constraint_violation: "23505",
+    relation_doesnt_exist: "42P01"
 };
 
 const ctxLogger = loggerFactory("db");
@@ -86,7 +87,7 @@ export interface ExecuteQuery {
     (queryText: string, values?: any[]): Observable<QueryResult>;
 }
 
-interface Connection {
+export interface Connection {
     readonly executeQuery: ExecuteQuery;
     readonly release: () => void;
 }
@@ -149,4 +150,19 @@ export const tx = <R>(pool: Pool, transactable: Transactable<R>) => {
                 )
             ))
     );
+};
+
+export const tableExists: (executeQuery: ExecuteQuery, tableName: string) => Observable<boolean>
+= (executeQuery, tableName) => {
+        return executeQuery(`SELECT count(*) FROM ${tableName} WHERE 1 = 2`, [])
+        .pipe(
+            mapTo(true),
+            catchError(error => {
+                if (error.code === pgErrorCodes.relation_doesnt_exist) {
+                    return of(false);
+                } else {
+                    return throwError(error);
+                }
+            })
+        );
 };

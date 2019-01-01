@@ -1,16 +1,22 @@
 import { randomBytes } from "crypto";
-import { createPool, query, createConnectionProperties } from "../../src/db/db";
+import { createPool,
+    query,
+    createConnectionProperties,
+    getPooledConnection,
+    tableExists,
+    ExecuteQuery } from "../../src/db/db";
 import { Pool, QueryResult } from "pg";
-import { Observable } from "rxjs";
+import { Observable, of, from } from "rxjs";
 import { iconTableSpec } from "../../src/db/db-schema";
 import { Iconfile, IconDescriptor } from "../../src/icon";
 import { getDefaultConfiguration } from "../../src/configuration";
-import { map } from "rxjs/operators";
+import { map, flatMap, finalize, last, mapTo, tap } from "rxjs/operators";
 import createSchema from "../../src/db/create-schema";
 import { boilerplateSubscribe } from "../testUtils";
 import { GetIconfile } from "../../src/db/icon";
 import { updateDefaultLogLevel } from "../../src/utils/logger";
 import { Set, List } from "immutable";
+import { executeDataUpgrade } from "../../src/db/data-upgrade";
 
 updateDefaultLogLevel("debug");
 
@@ -50,6 +56,38 @@ export const terminateTestPool = () => (done: () => void) => {
     done();
 };
 
+export const deleteData: (executeQuery: ExecuteQuery) => () => Observable<void>
+= executeQuery => () => {
+    return from(["icon", "icon_file", "tag", "icon_to_tags"])
+    .pipe(
+        flatMap(tableName => executeQuery(`DELETE FROM ${tableName}`)),
+        last(),
+        mapTo(undefined)
+    );
+};
+
+export const makeSureHasUptodateSchemaWithNoData = (localPool: Pool) => {
+    return getPooledConnection(localPool)
+    .pipe(
+        flatMap(connection => {
+            const executeQuery: ExecuteQuery = connection.executeQuery;
+            return tableExists(executeQuery, "icon")
+            .pipe(
+                flatMap(exists => {
+                    if (!exists) {
+                        return createSchema(localPool)();
+                    } else {
+                        return of(undefined);
+                    }
+                }),
+                flatMap(executeDataUpgrade(localPool)),
+                flatMap(deleteData(executeQuery)),
+                finalize(() => connection.release())
+            );
+        })
+    );
+};
+
 export const manageTestResourcesBeforeAndAfter: () => () => Pool = () => {
     beforeAll(createTestPool(
         p => {
@@ -62,7 +100,10 @@ export const manageTestResourcesBeforeAndAfter: () => () => Pool = () => {
         fail
     ));
     afterAll(terminateTestPool());
-    beforeEach(done => createSchema(pool)().subscribe(boilerplateSubscribe(fail, done)));
+    beforeEach(done =>
+        makeSureHasUptodateSchemaWithNoData(pool)
+        .subscribe(boilerplateSubscribe(fail, done))
+    );
     afterEach(() => delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST);
     return () => pool;
 };

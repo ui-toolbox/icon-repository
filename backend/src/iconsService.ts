@@ -77,7 +77,8 @@ const createNewRepoMaybe = (resetData: string, iconRepository: IconRepository, g
         flatMap(needed => needed
             ? iconRepository.createSchema()
                 .pipe(flatMap(gitRepository.createNewGitRepo), mapTo(void 0))
-            : iconRepository.upgradeData())
+            : of(undefined)),
+        flatMap(() => iconRepository.upgradeData())
     );
 };
 
