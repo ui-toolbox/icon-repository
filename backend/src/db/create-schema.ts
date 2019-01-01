@@ -7,9 +7,7 @@ import {
     IColumnsDefinition,
     ITableSpec,
     iconTableSpec,
-    iconfileTableSpec,
-    iconToTagsTableSpec,
-    tagTableSpec } from "./db-schema";
+    iconfileTableSpec } from "./db-schema";
 import { query, pgErrorCodes } from "./db";
 import loggerFactory from "../utils/logger";
 import { map, flatMap, catchError, retryWhen, delay, take, mapTo, tap } from "rxjs/operators";
@@ -56,8 +54,6 @@ export const createSchema: (pool: Pool) => CreateSchema
 = pool => () => dropCreateTable(pool, iconTableSpec)
     .pipe(
         flatMap(() => dropCreateTable(pool, iconfileTableSpec)),
-        flatMap(() => dropCreateTable(pool, tagTableSpec)),
-        flatMap(() => dropCreateTable(pool, iconToTagsTableSpec)),
         mapTo(pool),
         retryOnError(2000, 30, pgErrorCodes.connection_refused),
         catchError(error => {

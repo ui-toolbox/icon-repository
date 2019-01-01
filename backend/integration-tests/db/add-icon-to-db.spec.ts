@@ -28,8 +28,6 @@ describe("addIconToDB", () => {
         createIcon(getPool())(iconfileInfo, user)
         .pipe(
             flatMap(result => {
-                const expectedId = 1;
-                expect(result).toEqual(expectedId);
                 return getCheckIconfile(getIconfile(getPool()), iconfileInfo);
             })
         )
@@ -55,10 +53,6 @@ describe("addIconToDB", () => {
             flatMap(result1 => createIcon(getPool())(iconfileInfo2, user)
                 .pipe(
                     flatMap(result2 => {
-                        const expectedId1 = 1;
-                        const expectedId2 = 2;
-                        expect(result1).toEqual(expectedId1);
-                        expect(result2).toEqual(expectedId2);
                         const getIconfileFromDB = getIconfile(getPool());
                         return getCheckIconfile(getIconfileFromDB, iconfileInfo1)
                             .pipe(
@@ -99,8 +93,6 @@ describe("addIconToDB", () => {
                     }),
                     flatMap(result2 => {
                         expect(result2).toBeUndefined();
-                        const expectedId1 = 1;
-                        expect(result1).toEqual(expectedId1);
                         const getIconfileFromDB = getIconfile(getPool());
                         return getCheckIconfile(getIconfileFromDB, iconfileInfo1)
                             .pipe(

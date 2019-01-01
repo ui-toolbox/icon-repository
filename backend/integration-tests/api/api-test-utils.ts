@@ -1,6 +1,6 @@
 import * as http from "http";
 import { Observable } from "rxjs";
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, finalize } from "rxjs/operators";
 
 import serverProvider, { Server } from "../../src/server";
 import iconHandlersProvider from "../../src/iconsHandlers";
@@ -12,6 +12,9 @@ import { Iconfile } from "../../src/icon";
 import { createTestConfiguration } from "../service/service-test-utils";
 import loggerFactory from "../../src/utils/logger";
 import { createDefaultIconService } from "../../src/app-assembly";
+import { makeSureHasUptodateSchemaWithNoData, createTestPool } from "../db/db-test-utils";
+import { createPool, createConnectionProperties } from "../../src/db/db";
+import { getDefaultConfiguration } from "../../src/configuration";
 
 const logger = loggerFactory("api-test-utils");
 
@@ -43,8 +46,7 @@ const startServerWithBackdoors: StartServer = customConfig =>
     startServer(Object.assign(customConfig, {enable_backdoors: true}));
 
 const startTestServer = (done: () => void) =>
-    startServerWithBackdoors({icon_data_location_git: getTestRepoDir()})
-    .subscribe(boilerplateSubscribe(fail, done));
+    startServerWithBackdoors({icon_data_location_git: getTestRepoDir()});
 
 export const shutdownDownServer = () => {
     localServerRef.shutdown();
@@ -106,7 +108,17 @@ export class Session {
 }
 
 export const manageTestResourcesBeforeAndAfter: () => () => Session = () => {
-    beforeEach(done => startTestServer(done));
+    beforeEach(done =>
+        createPool(createConnectionProperties(getDefaultConfiguration()))
+        .pipe(
+            flatMap(pool => {
+                return makeSureHasUptodateSchemaWithNoData(pool)
+                .pipe(finalize(() => pool.end()));
+            }),
+            flatMap(() => startTestServer(done))
+        )
+        .subscribe(boilerplateSubscribe(fail, done))
+    );
     afterEach(done => tearDownGitRepoAndServer(done));
     return () => new Session(getBaseUrl(), agent(), void 0, void 0);
 };

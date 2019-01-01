@@ -13,7 +13,7 @@ import {
 import { setEnvVar } from "../../src/configuration.spec";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { List } from "immutable";
-import { setAuth, createIcon, describeAllIcons, getFilePath, describeIcon } from "./api-client";
+import { setAuth, createIcon, describeAllIcons, getFilePath } from "./api-client";
 import { IconDTO } from "../../src/iconsHandlers";
 import {
     testIconInputData,
