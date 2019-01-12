@@ -11,7 +11,7 @@ export interface TagForSelection {
 
 export interface TagCollectionProps {
     readonly tags: List<string>;
-    readonly selectedIndex: number;
+    readonly selectedIndex?: number;
     readonly selectionChangeRequest?: (index: number) => void;
     readonly tagsAvailableForAddition?: Set<string>;
     readonly tagAdditionRequest?: (tagText: string) => void;
