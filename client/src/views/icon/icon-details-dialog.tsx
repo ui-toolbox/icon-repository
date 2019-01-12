@@ -90,10 +90,9 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
                     </div>
                     <div className="properties-row">
                         {renderMapAsTable(Map.of(
-                            "Modified by",
+                            "Last modified by",
                             <TagCollection
-                                        tags={List.of("collaborators")}
-                                        selectedIndex={0}
+                                        tags={List.of(this.state.modifiedBy)}
                                         tagsAvailableForAddition={Set.of()}/>,
                             "Available formats",
                             <TagCollection
