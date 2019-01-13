@@ -3,7 +3,7 @@ import { testIconInputData, addTestData, getIngestedTestIconDataDescription } fr
 import { boilerplateSubscribe } from "../testUtils";
 import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
 
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, last } from "rxjs/operators";
 
 const allIconsPath = "/icon";
 
@@ -15,6 +15,7 @@ describe(allIconsPath, () => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
             .pipe(
+                last(),
                 flatMap(() => describeAllIcons(session.requestBuilder())),
                 map(actualReply => expect(new Set(actualReply.toArray()))
                                     .toEqual(new Set(getIngestedTestIconDataDescription())))
@@ -33,6 +34,7 @@ describe(singleIconPath, () => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
             .pipe(
+                last(),
                 flatMap(() => describeIcon(session.requestBuilder(), getIngestedTestIconDataDescription()[0].name)),
                 map(actualReply => expect(actualReply).toEqual(getIngestedTestIconDataDescription()[0]))
             )

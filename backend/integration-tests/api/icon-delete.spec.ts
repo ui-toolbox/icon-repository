@@ -7,7 +7,7 @@ import { IconfileDescriptor } from "../../src/icon";
 import { assertFileNotInRepo } from "../git/git-test-utils";
 import clone from "../../src/utils/clone";
 
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, last } from "rxjs/operators";
 
 describe("DEL /icon", () => {
 
@@ -34,6 +34,7 @@ describe("DEL /icon", () => {
 
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
             flatMap(() => deleteIcon(
                 session
@@ -60,6 +61,7 @@ describe("DEL /icon", () => {
 
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON ])),
             flatMap(() => deleteIcon(
                 session

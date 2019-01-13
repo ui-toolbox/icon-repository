@@ -1,5 +1,5 @@
 import { boilerplateSubscribe } from "../testUtils";
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, last } from "rxjs/operators";
 import {
     iconEndpointPath,
     manageTestResourcesBeforeAndAfter,
@@ -88,6 +88,7 @@ describe(iconEndpointPath, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
             .pipe(
+                last(),
                 flatMap(() => testIconInputData.toArray()),
                 flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconfileDesc1)),
                 flatMap(content => getCheckIconfile(session, {
@@ -123,6 +124,7 @@ describe(iconEndpointPath, () => {
         const session = agent();
         addTestData(session.requestBuilder(), List.of(testIconInputData.get(0)))
         .pipe(
+            last(),
             flatMap(() =>
                 getCurrentGitCommit()
                 .pipe(
