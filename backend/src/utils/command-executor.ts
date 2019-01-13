@@ -1,25 +1,33 @@
 import { SpawnOptions, spawn } from "child_process";
 import { Observable, Observer } from "rxjs";
-import { Logger } from "winston";
+import loggerFactory from "./logger";
 
 export type CommandExecutor = (
-    logger: Logger,
     command: string,
     spawnArgs: ReadonlyArray<string>,
     options?: SpawnOptions) => Observable<string>;
 
-export const commandExecutor: CommandExecutor = (ctxLogger, command, spawnArgs, options) => {
-    ctxLogger.debug("BEGIN");
+const ctxLogger = loggerFactory("command-executor");
+
+let commandExecutionId = 0;
+
+export const commandExecutor: CommandExecutor = (command, spawnArgs, options) => {
+    const cmdId = ++commandExecutionId;
+    ctxLogger.debug("BEGIN command #%d: %s %O", cmdId, command, spawnArgs);
     let stdoutData: string = "";
     const proc = spawn(command, spawnArgs, options);
-    proc.stderr.on("data", data => ctxLogger.info(`stderr: ${data}`));
+    proc.stderr.on("data", data => ctxLogger.info("[%d]: stderr: %O", cmdId, data));
     proc.stdout.on("data", data => {
-        ctxLogger.debug(`stdout: ${data}`);
+        ctxLogger.debug("[%d]: stdout: %O", cmdId, data);
         stdoutData += data;
     });
     return Observable.create((observer: Observer<string>) => {
-        proc.on("error", err => observer.error(err));
+        proc.on("error", err => {
+            ctxLogger.debug("[#%d]: Failed to execute command: %O", cmdId, command, err);
+            observer.error(err);
+        });
         proc.on("close", code => {
+            ctxLogger.debug("[#%d]: Program exited with %d", cmdId, code);
             if (code === 0) {
                 observer.next(stdoutData);
                 observer.complete();

@@ -12,7 +12,6 @@ import { commandExecutor } from "./utils/command-executor";
 import { Set, List } from "immutable";
 import { format as strformat } from "util";
 import loggerFactory from "./utils/logger";
-import { stringify } from "querystring";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Observable<string>;
 
@@ -21,7 +20,7 @@ export const GIT_COMMIT_FAIL_INTRUSIVE_TEST = "GIT_COMMIT_FAIL_INTRUSIVE_TEST";
 export const createGitCommandExecutor: (pathToIconRepository: string) => GitCommandExecutor
 = pathToIconRepository => spawnArgs => {
     const ctxLogger = loggerFactory(`executeGitCommand ${spawnArgs} in ${pathToIconRepository}`);
-    return commandExecutor(ctxLogger, "git", spawnArgs, { cwd: pathToIconRepository });
+    return commandExecutor("git", spawnArgs, { cwd: pathToIconRepository });
 };
 
 type IsRepoInitialized = () => Observable<boolean>;
@@ -34,20 +33,12 @@ type CreateNewGitRepo = () => Observable<string>;
 export const createNewGitRepo: (location: string) => CreateNewGitRepo
 = location => () => {
     const newGitRepoLogger = loggerFactory("create-new-git-repo");
-    return commandExecutor(newGitRepoLogger, "rm", [ "-rf", location])
+    return commandExecutor("rm", [ "-rf", location])
     .pipe(
-        flatMap(() => commandExecutor(newGitRepoLogger, "mkdir", [ "-p", location ])),
-        flatMap(() => commandExecutor(newGitRepoLogger, "git", [ "init" ], { cwd: location })),
-        flatMap(() => commandExecutor(
-            newGitRepoLogger,
-            "git", [ "config", "user.name", "Icon Repo Server"],
-            { cwd: location }
-        )),
-        flatMap(() => commandExecutor(
-            newGitRepoLogger,
-            "git", [ "config", "user.email", "IconRepoServer@UIToolBox"],
-            { cwd: location }
-        ))
+        flatMap(() => commandExecutor("mkdir", [ "-p", location ])),
+        flatMap(() => commandExecutor("git", [ "init" ], { cwd: location })),
+        flatMap(() => commandExecutor( "git", [ "config", "user.name", "Icon Repo Server"], { cwd: location })),
+        flatMap(() => commandExecutor( "git", [ "config", "user.email", "IconRepoServer@UIToolBox"], { cwd: location }))
     );
 };
 
@@ -103,13 +94,6 @@ const createIconfile: (pathToIconRepository: string, iconfileInfo: Iconfile) => 
         flatMap(() => appendFile(pathCompos.pathToIconfile, iconfileInfo.content, { flag: "w"})),
         mapTo(List.of(pathCompos.pathToIconfileInRepo))
     );
-};
-
-const updateIconfile: (pathToIconRepository: string, iconfileInfo: Iconfile) => Observable<List<string>>
-= (pathToIconRepository, iconfileInfo) => {
-    const pathCompos = getPathComponents1(pathToIconRepository, iconfileInfo);
-    return appendFile(pathCompos.pathToIconfile, iconfileInfo.content, { flag: "w"})
-    .pipe(mapTo(List.of(pathCompos.pathToIconfileInRepo)));
 };
 
 const renameIconfiles: (
@@ -200,15 +184,17 @@ const createIconfileJob: CreateIconfileJob = (iconfileOperation, jobTexts, userN
         map(() => ctxLogger.debug("Succeeded")),
         catchError(error => {
             ctxLogger.error(strformat("Failed: %o", error));
-            gitCommandExecutor(rollback()[0])
+            return gitCommandExecutor(rollback()[0])
             .pipe(
                 flatMap(() => gitCommandExecutor(rollback()[1])),
                 catchError(errorInRollback => {
                     ctxLogger.error(errorInRollback);
                     return "dummy return value";
+                }),
+                map(() => {
+                    throw error;
                 })
             );
-            return observableThrowError(error);
         })
     );
 };
