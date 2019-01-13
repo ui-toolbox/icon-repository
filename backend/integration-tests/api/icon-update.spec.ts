@@ -1,4 +1,4 @@
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, last } from "rxjs/operators";
 import { boilerplateSubscribe } from "../testUtils";
 import {
     iconEndpointPath,
@@ -30,6 +30,7 @@ describe(`PATCH ${iconEndpointPath}`, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [])),
             flatMap(() => updateIcon(
                 session.responseOK(resp => resp.status === 403).requestBuilder(),
@@ -69,6 +70,7 @@ describe(`PATCH ${iconEndpointPath}`, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON ])
                 .pipe(
                     flatMap(() => updateIcon(
@@ -103,6 +105,7 @@ describe(`POST ${iconEndpointPath}`, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [])
                 .pipe(
                         flatMap(() => ingestIconfile(
@@ -119,6 +122,7 @@ describe(`POST ${iconEndpointPath}`, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON])
                 .pipe(
                     flatMap(() => ingestIconfile(
@@ -135,6 +139,7 @@ describe(`POST ${iconEndpointPath}`, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
                 .pipe(
                     flatMap(() => ingestIconfile(
@@ -164,7 +169,8 @@ describe(`POST ${iconEndpointPath}`, () => {
         .pipe(
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
                 .pipe(
-                        flatMap(() => ingestIconfile(
+                    last(),
+                    flatMap(() => ingestIconfile(
                         session.responseOK(resp => resp.status === 200).requestBuilder(),
                         nameOfIconToUpdate,
                         iconfileToAdd.content
@@ -186,6 +192,7 @@ describe(`POST ${iconEndpointPath}`, () => {
         const session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
                 .pipe(
                         flatMap(() => ingestIconfile(

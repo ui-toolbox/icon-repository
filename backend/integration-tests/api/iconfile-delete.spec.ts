@@ -10,7 +10,7 @@ import {
 import { IconfileDescriptor, Iconfile } from "../../src/icon";
 import { assertFileInRepo, assertFileNotInRepo } from "../git/git-test-utils";
 
-import { flatMap, map } from "rxjs/operators";
+import { flatMap, map, last } from "rxjs/operators";
 
 describe("DEL /icon/:name/<file>", () => {
 
@@ -23,6 +23,7 @@ describe("DEL /icon/:name/<file>", () => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [])),
             flatMap(() => deleteIconfile(
                 session
@@ -47,6 +48,7 @@ describe("DEL /icon/:name/<file>", () => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
             flatMap(() => deleteIconfile(
                 session.auth(uxAuth).requestBuilder(),
@@ -64,6 +66,7 @@ describe("DEL /icon/:name/<file>", () => {
         const session: Session = agent();
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
             flatMap(() => deleteIconfile(
                 session
@@ -89,6 +92,7 @@ describe("DEL /icon/:name/<file>", () => {
 
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICONFILE ])),
             flatMap(() => deleteIconfile(
                 session
@@ -116,6 +120,7 @@ describe("DEL /icon/:name/<file>", () => {
 
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => assertFileInRepo(expectedIconfile)),
             flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.REMOVE_ICON ])),
             flatMap(() => deleteIconfile(
@@ -146,6 +151,7 @@ describe("DEL /icon/:name/<file>", () => {
 
         addTestData(session.requestBuilder(), testIconInputData)
         .pipe(
+            last(),
             flatMap(() => deleteIconfile(
                 session.requestBuilder(),
                 iconToDeleteFrom.name,
