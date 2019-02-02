@@ -1,6 +1,6 @@
 
 import {throwError as observableThrowError,  Observable, of } from "rxjs";
-import { flatMap, mapTo, reduce, map, catchError } from "rxjs/operators";
+import { flatMap, mapTo, reduce, map, catchError, last } from "rxjs/operators";
 import * as path from "path";
 import { mkdirMaybe, appendFile, deleteFile, renameFile, hasSubDirectory } from "./utils/rx";
 import {
@@ -139,8 +139,6 @@ const deleteIconfile: (
     );
 };
 
-const addToIndex = (pathInRepo: string) => ["add", pathInRepo];
-
 const commitCommand: () => string = () =>
     process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST === "true"
         ? "procyon lotor"
@@ -174,8 +172,9 @@ const createIconfileJob: CreateIconfileJob = (iconfileOperation, jobTexts, userN
     const ctxLogger = loggerFactory("git: " + jobTexts.logContext);
     return () => iconfileOperation()
     .pipe(
+        last(),
+        flatMap(iconfilePathsInRepo => gitCommandExecutor(["add", "-A"]).pipe(mapTo(iconfilePathsInRepo))),
         flatMap(iconfilePathsInRepo => iconfilePathsInRepo.toArray()),
-        flatMap(oneFilePathInRepo => gitCommandExecutor(addToIndex(oneFilePathInRepo)).pipe(mapTo(oneFilePathInRepo))),
         reduce<string, List<string>>(
             (fileList, oneIconfilePathInRepo) => fileList.push(oneIconfilePathInRepo),
             List<string>()
@@ -184,8 +183,9 @@ const createIconfileJob: CreateIconfileJob = (iconfileOperation, jobTexts, userN
         map(() => ctxLogger.debug("Succeeded")),
         catchError(error => {
             ctxLogger.error(strformat("Failed: %o", error));
-            return gitCommandExecutor(rollback()[0])
+            return gitCommandExecutor(["status"])
             .pipe(
+                flatMap(() => gitCommandExecutor(rollback()[0])),
                 flatMap(() => gitCommandExecutor(rollback()[1])),
                 catchError(errorInRollback => {
                     ctxLogger.error(errorInRollback);
