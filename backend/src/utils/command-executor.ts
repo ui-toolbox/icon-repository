@@ -12,16 +12,16 @@ const ctxLogger = loggerFactory("command-executor");
 let commandExecutionId = 0;
 
 export const commandExecutor: CommandExecutor = (command, spawnArgs, options) => {
-    const cmdId = ++commandExecutionId;
-    ctxLogger.debug("BEGIN command #%d: %s %O", cmdId, command, spawnArgs);
-    let stdoutData: string = "";
-    const proc = spawn(command, spawnArgs, options);
-    proc.stderr.on("data", data => ctxLogger.info("[%d]: stderr: %O", cmdId, data));
-    proc.stdout.on("data", data => {
-        ctxLogger.debug("[%d]: stdout: %O", cmdId, data);
-        stdoutData += data;
-    });
     return Observable.create((observer: Observer<string>) => {
+        const cmdId = ++commandExecutionId;
+        ctxLogger.debug("BEGIN command #%d: %s %O", cmdId, command, spawnArgs);
+        let stdoutData: string = "";
+        const proc = spawn(command, spawnArgs, options);
+        proc.stderr.on("data", data => ctxLogger.info("[%d]: stderr: %O", cmdId, data.toString("utf8")));
+        proc.stdout.on("data", data => {
+            ctxLogger.debug("[%d]: stdout: %O", cmdId, data.toString("utf8"));
+            stdoutData += data;
+        });
         proc.on("error", err => {
             ctxLogger.debug("[#%d]: Failed to execute command: %O", cmdId, command, err);
             observer.error(err);
