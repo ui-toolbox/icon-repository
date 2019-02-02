@@ -276,7 +276,7 @@ export const describeAllIcons: (pool: Pool) => DescribeAllIcons
             .pipe(
                 map(fileAndTagMapArray => {
                     return List(iconsResult.rows)
-                    .reduce(
+                    .reduce<List<IconDescriptor>>(
                         (iconDescList, currenIconRow) => iconDescList.push(new IconDescriptor(
                             currenIconRow.name,
                             currenIconRow.modified_by,
