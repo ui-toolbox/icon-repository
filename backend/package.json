@@ -27,7 +27,7 @@
     "session-memory-store": "git://github.com/pdkovacs/session-memory-store.git#09a1651d0c5d0a69252a265a7e7449f805764b01",
     "source-map-support": "^0.5.10",
     "superagent": "^3.8.3",
-    "underscore.string": "^3.3.4",
+    "underscore.string": "^3.3.5",
     "winston": "^3.2.1"
   },
   "devDependencies": {
