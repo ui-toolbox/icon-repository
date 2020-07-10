@@ -107,7 +107,7 @@ const loginSuccessHandlerProvider: (attachUserPrivileges: AttachUserPrivileges, 
         },
         err => {
             ctxLogger.error("Error while setting privileges: %o", err);
-            res.end(500, "Error during login");
+            res.status(500).send("Error during login").end();
         }
     );
 };

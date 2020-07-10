@@ -9,6 +9,7 @@ import { ConfigurationData } from "./configuration";
 import securityManagerProvider from "./security/securityManager";
 import appInfoHandlerProvider from "./appInfoHandler";
 import { Observable, Observer } from "rxjs";
+import { AddressInfo } from "net";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -59,7 +60,7 @@ const serverProvider: (
     return Observable.create((observer: Observer<Server>) => {
         const httpServer = app.listen(appConfig.server_port, appConfig.server_hostname, () => {
             observer.next({
-                address: () => httpServer.address(),
+                address: () => httpServer.address() as AddressInfo,
                 shutdown: () => {
                     iconHandlers.release();
                     httpServer.close();
