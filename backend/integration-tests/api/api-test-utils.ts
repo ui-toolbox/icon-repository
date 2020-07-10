@@ -15,6 +15,7 @@ import { createDefaultIconService } from "../../src/app-assembly";
 import { makeSureHasUptodateSchemaWithNoData, createTestPool } from "../db/db-test-utils";
 import { createPool, createConnectionProperties } from "../../src/db/db";
 import { getDefaultConfiguration } from "../../src/configuration";
+import { AddressInfo } from "net";
 
 const logger = loggerFactory("api-test-utils");
 
@@ -126,7 +127,8 @@ export const manageTestResourcesBeforeAndAfter: () => () => Session = () => {
 export const getBaseUrl = () => `http://localhost:${localServerRef.address().port}`;
 export const getBaseURLBasicAuth = (
     server: http.Server,
-    auth: string) => `http://${auth}@localhost:${server.address().port}`;
+    auth: string
+) => `http://${auth}@localhost:${(server.address() as AddressInfo).port}`;
 
 export const uxAuth: Auth = {user: "ux", password: "ux"};
 export const devAuth: Auth = {user: "dev", password: "dev"};

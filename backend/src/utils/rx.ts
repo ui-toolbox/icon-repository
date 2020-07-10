@@ -104,11 +104,7 @@ export const rmdirMaybe: (pathToDir: string) => Observable<string>
         })
     );
 
-export const appendFile: (pathToFile: string, data: Buffer, options: {
-    encoding?: string,
-    mode?: number,
-    flag?: string
-}) => Observable<string>
+export const appendFile: (pathToFile: string, data: Buffer, options: fs.WriteFileOptions) => Observable<string>
 = (pathToFile, data, options) => Observable.create((observer: Observer<string>) =>
     fs.appendFile(pathToFile, data, options, (err: NodeJS.ErrnoException) => {
         if (err) {

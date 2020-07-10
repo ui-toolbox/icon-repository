@@ -22,7 +22,7 @@ export default (
 
     if (req.query.error) {
         ctxLogger.error("Request has (returned with) an error", req.query.error);
-        res.end(400, req.query.error);
+        res.status(400).send(req.query.error).end();
     } else if (req.session && getAuthentication(req.session)) {
         ctxLogger.verbose("Already logged in");
         res.redirect(configuration.server_url_context);
@@ -43,8 +43,8 @@ export default (
             configuration.oidc_access_token_url,
             configuration.oidc_ip_jwt_public_key_url,
             fromBase64(configuration.oidc_ip_jwt_public_key_pem_base64),
-            configuration.oidc_token_issuer)
-                    (req.session.oidcTokenRequestState, req.query.state, req.query.code)
+            configuration.oidc_token_issuer
+        )(req.session.oidcTokenRequestState, req.query.state as string, req.query.code as string)
         .toPromise()
         .then(
             auth => {
