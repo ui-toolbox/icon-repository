@@ -51,7 +51,8 @@
     "concurrently": "^5.2.0",
     "cross-env": "^5.2.0",
     "jasmine": "^3.1.0",
-    "nodemon": "1.18.7",
+    "nodemon": "^2.0.0",
+    "minimist": ">=1.2.3",
     "ts-mocks": "^2.3.3",
     "tslint": "^5.18.0",
     "typescript": "^3.5.3"
