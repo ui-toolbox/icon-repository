@@ -56,12 +56,6 @@ const cssLoader = [
     'css-loader?localIdentName=' + cssIdentifier
 ];
 
-const scssLoader = [
-    'style-loader',
-    'css-loader?localIdentName=' + cssIdentifier,
-    'sass-loader?indentedSyntax=false'
-];
-
 const externals = TEST ? [
     nodeExternals({
         whitelist: ['normalize.css', 'whatwg-fetch']
@@ -129,7 +123,7 @@ module.exports = {
             },
             {
                 test: /\.scss$/,
-                loaders: scssLoader,
+                loaders: ["style-loader", "css-loader", "sass-loader"],
                 exclude: /node_modules/
             },
             {
@@ -138,7 +132,7 @@ module.exports = {
                     loader: 'svg-url-loader',
                     options: {limit: 1, noquotes: true}
                 }
-            },
+            }
         ]
     },
     externals: externals,
