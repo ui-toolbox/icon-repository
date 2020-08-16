@@ -56,7 +56,7 @@ export class IconList extends React.Component<{}, IconListState> {
         };
     }
 
-    public componentWillMount() {
+    public componentDidMount() {
         fetchConfig()
         .then(
             appInfo => this.setState(prevState => ({ ...prevState, settings: { ...prevState.settings, appInfo } }))
