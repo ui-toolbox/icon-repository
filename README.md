@@ -1,6 +1,6 @@
-# =======================================
-# This project is not currently maintaned
-# =======================================
+# ========================================
+# This project is not currently maintained
+# ========================================
 
 # Icon Repository
 
