@@ -23,7 +23,6 @@
     "probe-image-size": "^4.1.1",
     "qs": "^6.5.1",
     "rimraf": "^2.6.3",
-    "rxjs": "^6.4.0",
     "session-memory-store": "^1.0.0",
     "source-map-support": "^0.5.10",
     "superagent": "^3.8.3",

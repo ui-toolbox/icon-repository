@@ -4,8 +4,6 @@ import * as path from "path";
 import * as Process from "process";
 
 import loggerFactory from "./utils/logger";
-import * as Rx from "rxjs";
-import { tap, map, flatMap, catchError, filter } from "rxjs/operators";
 import { fileExists, readTextFile } from "./utils/rx";
 import clone from "./utils/clone";
 
@@ -105,45 +103,31 @@ export const getConfigFilePath: () => string = () => {
 
 const configFilePath: string = getConfigFilePath();
 
-const ignoreJSONSyntaxError: (error: any) => Rx.Observable<any> = error => {
-    if (error instanceof SyntaxError) {
-        ctxLogger.error("Skipping syntax error...");
-        return Rx.of({});
+export const readConfiguration = async <T> (filePath: string, proto: T, defaults: any): Promise<T> => {
+    const configFileExists = await fileExists(filePath);
+    if (configFileExists) {
+        ctxLogger.info(strformat("Updating configuration from %s...", configFilePath));
+        const fileContent = await readTextFile(filePath);
+        try {
+            const json = JSON.parse(fileContent)
+            const conf = Object.assign(clone(defaults), json);
+            return updateConfigurationDataWithEnvVarValues(proto, conf);
+        } catch (err) {
+            if (err instanceof SyntaxError) {
+                ;
+            } else {
+                throw err;
+            }
+        }
     } else {
-        throw error;
+        ctxLogger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
     }
 };
 
-export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) => Rx.Observable<T>
-= (filePath, proto, defaults) => {
-    return fileExists(filePath)
-        .pipe(
-            flatMap(exists => {
-                if (exists) {
-                    ctxLogger.info(strformat("Updating configuration from %s...", configFilePath));
-                    return readTextFile(filePath)
-                        .pipe(
-                            map(fileContent => JSON.parse(fileContent)),
-                            catchError(error => ignoreJSONSyntaxError(error))
-                        );
-                } else {
-                    ctxLogger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
-                    return Rx.of({});
-                }
-            }),
-            map(json => Object.assign(clone(defaults), json)),
-            tap(conf => updateConfigurationDataWithEnvVarValues(proto, conf))
-        );
-};
-
-const updateState: () => Rx.Observable<ConfigurationData> = () =>
-    readConfiguration(configFilePath, configurationDataProto, defaultSettings)
-        .pipe(
-            tap(conf => {
-                configurationData = conf;
-            }),
-            map(() => Object.freeze(configurationData))
-        );
+const updateState = async (): Promise<ConfigurationData> => {
+    const config = await readConfiguration(configFilePath, configurationDataProto, defaultSettings);
+    return Object.freeze(config);
+}
 
 let watcher: fs.FSWatcher = null;
 
