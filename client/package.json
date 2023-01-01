@@ -1,0 +1,63 @@
+{
+  "name": "iconrepo-client",
+  "version": "1.0.0",
+  "description": "Client for ui-toolbox/iconrepo",
+  "main": "index.js",
+  "scripts": {
+    "dist": "rimraf dist && cross-env NODE_ENV=production webpack",
+    "dev": "rimraf dist && mkdir dist && cross-env NODE_ENV=development node dev-server.js",
+    "lint": "tslint -c tslint.json '{src,test}/**/*.{ts,tsx}'",
+    "pretest": "rimraf dist && cross-env NODE_ENV=test webpack",
+    "unit-tests": "npm run pretest && cross-env NODE_ENV=test JASMINE_CONFIG_PATH=test/jasmine-config.json jasmine dist/bundle.js",
+    "watch-unit-tests": "nodemon --watch src --watch test -V --ext js,ts,tsx --exec 'npm run unit-tests 2>/dev/null'",
+    "test": "npm run lint && npm run unit-tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/bitmover/iconrepo-client.git"
+  },
+  "author": "peter.dunay.kovacs@gmail.com",
+  "contributors": [
+    {
+      "name": "Endre András",
+      "email": "eandras@chemaxon.com"
+    },
+    {
+      "name": "Alexandra Ziolkowska",
+      "email": "aziolkowska@chemaxon.com"
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://bitbucket.org/bitmover/iconrepo-client#readme",
+  "devDependencies": {
+    "@blueprintjs/core": "^3.30.1",
+    "@blueprintjs/select": "^3.13.6",
+    "@types/react": "^16.9.44",
+    "@types/react-dom": "^16.9.8",
+    "cross-env": "^5.2.1",
+    "css-loader": "^6.7.3",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.5.0",
+    "immutable": "^4.0.0-rc.12",
+    "kind-of": ">=6.0.3",
+    "node-sass": "^7.0.0",
+    "nodemon": "^2.0.7",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "rimraf": "^2.7.1",
+    "sass-loader": "^9.0.0",
+    "style-loader": "^3.3.1",
+    "ts-loader": "^8.0.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.9.7",
+    "url-loader": "^4.1.1",
+    "webpack": "^5.33.2",
+    "webpack-cli": "^4.6.0",
+    "webpack-dev-server": "^4.11.1",
+    "webpack-node-externals": "^1.7.2"
+  },
+  "dependencies": {
+    "normalize.css": "^8.0.1",
+    "source-map-loader": "^4.0.1"
+  }
+}
