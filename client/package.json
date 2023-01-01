@@ -35,9 +35,9 @@
     "@types/react": "^16.9.44",
     "@types/react-dom": "^16.9.8",
     "cross-env": "^5.2.1",
-    "css-loader": "^2.0.1",
-    "file-loader": "^2.0.0",
-    "html-webpack-plugin": "^3.2.0",
+    "css-loader": "^6.7.3",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.5.0",
     "immutable": "^4.0.0-rc.12",
     "kind-of": ">=6.0.3",
     "node-sass": "^7.0.0",
@@ -46,11 +46,11 @@
     "react-dom": "^16.13.1",
     "rimraf": "^2.7.1",
     "sass-loader": "^9.0.0",
-    "style-loader": "^0.23.1",
+    "style-loader": "^3.3.1",
     "ts-loader": "^8.0.0",
     "tslint": "^5.20.1",
     "typescript": "^3.9.7",
-    "url-loader": "^1.1.2",
+    "url-loader": "^4.1.1",
     "webpack": "^5.33.2",
     "webpack-cli": "^4.6.0",
     "webpack-dev-server": "^4.11.1",
@@ -58,6 +58,6 @@
   },
   "dependencies": {
     "normalize.css": "^8.0.1",
-    "source-map-loader": "^0.2.4"
+    "source-map-loader": "^4.0.1"
   }
 }
