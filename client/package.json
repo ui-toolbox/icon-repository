@@ -41,7 +41,7 @@
     "immutable": "^4.0.0-rc.12",
     "kind-of": ">=6.0.3",
     "node-sass": "^7.0.0",
-    "nodemon": "^2.0.7",
+    "nodemon": "^2.0.20",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "rimraf": "^2.7.1",
