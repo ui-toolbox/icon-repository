@@ -1,189 +1,200 @@
-import { format as strformat } from "util";
-import * as fs from "fs";
-import * as path from "path";
-import * as Process from "process";
+import { format as strformat } from "node:util";
+import * as path from "node:path";
 
-import loggerFactory from "./utils/logger";
-import * as Rx from "rxjs";
-import { tap, map, flatMap, catchError, filter } from "rxjs/operators";
-import { fileExists, readTextFile } from "./utils/rx";
+import { createLogger } from "./utils/logger";
 import clone from "./utils/clone";
+import { isNil } from "lodash";
+import { access, readFile } from "node:fs/promises";
+import { watch, type FSWatcher } from "node:fs";
 
-const ICON_REPO_HOME = path.resolve(Process.env.HOME, ".ui-toolbox/icon-repo");
-
-const configurationDataProto = Object.freeze({
-    server_hostname: "",
-    server_port: 0,
-    server_url_context: "",
-    app_description: "",
-    path_to_static_files: "",
-    icon_data_location_git: "",
-    icon_data_create_new: "",
-    authentication_type: "",
-    oidc_client_id: "",
-    oidc_client_secret: "",
-    oidc_access_token_url: "",
-    oidc_user_authorization_url: "",
-    oidc_client_redirect_back_url: "",
-    oidc_token_issuer: "",
-    oidc_ip_jwt_public_key_url: "",
-    oidc_ip_jwt_public_key_pem_base64: "",
-    oidc_ip_logout_url: "",
-    users_by_roles: {none: [""]},
-    conn_host: "",
-    conn_port: "",
-    conn_user: "",
-    conn_password: "",
-    conn_database: "",
-    enable_backdoors: false,
-    logger_level: "",
-    package_root_dir: ""
-});
-
-export type ConfigurationData = typeof configurationDataProto;
-
-const defaultSettings = Object.freeze({
-    server_hostname: "localhost",
-    server_port: 8090,
-    server_url_context: "/",
-    authentication_type: "oidc",
-    app_description: "Collection of custom icons designed at Wombat Inc.",
-    path_to_static_files: path.join(__dirname, "..", "..", "..", "client", "dist"),
-    icon_data_location_git: path.resolve(ICON_REPO_HOME, "git-repo"),
-    conn_host: "localhost",
-    conn_port: "5432",
-    conn_user: "iconrepo",
-    conn_password: "iconrepo",
-    conn_database: "iconrepo",
-    icon_data_create_new: "never",
-    enable_backdoors: false,
-    package_root_dir: path.resolve(path.dirname(__filename))
-});
-
-let configurationData: ConfigurationData;
-
-const getEnvVarValue = (proto: any, configPropName: string) => {
-    const envVarValue = process.env[configPropName.toUpperCase()];
-    return typeof (proto as any)[configPropName] === "object"
-        ? JSON.parse(envVarValue)
-        : envVarValue;
+const fileExists = async (filePath: string): Promise<boolean> => {
+	try {
+		await access(filePath);
+		return true;
+	} catch (error) {
+		if (error.code === "ENOENT") {
+			return false;
+		}
+		throw error;
+	}
 };
 
-export const updateConfigurationDataWithEnvVarValues = <T> (proto: T, conf: T) =>
-    Object.keys(proto).reduce(
-        (acc: any, key: string) => process.env[key.toUpperCase()]
-            ? Object.assign(acc, {[key]: getEnvVarValue(proto, key)})
-            : acc,
-        conf
-    );
+if (isNil(process.env.HOME) || process.env.HOME === "") {
+	throw new Error("process.env.HOME isn't defined");
+}
+
+const ICONREPO_HOME = path.resolve(process.env.HOME, ".ui-toolbox/iconrepo");
+
+const configurationDataProto = {
+	server_hostname: "",
+	server_port: 0,
+	server_url_context: "",
+	app_description: "",
+	path_to_static_files: "",
+	icon_data_location_git: "",
+	icon_data_create_new: false,
+	authentication_type: "",
+	oidc_client_id: "",
+	oidc_client_secret: "",
+	oidc_access_token_url: "",
+	oidc_user_authorization_url: "",
+	oidc_client_redirect_back_url: "",
+	oidc_token_issuer: "",
+	oidc_ip_jwt_public_key_url: "",
+	oidc_ip_jwt_public_key_pem_base64: "",
+	oidc_ip_logout_url: "",
+	conn_host: "",
+	conn_port: "",
+	conn_user: "",
+	conn_password: "",
+	conn_database: "",
+	enable_backdoors: false,
+	package_root_dir: ""
+};
+
+export type ConfigurationData = Readonly<
+	typeof configurationDataProto &
+{ users_by_roles: Record<string, string[]> }
+>;
+
+const defaultSettings = Object.freeze({
+	server_hostname: "localhost",
+	server_port: 8090,
+	server_url_context: "/",
+	authentication_type: "oidc",
+	app_description: "Collection of custom icons designed at Wombat Inc.",
+	path_to_static_files: path.join(__dirname, "..", "..", "..", "client", "dist"),
+	icon_data_location_git: path.resolve(ICONREPO_HOME, "git-repo"),
+	conn_host: "localhost",
+	conn_port: "5432",
+	conn_user: "iconrepo",
+	conn_password: "iconrepo",
+	conn_database: "iconrepo",
+	icon_data_create_new: false,
+	enable_backdoors: false,
+	package_root_dir: path.resolve(path.dirname(__filename))
+});
+
+const getEnvVarValue = (proto: any, configPropName: string): string | Record<string, any> => {
+	const envVarValue = process.env[configPropName.toUpperCase()];
+	return isNil(envVarValue)
+		? ""
+		: typeof (proto)[configPropName] === "object"
+			? JSON.parse(envVarValue)
+			: envVarValue;
+};
+
+export const updateConfigurationDataWithEnvVarValues = <T extends Record<string, any>> (proto: T, conf: T): T =>
+	Object.keys(proto).reduce(
+		(acc: any, key: string) => !isNil(process.env[key.toUpperCase()])
+			? Object.assign(acc, { [key]: getEnvVarValue(proto, key) })
+			: acc,
+		conf
+	);
 
 export const getDefaultConfiguration: () => ConfigurationData = () => Object.assign(
-    clone(configurationDataProto),
-    clone(defaultSettings)
+	updateConfigurationDataWithEnvVarValues(configurationDataProto as ConfigurationData, clone(defaultSettings) as ConfigurationData)
 );
 
-const ctxLogger = loggerFactory("appConfig");
+const logger = createLogger("appConfig");
 
-export const DEFAULT_CONFIG_FILE_PATH = path.join(ICON_REPO_HOME, "config.json");
+export const DEFAULT_CONFIG_FILE_PATH = path.join(ICONREPO_HOME, "config.json");
 
 const getConfigFilePathByProfile: (configProfile: string) => string = configProfile => {
-    return path.resolve(__dirname, "..", "configurations", `${configProfile}.json`);
+	return path.resolve(__dirname, "..", "configurations", `${configProfile}.json`);
 };
 
 export const getConfigFilePath: () => string = () => {
-    let result = null;
-    if (process.env.ICON_REPO_CONFIG_FILE) {
-        result = process.env.ICON_REPO_CONFIG_FILE;
-    } else if (process.env.ICON_REPO_CONFIG_PROFILE) {
-        result = getConfigFilePathByProfile(process.env.ICON_REPO_CONFIG_PROFILE);
-    } else {
-        result = DEFAULT_CONFIG_FILE_PATH;
-    }
-    ctxLogger.info("Configuration file: " + result);
-    return result;
+	let result = null;
+	if (!isNil(process.env.ICONREPO_CONFIG_FILE)) {
+		result = process.env.ICONREPO_CONFIG_FILE;
+	} else if (!isNil(process.env.ICON_REPO_CONFIG_PROFILE)) {
+		result = getConfigFilePathByProfile(process.env.ICON_REPO_CONFIG_PROFILE);
+	} else {
+		result = DEFAULT_CONFIG_FILE_PATH;
+	}
+	logger.info("Configuration file: " + result);
+	return result;
 };
 
 const configFilePath: string = getConfigFilePath();
 
-const ignoreJSONSyntaxError: (error: any) => Rx.Observable<any> = error => {
-    if (error instanceof SyntaxError) {
-        ctxLogger.error("Skipping syntax error...");
-        return Rx.of({});
-    } else {
-        throw error;
-    }
+const ignoreJSONSyntaxError = async (error: any): Promise<any> => {
+	if (error instanceof SyntaxError) {
+		logger.error("Skipping syntax error...");
+		return {};
+	} else {
+		throw error;
+	}
 };
 
-export const readConfiguration: <T> (filePath: string, proto: T, defaults: any) => Rx.Observable<T>
-= (filePath, proto, defaults) => {
-    return fileExists(filePath)
-        .pipe(
-            flatMap(exists => {
-                if (exists) {
-                    ctxLogger.info(strformat("Updating configuration from %s...", configFilePath));
-                    return readTextFile(filePath)
-                        .pipe(
-                            map(fileContent => JSON.parse(fileContent)),
-                            catchError(error => ignoreJSONSyntaxError(error))
-                        );
-                } else {
-                    ctxLogger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
-                    return Rx.of({});
-                }
-            }),
-            map(json => Object.assign(clone(defaults), json)),
-            tap(conf => updateConfigurationDataWithEnvVarValues(proto, conf))
-        );
+export const readConfiguration = async (filePath: string, proto: ConfigurationData, defaults: any): Promise<ConfigurationData | null> => {
+	const exists = await fileExists(filePath);
+	if (exists) {
+		logger.info(strformat("Updating configuration from %s...", configFilePath));
+		const fileContent = await readFile(filePath, "utf-8");
+		let contentAsJSON;
+		try {
+			contentAsJSON = JSON.parse(fileContent);
+		} catch (error) {
+			await ignoreJSONSyntaxError(error);
+		}
+		const conf = Object.assign(clone(defaults), contentAsJSON);
+		return updateConfigurationDataWithEnvVarValues(proto, conf);
+	} else {
+		logger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
+		return null;
+	}
 };
 
-const updateState: () => Rx.Observable<ConfigurationData> = () =>
-    readConfiguration(configFilePath, configurationDataProto, defaultSettings)
-        .pipe(
-            tap(conf => {
-                configurationData = conf;
-            }),
-            map(() => Object.freeze(configurationData))
-        );
+const updateState = async (): Promise<ConfigurationData | null> => {
+	const conf = await readConfiguration(configFilePath, configurationDataProto as ConfigurationData, defaultSettings);
+	return conf === null ? null : Object.freeze(conf);
+};
 
-let watcher: fs.FSWatcher = null;
+let watcher: FSWatcher | null = null;
 
-const watchConfigFile = (filePathToWatch: string) => {
-    if (watcher != null) {
-        watcher.close();
-    }
-    watcher = fs.watch(filePathToWatch, (event, filename) => {
-        switch (event) {
-            case "rename": // Editing with vim results in this event
-                fileExists(filePathToWatch)
-                .pipe(
-                    tap(exists => {
-                        ctxLogger.info(`Ooops! Configuration file was renamed: ${filePathToWatch}?`);
-                    }),
-                    filter(exists => exists),
-                    tap(b => updateState())
-                )
-                .subscribe(
-                    () => watchConfigFile(filePathToWatch),
-                    err => ctxLogger.info(strformat("Configuration error: %o", err)),
-                    void 0
-                );
-                break;
-            case "change":
-                updateState();
-                break;
-        }
-    });
+const watchHandler = (filePathToWatch: string) => async (event: "rename" | "change"): Promise<void> => {
+	switch (event) {
+		case "rename": // Editing with vim results in this event
+			logger.info(`Ooops! Configuration file was renamed: ${filePathToWatch}?`);
+			try {
+				const exists = await fileExists(filePathToWatch);
+				if (exists) {
+					await updateState();
+					watchConfigFile(filePathToWatch);
+				}
+			} catch (error) {
+				logger.info(strformat("Configuration error: %o", error));
+			}
+			break;
+		case "change":
+			await updateState();
+			break;
+	}
+};
+
+const watchConfigFile = (filePathToWatch: string): void => {
+	if (watcher !== null) {
+		watcher.close();
+	}
+	watcher = watch(filePathToWatch, watchHandler);
 };
 
 if (process.env.IGNORE_CONFIG_FILE_CHANGE !== "true") {
-    Rx.forkJoin(Rx.of(configFilePath), fileExists(configFilePath))
-    .pipe(
-        filter(value => value[1]),
-        tap(value => watchConfigFile(value[0]))
-    )
-    .subscribe();
+	fileExists(configFilePath)
+		.then(
+			exists => {
+				if (exists) {
+					watchConfigFile(configFilePath);
+				}
+			}
+		)
+		.catch(error => {
+			logger.error("failed to watch config file %s: %o", configFilePath, error);
+		});
 } else {
-    ctxLogger.info("Ignoring changes in configuration file");
+	logger.info("Ignoring changes in configuration file");
 }
 
 export default updateState();

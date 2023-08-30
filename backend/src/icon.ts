@@ -1,16 +1,16 @@
-import { Set } from "immutable";
+import { isEqual } from "lodash";
 
 export interface IconfileDescriptor {
-    readonly format: string;
-    readonly size: string;
+	readonly format: string
+	readonly size: string
 }
 
 export interface IconfileData extends IconfileDescriptor {
-    readonly content: Buffer;
+	readonly content: Buffer
 }
 
 export interface IconAttributes {
-    name: string;
+	readonly name: string
 }
 
 export interface IconfileDescriptorEx extends IconfileDescriptor, IconAttributes {}
@@ -18,42 +18,37 @@ export interface IconfileDescriptorEx extends IconfileDescriptor, IconAttributes
 export interface Iconfile extends IconAttributes, IconfileData {}
 
 export class IconDescriptor implements IconAttributes {
-    public readonly name: string;
-    public readonly modifiedBy: string;
-    public readonly iconfiles: Set<IconfileDescriptor>;
-    public readonly tags: Set<string>;
+	public readonly name: string;
+	public readonly modifiedBy: string;
+	public readonly iconfiles: IconfileDescriptor[];
+	public readonly tags: string[];
 
-    constructor(name: string, modifiedBy: string, iconfiles: Set<IconfileDescriptor>, tags: Set<string>) {
-        this.name = name;
-        this.modifiedBy = modifiedBy;
-        this.iconfiles = iconfiles || Set();
-        this.tags = tags || Set();
-    }
+	constructor (name: string, modifiedBy: string, iconfiles: IconfileDescriptor[], tags: string[]) {
+		this.name = name;
+		this.modifiedBy = modifiedBy;
+		this.iconfiles = iconfiles ?? [];
+		this.tags = tags ?? [];
+	}
 
-    public addIconfile(iconfile: IconfileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles.add(iconfile), this.tags);
-    }
+	public addIconfile (iconfile: IconfileDescriptor): IconDescriptor {
+		return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles.concat(iconfile), this.tags);
+	}
 
-    public removeIconfile(iconfile: IconfileDescriptor): IconDescriptor {
-        return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles.remove(iconfile), this.tags);
-    }
+	public removeIconfile (iconfile: IconfileDescriptor): IconDescriptor {
+		return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles.filter(ifi => isEqual(ifi, iconfile)), this.tags);
+	}
 
-    public addTag(tag: string): IconDescriptor {
-        return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles, this.tags.add(tag));
-    }
+	public addTag (tag: string): IconDescriptor {
+		return new IconDescriptor(this.name, this.modifiedBy, this.iconfiles, this.tags.concat(tag));
+	}
 }
 
-export class IconNotFound {
-    public readonly message: string;
-    constructor(m: string) {
-        this.message = m;
-    }
-}
+export class IconNotFound extends Error {}
 
 export class IconfileAlreadyExists {
-    public readonly message: string;
+	public readonly message: string;
 
-    constructor(iconfile: Iconfile) {
-        this.message = `A file ${iconfile.format}@${iconfile.size} for icon ${iconfile.name} already exists`;
-    }
+	constructor (iconfile: Iconfile) {
+		this.message = `A file ${iconfile.format}@${iconfile.size} for icon ${iconfile.name} already exists`;
+	}
 }

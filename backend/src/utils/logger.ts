@@ -1,44 +1,38 @@
 import * as winston from "winston";
-import { Map } from "immutable";
+import { isNil } from "lodash";
+import { format } from "util";
 
 export type LoggerFactory = (label: string) => winston.Logger;
-
-let defaultLogLevel = "info";
+export type LogLevel = "error" | "warning" | "info" | "debug" | "trace" | "silly";
 
 // Keep track of the loggers by label, so they can be reconfigured, if necessary
-let loggers: Map<string, winston.Logger> = Map();
+type Loggers = Record<string, winston.Logger>;
+const loggers: Loggers = {};
 
-const loggerFactory = (label: string) => {
+export const getDefaultLogLevel = (): string => process.env.ICONREPO_DEFAULT_LOG_LEVEL ?? "info";
 
-    const cached = loggers.get(label);
+console.log(">>>>>>>>>>> default log-level", getDefaultLogLevel());
 
-    if (cached) {
-        return cached;
-    } else {
-        const logger = winston.createLogger({
-            level: defaultLogLevel,
-            format: winston.format.combine(
-                winston.format.splat(),
-                winston.format.timestamp(),
-                winston.format.label({label}),
-                winston.format.printf(info => `${info.timestamp} ${info.level}: ${label}: ${info.message}`)
-            ),
-            transports: [ new winston.transports.Console() ]
-        });
-        loggers = loggers.set(label, logger);
-        return logger;
-    }
+export const createLogger = (label: string): winston.Logger => {
+	const cached = loggers[label];
+
+	if (!isNil(cached)) {
+		return cached;
+	} else {
+		const level = getDefaultLogLevel();
+		console.log(format("creating logger '%s' with level '%s'", label, level));
+
+		const logger = winston.createLogger({
+			level,
+			format: winston.format.combine(
+				winston.format.splat(),
+				winston.format.timestamp(),
+				winston.format.label({ label }),
+				winston.format.printf(info => `${info.timestamp} ${info.level}: ${label}: ${info.message}`)
+			),
+			transports: [new winston.transports.Console()]
+		});
+		loggers[label] = logger;
+		return logger;
+	}
 };
-
-export const setDefaultLogLevel = (logLevel: string) => {
-    defaultLogLevel = logLevel;
-};
-
-export const updateDefaultLogLevel = (logLevel: string) => {
-    defaultLogLevel = logLevel;
-    loggers.valueSeq().forEach(logger => logger.level = logLevel);
-};
-
-export const getDefaultLogLevel = () => defaultLogLevel;
-
-export default loggerFactory;

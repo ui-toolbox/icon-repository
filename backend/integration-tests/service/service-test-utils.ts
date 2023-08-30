@@ -1,21 +1,17 @@
-import { map, last } from "rxjs/operators";
-import configurationProvider, { ConfigurationData } from "../../src/configuration";
-import { Observable } from "rxjs";
+import configurationProvider, { type ConfigurationData } from "../../src/configuration";
 
 export const defaultTestServerconfig = Object.freeze({
-    authentication_type: "basic",
-    icon_data_create_new: "always"
+	authentication_type: "basic",
+	icon_data_create_new: "always"
 });
 
-export type CreateTestConfiguration = (customConfig: any) => Observable<ConfigurationData>;
-export const createTestConfiguration: CreateTestConfiguration
-= customConfig => configurationProvider
-.pipe(
-    last(),
-    map(configuration => Object.freeze({
-        ...configuration,
-        ...defaultTestServerconfig,
-        ...customConfig,
-        server_port: 0
-    }))
-);
+export type CreateTestConfiguration = (customConfig: ConfigurationData) => Promise<ConfigurationData>;
+export const createTestConfiguration: CreateTestConfiguration = async customConfig => {
+	const configuration = await configurationProvider;
+	return Object.freeze({
+		...configuration,
+		...defaultTestServerconfig,
+		...customConfig,
+		server_port: 0
+	});
+};

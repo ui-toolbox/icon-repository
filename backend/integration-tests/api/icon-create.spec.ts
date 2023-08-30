@@ -1,156 +1,127 @@
-import { boilerplateSubscribe } from "../testUtils";
-import { flatMap, map, last } from "rxjs/operators";
 import {
-    iconEndpointPath,
-    manageTestResourcesBeforeAndAfter,
-    getCheckIconfile,
-    defaultAuth} from "./api-test-utils";
-import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
+	iconEndpointPath,
+	manageTestResourcesBeforeAndAfter,
+	getCheckIconfile,
+	defaultAuth
+} from "./api-test-utils";
+import { Permission } from "../../src/security/authorization/permissions/groups-permissions";
 
 import {
-    getCurrentCommit as getCurrentGitCommit,
-    assertGitCleanStatus } from "../git/git-test-utils";
-import { setEnvVar } from "../../src/configuration.spec";
+	getCurrentCommit as getCurrentGitCommit,
+	assertGitCleanStatus
+} from "../git/git-test-utils";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
-import { List } from "immutable";
 import { setAuth, createIcon, describeAllIcons, getFilePath } from "./api-client";
-import { IconDTO } from "../../src/iconsHandlers";
+import { type IconDTO } from "../../src/icons-handlers";
 import {
-    testIconInputData,
-    addTestData,
-    getIngestedTestIconDataDescription,
-    getDemoIconfileContent } from "./icon-api-test-utils";
-import { Iconfile, IconfileDescriptor } from "../../src/icon";
+	testIconInputData,
+	addTestData,
+	getPreIngestedTestIconDataDescription,
+	getDemoIconfileContent
+} from "./icon-api-test-utils";
+import { type Iconfile, type IconfileDescriptor } from "../../src/icon";
 
 describe(iconEndpointPath, () => {
+	const createSession = manageTestResourcesBeforeAndAfter();
 
-    const agent = manageTestResourcesBeforeAndAfter();
+	it("POST should fail with 403 without CREATE_ICON privilege", async () => {
+		const iconName: string = "dock";
+		const format = "png";
+		const sizeInDP = "36dp";
 
-    it ("POST should fail with 403 without CREATE_ICON privilege", done => {
-        const iconName: string = "dock";
-        const format = "png";
-        const sizeInDP = "36dp";
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await setAuth(session.request(), []);
+		const content = await getDemoIconfileContent(iconName, { format, size: sizeInDP });
+		await createIcon(
+			session.request({ responseValidator: resp => resp.status === 403 }),
+			iconName, content);
+	});
 
-        const session = agent();
-        setAuth(session.requestBuilder(), [])
-        .pipe(
-            flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP })),
-            flatMap(content => createIcon(
-                    session.responseOK(resp => resp.status === 403).requestBuilder(),
-                    iconName, content))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("POST should complete with CREATE_ICON privilege", async () => {
+		const iconName = "dock";
+		const format = "png";
+		const sizeInDP = "36dp";
+		const size = "54px";
 
-    it ("POST should complete with CREATE_ICON privilege", done => {
-        const iconName = "dock";
-        const format = "png";
-        const sizeInDP = "36dp";
-        const size = "54px";
+		const expectedIconInfo: IconDTO = {
+			name: iconName,
+			modifiedBy: defaultAuth.user,
+			paths: [{
+				path: getFilePath(iconName, { format, size }),
+				format,
+				size
+			}],
+			tags: []
+		};
 
-        const expectedIconInfo: IconDTO = {
-            name: iconName,
-            modifiedBy: defaultAuth.user,
-            paths: [{
-                path: getFilePath(iconName, {format, size}),
-                format,
-                size
-            }],
-            tags: []
-        };
+		const permissions = [
+			Permission.CREATE_ICON
+		];
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await setAuth(session.request(), permissions);
+		const content = await getDemoIconfileContent(iconName, { format, size: sizeInDP });
+		const actualIconInfo = await createIcon(session.request(), iconName, content);
+		expect(actualIconInfo).toEqual(expectedIconInfo);
+		const iconInfoList = await describeAllIcons(session.request());
+		expect(iconInfoList.length).toEqual(1);
+		expect({ ...iconInfoList[0] }).toEqual({ ...expectedIconInfo });
+	});
 
-        const privileges = [
-            privilegeDictionary.CREATE_ICON
-        ];
-        const session = agent();
-        setAuth(session.requestBuilder(), privileges)
-        .pipe(
-            flatMap(() => getDemoIconfileContent(iconName, { format, size: sizeInDP})),
-            flatMap(content => createIcon(session.requestBuilder(), iconName, content)),
-            flatMap(iconfileInfo => {
-                expect(iconfileInfo).toEqual({iconName, format, size, path: expectedIconInfo.paths[0].path});
-                return describeAllIcons(session.requestBuilder());
-            }),
-            map(iconInfoList => {
-                expect(iconInfoList.size).toEqual(1);
-                expect({...iconInfoList.get(0)}).toEqual({...expectedIconInfo});
-            })
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("POST should be capable of creating multiple icons in a row", async () => {
+		const sampleIconName1 = testIconInputData[0].name;
+		const sampleIconfileDesc1: IconfileDescriptor = testIconInputData[0].files[0];
+		const sampleIconName2 = testIconInputData[1].name;
+		const sampleIconfileDesc2: IconfileDescriptor = testIconInputData[1].files[1];
 
-    it ("POST should be capable of creating multiple icons in a row", done => {
-        const sampleIconName1 = testIconInputData.get(0).name;
-        const sampleIconfileDesc1: IconfileDescriptor = testIconInputData.get(0).files.get(0);
-        const sampleIconName2 = testIconInputData.get(1).name;
-        const sampleIconfileDesc2: IconfileDescriptor = testIconInputData.get(1).files.get(1);
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		let content = await getDemoIconfileContent(sampleIconName1, sampleIconfileDesc1);
+		await getCheckIconfile(session, {
+			name: sampleIconName1,
+			...sampleIconfileDesc1,
+			content
+		});
+		content = await getDemoIconfileContent(sampleIconName2, sampleIconfileDesc2);
+		await getCheckIconfile(session, {
+			name: sampleIconName2,
+			...sampleIconfileDesc2,
+			content
+		});
+		await assertGitCleanStatus();
+		const iconDTOList = await describeAllIcons(session.request());
+		expect(new Set(iconDTOList)).toEqual(new Set(getPreIngestedTestIconDataDescription()));
+	});
 
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-            .pipe(
-                last(),
-                flatMap(() => testIconInputData.toArray()),
-                flatMap(() => getDemoIconfileContent(sampleIconName1, sampleIconfileDesc1)),
-                flatMap(content => getCheckIconfile(session, {
-                    name: sampleIconName1,
-                    ...sampleIconfileDesc1,
-                    content
-                })),
-                flatMap(() => getDemoIconfileContent(sampleIconName2, sampleIconfileDesc2)),
-                flatMap(content => getCheckIconfile(session, {
-                    name: sampleIconName2,
-                    ...sampleIconfileDesc2,
-                    content
-                })),
-                flatMap(() => assertGitCleanStatus()),
-                flatMap(() => describeAllIcons(session.requestBuilder())),
-                map(iconDTOList =>
-                    expect(new Set(iconDTOList.toArray()))
-                        .toEqual(new Set(getIngestedTestIconDataDescription())))
-            )
-            .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("POST should rollback to last consistent state, in case an error occurs", async () => {
+		const iconfileToFind1: Iconfile = {
+			name: testIconInputData[0].name,
+			...testIconInputData[0].files[0]
+		};
+		const iconfileToFind2: Iconfile = {
+			name: testIconInputData[0].name,
+			...testIconInputData[0].files[1]
+		};
 
-    it ("POST should rollback to last consistent state, in case an error occurs", done => {
-        const iconfileToFind1: Iconfile = {
-            name: testIconInputData.get(0).name,
-            ...testIconInputData.get(0).files.get(0)
-        };
-        const iconfileToFind2: Iconfile = {
-            name: testIconInputData.get(0).name,
-            ...testIconInputData.get(0).files.get(1)
-        };
-
-        const session = agent();
-        addTestData(session.requestBuilder(), List.of(testIconInputData.get(0)))
-        .pipe(
-            last(),
-            flatMap(() =>
-                getCurrentGitCommit()
-                .pipe(
-                    flatMap(gitSha1 => {
-                        setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true");
-                        return addTestData(
-                            session
-                                .responseOK(resp => resp.status === 500)
-                                .requestBuilder(),
-                            List.of(testIconInputData.get(1))
-                        )
-                        .pipe(
-                            flatMap(() => getCurrentGitCommit()
-                                .pipe(map(gitSha2 => expect(gitSha1).toEqual(gitSha2)))),
-                            flatMap(() => getCheckIconfile(session, iconfileToFind1)),
-                            flatMap(() => getCheckIconfile(session, iconfileToFind2))
-                        );
-                    })
-                )),
-            flatMap(() => assertGitCleanStatus()),
-            flatMap(() => describeAllIcons(session.requestBuilder())),
-            map(iconInfoList => {
-                expect(iconInfoList.size).toEqual(1);
-                expect(iconInfoList.get(0)).toEqual(getIngestedTestIconDataDescription()[0]);
-            })
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), [testIconInputData[0]]);
+		const gitSha1 = await getCurrentGitCommit();
+		process.env[GIT_COMMIT_FAIL_INTRUSIVE_TEST] = "true";
+		await addTestData(
+			session
+				.request({ responseValidator: resp => resp.status === 500 }),
+			[testIconInputData[1]]
+		);
+		const gitSha2 = await getCurrentGitCommit();
+		expect(gitSha1).toEqual(gitSha2);
+		await getCheckIconfile(session, iconfileToFind1);
+		await getCheckIconfile(session, iconfileToFind2);
+		await assertGitCleanStatus();
+		const iconInfoList = await describeAllIcons(session.request());
+		expect(iconInfoList.length).toEqual(1);
+		expect(iconInfoList[0]).toEqual(getPreIngestedTestIconDataDescription()[0]);
+	});
 });

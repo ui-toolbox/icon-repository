@@ -1,207 +1,150 @@
-import { flatMap, map, last } from "rxjs/operators";
-import { boilerplateSubscribe } from "../testUtils";
 import {
-    iconEndpointPath,
-    manageTestResourcesBeforeAndAfter } from "./api-test-utils";
-import { privilegeDictionary } from "../../src/security/authorization/privileges/priv-config";
+	iconEndpointPath,
+	manageTestResourcesBeforeAndAfter
+} from "./api-test-utils";
+import { Permission } from "../../src/security/authorization/permissions/groups-permissions";
 
 import { setAuth, describeAllIcons, updateIcon, ingestIconfile, describeIcon } from "./api-client";
 import {
-    testIconInputData,
-    addTestData,
-    ingestedTestIconData,
-    getIngestedTestIconDataDescription,
-    moreTestIconInputData } from "./icon-api-test-utils";
-import { IconAttributes } from "../../src/icon";
+	testIconInputData,
+	addTestData,
+	ingestedTestIconData,
+	getPreIngestedTestIconDataDescription,
+	moreTestIconInputData
+} from "./icon-api-test-utils";
+import { type IconAttributes } from "../../src/icon";
 import { assertGitCleanStatus, assertFileInRepo, assertFileNotInRepo } from "../git/git-test-utils";
 import clone from "../../src/utils/clone";
-import { createIconfilePath, IconDTO } from "../../src/iconsHandlers";
+import { createIconfilePath, type IconDTO } from "../../src/icons-handlers";
 
 describe(`PATCH ${iconEndpointPath}`, () => {
+	const createSession = manageTestResourcesBeforeAndAfter();
 
-    const agent = manageTestResourcesBeforeAndAfter();
+	it("should fail with 403 without UPDATE_ICON privilege", async () => {
+		const oldIconName = "cartouche";
+		const newIcon: IconAttributes = {
+			name: "some icon name"
+		};
 
-    it ("should fail with 403 without UPDATE_ICON privilege", done => {
-        const oldIconName = "cartouche";
-        const newIcon: IconAttributes = {
-            name: "some icon name"
-        };
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		await setAuth(session.request(), []);
+		await updateIcon(
+			session.request({ responseValidator: resp => resp.status === 403 }),
+			oldIconName,
+			newIcon
+		);
+	});
 
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            last(),
-            flatMap(() => setAuth(session.requestBuilder(), [])),
-            flatMap(() => updateIcon(
-                session.responseOK(resp => resp.status === 403).requestBuilder(),
-                oldIconName,
-                newIcon
-            ))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("should complete with UPDATE_ICON privilege", async () => {
+		const testAllIconDescriptor = getPreIngestedTestIconDataDescription();
 
-    it ("should complete with UPDATE_ICON privilege", done => {
-        const testAllIconDescriptor = getIngestedTestIconDataDescription();
+		const oldIconName = testIconInputData[0].name;
+		const newIconAttributes: IconAttributes = Object.freeze({
+			name: "some new icon name"
+		});
 
-        const oldIconName = testIconInputData.get(0).name;
-        const newIconAttributes: IconAttributes = Object.freeze({
-            name: "some new icon name"
-        });
+		const changedIconDTO: IconDTO = {
+			name: newIconAttributes.name,
+			modifiedBy: testAllIconDescriptor[1].modifiedBy,
+			paths: [
+				{ format: "png", size: "36px", path: `/icon/${newIconAttributes.name}/format/png/size/36px` },
+				{ format: "svg", size: "18px", path: `/icon/${newIconAttributes.name}/format/svg/size/18px` },
+				{ format: "svg", size: "24px", path: `/icon/${newIconAttributes.name}/format/svg/size/24px` }
+			],
+			tags: []
+		};
+		// Expected order is lexicographic by icon name: "cast..." first, "some icon name" second
+		const expectedIconDescriptors = [
+			testAllIconDescriptor[1],
+			changedIconDTO
+		];
 
-        const changedIconDTO: IconDTO = {
-            name: newIconAttributes.name,
-            modifiedBy: testAllIconDescriptor[1].modifiedBy,
-            paths: [
-                { format: "png", size: "36px", path: `/icon/${newIconAttributes.name}/format/png/size/36px` },
-                { format: "svg", size: "18px", path: `/icon/${newIconAttributes.name}/format/svg/size/18px` },
-                { format: "svg", size: "24px", path: `/icon/${newIconAttributes.name}/format/svg/size/24px` }
-            ],
-            tags: []
-        };
-        // Expected order is lexicographic by icon name: "cast..." first, "some icon name" second
-        const expectedIconDescriptors = [
-            testAllIconDescriptor[1],
-            changedIconDTO
-        ];
+		const oldIngestedIconfiles = ingestedTestIconData[0].files;
 
-        const oldIngestedIconfiles = ingestedTestIconData.get(0).files;
-
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            last(),
-            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON ])
-                .pipe(
-                    flatMap(() => updateIcon(
-                        session.responseOK(resp => resp.status === 204).requestBuilder(),
-                        oldIconName,
-                        newIconAttributes
-                    ))
-                )),
-            flatMap(() => describeAllIcons(session.requestBuilder())),
-            map(iconInfoList => expect(iconInfoList.toArray()).toEqual(expectedIconDescriptors)),
-            // Assert GIT status:
-            flatMap(() => assertGitCleanStatus()),
-            flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(0))),
-            flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(1))),
-            flatMap(() => assertFileNotInRepo(oldIconName, testIconInputData.get(0).files.get(2))),
-            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles.get(0) })),
-            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles.get(1) })),
-            flatMap(() => assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles.get(2) }))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		await updateIcon(
+			session.request({ responseValidator: resp => resp.status === 204 }),
+			oldIconName,
+			newIconAttributes
+		);
+		const iconInfoList = await describeAllIcons(session.request());
+		expect(iconInfoList).toEqual(expectedIconDescriptors);
+		// Assert GIT status:
+		await assertGitCleanStatus();
+		await assertFileNotInRepo(oldIconName, testIconInputData[0].files[0]);
+		await assertFileNotInRepo(oldIconName, testIconInputData[0].files[1]);
+		await assertFileNotInRepo(oldIconName, testIconInputData[0].files[2]);
+		await assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles[0] });
+		await assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles[1] });
+		await assertFileInRepo({ name: newIconAttributes.name, ...oldIngestedIconfiles[2] });
+	});
 });
 
 describe(`POST ${iconEndpointPath}`, () => {
+	const createSession = manageTestResourcesBeforeAndAfter();
 
-    const agent = manageTestResourcesBeforeAndAfter();
+	it("should not allow adding icon-files without proper privilege", async () => {
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		await setAuth(session.request(), []);
+		await ingestIconfile(
+			session.request({ responseValidator: resp => resp.status === 403 }),
+			testIconInputData[0].name,
+			moreTestIconInputData[0].files[0].content
+		);
+	});
 
-    it("should not allow adding icon-files without proper privilege", done => {
-        const testAllIconDescriptor = getIngestedTestIconDataDescription();
+	it("should allow adding icon-files with UPDATE_ICON and ADD_ICONFILE privilege", async () => {
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await	addTestData(session.request(), testIconInputData);
+		await setAuth(session.request(), [Permission.UPDATE_ICON, Permission.ADD_ICONFILE]);
+		await ingestIconfile(
+			session.request({ responseValidator: resp => resp.status === 200 }),
+			testIconInputData[0].name,
+			moreTestIconInputData[0].files[1].content
+		);
+	});
 
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            last(),
-            flatMap(() => setAuth(session.requestBuilder(), [])
-                .pipe(
-                        flatMap(() => ingestIconfile(
-                        session.responseOK(resp => resp.status === 403).requestBuilder(),
-                        testIconInputData.get(0).name,
-                        moreTestIconInputData.get(0).files.get(0).content
-                    ))
-                ))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("should allow adding icon-files with new format-size combinations", async () => {
+		const nameOfIconToUpdate = testIconInputData[0].name;
+		const iconfileToAdd = moreTestIconInputData[0].files[1];
 
-    it("should allow adding icon-files with UPDATE_ICON privilege", done => {
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            last(),
-            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.UPDATE_ICON])
-                .pipe(
-                    flatMap(() => ingestIconfile(
-                        session.responseOK(resp => resp.status === 200).requestBuilder(),
-                        testIconInputData.get(0).name,
-                        moreTestIconInputData.get(0).files.get(1).content
-                    ))
-                ))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+		const expectedIconDescription = clone(getPreIngestedTestIconDataDescription()[0]);
+		const addedIconfileDescription = {
+			format: iconfileToAdd.format,
+			size: iconfileToAdd.size,
+			path: createIconfilePath("/icon", nameOfIconToUpdate, iconfileToAdd)
+		};
+		expectedIconDescription.paths.push(addedIconfileDescription);
 
-    it("should allow adding icon-files with ADD_ICONFILE privilege", done => {
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            last(),
-            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
-                .pipe(
-                    flatMap(() => ingestIconfile(
-                        session.responseOK(resp => resp.status === 200).requestBuilder(),
-                        testIconInputData.get(0).name,
-                        moreTestIconInputData.get(0).files.get(1).content
-                    ))
-                ))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		const iconfileInfo = await ingestIconfile(
+			session.request({ responseValidator: resp => resp.status === 200 }),
+			nameOfIconToUpdate,
+			iconfileToAdd.content
+		);
+		expect(iconfileInfo).toEqual({ iconName: nameOfIconToUpdate, ...addedIconfileDescription });
+		const iconDescription = await describeIcon(session.request(), nameOfIconToUpdate);
+		expect(iconDescription.name).toEqual(expectedIconDescription.name);
+		expect(iconDescription.paths).toEqual(expectedIconDescription.paths);
+	});
 
-    it("should allow adding icon-files with new format-size combinations", done => {
-        const nameOfIconToUpdate = testIconInputData.get(0).name;
-        const iconfileToAdd = moreTestIconInputData.get(0).files.get(1);
-
-        const expectedIconDescription = clone(getIngestedTestIconDataDescription()[0]);
-        const addedIconfileDescription = {
-            format: iconfileToAdd.format,
-            size: iconfileToAdd.size,
-            path: createIconfilePath("/icon", nameOfIconToUpdate, iconfileToAdd)
-        };
-        expectedIconDescription.paths.push(addedIconfileDescription);
-
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
-                .pipe(
-                    last(),
-                    flatMap(() => ingestIconfile(
-                        session.responseOK(resp => resp.status === 200).requestBuilder(),
-                        nameOfIconToUpdate,
-                        iconfileToAdd.content
-                    ))
-                )),
-            flatMap(iconfileInfo => {
-                expect(iconfileInfo).toEqual({iconName: nameOfIconToUpdate, ...addedIconfileDescription});
-                return describeIcon(session.requestBuilder(), nameOfIconToUpdate);
-            }),
-            map(iconDescription => {
-                expect(iconDescription.name).toEqual(expectedIconDescription.name);
-                expect(iconDescription.paths).toEqual(expectedIconDescription.paths);
-            })
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-
-    it("should not allow adding icon-files with already existing format-size combinations", done => {
-        const session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-        .pipe(
-            last(),
-            flatMap(() => setAuth(session.requestBuilder(), [ privilegeDictionary.ADD_ICONFILE])
-                .pipe(
-                        flatMap(() => ingestIconfile(
-                        session.responseOK(resp => resp.status === 409).requestBuilder(),
-                        testIconInputData.get(0).name,
-                        moreTestIconInputData.get(0).files.get(0).content
-                    ))
-                ))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("should not allow adding icon-files with already existing format-size combinations", async () => {
+		const session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		await ingestIconfile(
+			session.request({ responseValidator: resp => resp.status === 409 }),
+			testIconInputData[0].name,
+			moreTestIconInputData[0].files[0].content
+		);
+	});
 });

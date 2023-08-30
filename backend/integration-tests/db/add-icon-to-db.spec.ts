@@ -1,106 +1,76 @@
 import { randomBytes } from "crypto";
-import { of } from "rxjs";
 
 import {
-    getCheckIconfile,
-    assertIconCount,
-    manageTestResourcesBeforeAndAfter
- } from "./db-test-utils";
-import { Iconfile } from "../../src/icon";
-import { boilerplateSubscribe } from "../testUtils";
-import { setEnvVar } from "../../src/configuration.spec";
+	getCheckIconfile,
+	assertIconCount,
+	manageTestResourcesBeforeAndAfter
+} from "./db-test-utils";
+import { type Iconfile } from "../../src/icon";
 import { GIT_COMMIT_FAIL_INTRUSIVE_TEST } from "../../src/git";
 import { createIcon, getIconfile } from "../../src/db/icon";
-import { map, flatMap, tap, catchError } from "rxjs/operators";
 
 describe("addIconToDB", () => {
+	const getPool = manageTestResourcesBeforeAndAfter();
 
-    const getPool = manageTestResourcesBeforeAndAfter();
+	it("should be capable to add a first icon", async () => {
+		const user = "zazie";
+		const iconfileInfo: Iconfile = {
+			name: "metro-icon",
+			format: "french",
+			size: "great",
+			content: randomBytes(4096)
+		};
+		await createIcon(getPool())(iconfileInfo, user);
+		await getCheckIconfile(getIconfile(getPool()), iconfileInfo);
+	});
 
-    it("should be capable to add a first icon", done => {
-        const user = "zazie";
-        const iconfileInfo: Iconfile = {
-            name: "metro-icon",
-            format: "french",
-            size: "great",
-            content: randomBytes(4096)
-        };
-        createIcon(getPool())(iconfileInfo, user)
-        .pipe(
-            flatMap(result => {
-                return getCheckIconfile(getIconfile(getPool()), iconfileInfo);
-            })
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("should be capable to add a second icon", async () => {
+		const user = "zazie";
+		const iconfileInfo1: Iconfile = {
+			name: "metro-icon",
+			format: "french",
+			size: "great",
+			content: randomBytes(4096)
+		};
+		const iconfileInfo2: Iconfile = {
+			name: "animal-icon",
+			format: "french",
+			size: "huge",
+			content: randomBytes(4096)
+		};
+		await createIcon(getPool())(iconfileInfo1, user);
+		await createIcon(getPool())(iconfileInfo2, user);
+		const getIconfileFromDB = getIconfile(getPool());
+		await getCheckIconfile(getIconfileFromDB, iconfileInfo1);
+		await getCheckIconfile(getIconfileFromDB, iconfileInfo2);
+		await assertIconCount(getPool(), 2);
+	});
 
-    it("should be capable to add a second icon", done => {
-        const user = "zazie";
-        const iconfileInfo1: Iconfile = {
-            name: "metro-icon",
-            format: "french",
-            size: "great",
-            content: randomBytes(4096)
-        };
-        const iconfileInfo2: Iconfile = {
-            name: "animal-icon",
-            format: "french",
-            size: "huge",
-            content: randomBytes(4096)
-        };
-        createIcon(getPool())(iconfileInfo1, user)
-        .pipe(
-            flatMap(result1 => createIcon(getPool())(iconfileInfo2, user)
-                .pipe(
-                    flatMap(result2 => {
-                        const getIconfileFromDB = getIconfile(getPool());
-                        return getCheckIconfile(getIconfileFromDB, iconfileInfo1)
-                            .pipe(
-                                flatMap(() => getCheckIconfile(getIconfileFromDB, iconfileInfo2))
-                            );
-                    })
-                )),
-            flatMap(() => assertIconCount(getPool(), 2))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
-
-    it("should rollback to last consistent state, in case an error occurs in sideEffect", done => {
-        const user = "zazie";
-        const iconfileInfo1: Iconfile = {
-            name: "metro-icon",
-            format: "french",
-            size: "great",
-            content: randomBytes(4096)
-        };
-        const iconfileInfo2: Iconfile = {
-            name: "animal-icon",
-            format: "french",
-            size: "huge",
-            content: randomBytes(4096)
-        };
-        const sideEffectErrorMessage = "Error in creating side effect";
-        createIcon(getPool())(iconfileInfo1, user)
-        .pipe(
-            tap(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true")),
-            flatMap(result1 =>
-                createIcon(getPool())(iconfileInfo2, user, () => { throw Error(sideEffectErrorMessage); })
-                .pipe(
-                    map(() => fail("Expected an error to make exection skip this part")),
-                    catchError(error => {
-                        expect(error.message).toEqual(sideEffectErrorMessage);
-                        return of(void 0);
-                    }),
-                    flatMap(result2 => {
-                        expect(result2).toBeUndefined();
-                        const getIconfileFromDB = getIconfile(getPool());
-                        return getCheckIconfile(getIconfileFromDB, iconfileInfo1)
-                            .pipe(
-                                flatMap(() => assertIconCount(getPool(), 1))
-                            );
-                    })
-                ))
-        )
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	it("should rollback to last consistent state, in case an error occurs in sideEffect", async () => {
+		const user = "zazie";
+		const iconfileInfo1: Iconfile = {
+			name: "metro-icon",
+			format: "french",
+			size: "great",
+			content: randomBytes(4096)
+		};
+		const iconfileInfo2: Iconfile = {
+			name: "animal-icon",
+			format: "french",
+			size: "huge",
+			content: randomBytes(4096)
+		};
+		const sideEffectErrorMessage = "Error in creating side effect";
+		await createIcon(getPool())(iconfileInfo1, user);
+		process.env[GIT_COMMIT_FAIL_INTRUSIVE_TEST] = "true";
+		try {
+			await	createIcon(getPool())(iconfileInfo2, user, () => { throw Error(sideEffectErrorMessage); });
+			fail("Expected an error to make exection skip this part");
+		} catch (error) {
+			expect(error.message).toEqual(sideEffectErrorMessage);
+			const getIconfileFromDB = getIconfile(getPool());
+			await getCheckIconfile(getIconfileFromDB, iconfileInfo1);
+			await assertIconCount(getPool(), 1);
+		}
+	});
 });

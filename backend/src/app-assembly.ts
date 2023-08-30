@@ -1,15 +1,17 @@
 import { createConnectionProperties } from "./db/db";
 import gitRepositoryProvider from "./git";
-import iconServiceProvider, { IconService } from "./iconsService";
-import { Observable } from "rxjs";
+import { type IconService, createIconService } from "./icons-service";
 import iconRepositoryProvider from "./db/icon";
-import { ConfigurationData } from "./configuration";
+import { type ConfigurationData } from "./configuration";
 
-export const createDefaultIconService: (configuration: ConfigurationData) => Observable<IconService>
-= configuration => iconServiceProvider(
-    {
-        resetData: configuration.icon_data_create_new
-    },
-    iconRepositoryProvider(createConnectionProperties(configuration)),
-    gitRepositoryProvider(configuration.icon_data_location_git)
-);
+export const createDefaultIconService = async (configuration: ConfigurationData): Promise<IconService> => {
+	const iconRepository = iconRepositoryProvider(createConnectionProperties(configuration));
+
+	return await createIconService(
+		{
+			resetData: configuration.icon_data_create_new
+		},
+		iconRepository,
+		await gitRepositoryProvider(configuration.icon_data_location_git)
+	);
+};

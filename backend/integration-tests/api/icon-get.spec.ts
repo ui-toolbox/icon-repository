@@ -1,53 +1,39 @@
-import { manageTestResourcesBeforeAndAfter, Session, uxAuth } from "./api-test-utils";
-import { testIconInputData, addTestData, getIngestedTestIconDataDescription } from "./icon-api-test-utils";
-import { boilerplateSubscribe } from "../testUtils";
-import { describeIcon, describeAllIcons, getFilePath } from "./api-client";
-
-import { flatMap, map, last } from "rxjs/operators";
+import { manageTestResourcesBeforeAndAfter, type Session } from "./api-test-utils";
+import { testIconInputData, addTestData, getPreIngestedTestIconDataDescription } from "./icon-api-test-utils";
+import { describeIcon, describeAllIcons } from "./api-client";
 
 const allIconsPath = "/icon";
 
 describe(allIconsPath, () => {
+	const createSession = manageTestResourcesBeforeAndAfter();
+	let session: Session;
 
-    const agent = manageTestResourcesBeforeAndAfter();
-
-    it("GET should return the description of all icons in the repository", done => {
-        const session: Session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-            .pipe(
-                last(),
-                flatMap(() => describeAllIcons(session.requestBuilder())),
-                map(actualReply => expect(new Set(actualReply.toArray()))
-                                    .toEqual(new Set(getIngestedTestIconDataDescription())))
-            )
-            .subscribe(boilerplateSubscribe(fail, done));
-    });
-
+	it("GET should return the description of all icons in the repository", async () => {
+		session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		const actualReply = await describeAllIcons(session.request());
+		expect(new Set(actualReply)).toEqual(new Set(getPreIngestedTestIconDataDescription()));
+	});
 });
 
 const singleIconPath = allIconsPath + "/:name";
 describe(singleIconPath, () => {
+	const createSession = manageTestResourcesBeforeAndAfter();
+	let session: Session;
 
-    const agent = manageTestResourcesBeforeAndAfter();
+	it("GET should describe the icon", async () => {
+		session = createSession();
+		await session.loginWithAllPrivileges();
+		await addTestData(session.request(), testIconInputData);
+		const actualReply = await describeIcon(session.request(), getPreIngestedTestIconDataDescription()[0].name);
+		expect(actualReply).toEqual(getPreIngestedTestIconDataDescription()[0]);
+	});
 
-    it ("GET should describe the icon", done => {
-        const session: Session = agent();
-        addTestData(session.requestBuilder(), testIconInputData)
-            .pipe(
-                last(),
-                flatMap(() => describeIcon(session.requestBuilder(), getIngestedTestIconDataDescription()[0].name)),
-                map(actualReply => expect(actualReply).toEqual(getIngestedTestIconDataDescription()[0]))
-            )
-            .subscribe(boilerplateSubscribe(fail, done));
-    });
-
-    it ("GET should return 404 for non-existent icon", done => {
-        const session: Session = agent();
-        describeIcon(
-            session
-            .responseOK(resp => resp.status === 404)
-            .auth(uxAuth).requestBuilder(), "/icon/somenonexistentname")
-            .subscribe(boilerplateSubscribe(fail, done));
-    });
-
+	it("GET should return 404 for non-existent icon", async () => {
+		session = createSession();
+		await session.loginWithAllPrivileges();
+		await describeIcon(
+			session.request({ responseValidator: resp => resp.status === 404 }), "/icon/somenonexistentname");
+	});
 });

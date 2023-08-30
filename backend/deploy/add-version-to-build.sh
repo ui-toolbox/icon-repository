@@ -1,3 +1,4 @@
+set -x
 build_root=$(dirname $0)/../build/src
 version=$(git describe --tags || :)
 commit=$(git rev-parse HEAD)

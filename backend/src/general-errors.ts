@@ -1,6 +1,1 @@
-export class FatalError {
-    public readonly message: string;
-    constructor(m: string) {
-        this.message = m;
-    }
-}
+export class FatalError extends Error {}

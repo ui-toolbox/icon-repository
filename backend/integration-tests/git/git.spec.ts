@@ -1,87 +1,77 @@
 import * as crypto from "crypto";
-import { flatMap, map, tap, catchError } from "rxjs/operators";
 
 import gitRepositoryProvider, {
-    GitRepository,
-    GIT_COMMIT_FAIL_INTRUSIVE_TEST
+	type GitRepository,
+	GIT_COMMIT_FAIL_INTRUSIVE_TEST
 } from "../../src/git";
-import { Iconfile } from "../../src/icon";
-import { boilerplateSubscribe } from "../testUtils";
-import { setEnvVar } from "../../src/configuration.spec";
+import { type Iconfile } from "../../src/icon";
 import {
-    createTestGitRepo,
-    deleteTestGitRepo,
-    getCurrentCommit,
-    assertGitCleanStatus,
-    getTestRepoDir,
-    assertFileInRepo} from "./git-test-utils";
+	createTestGitRepo,
+	deleteTestGitRepo,
+	getCurrentCommit,
+	assertGitCleanStatus,
+	getTestRepoDir,
+	assertFileInRepo
+} from "./git-test-utils";
 
 describe("git access functions", () => {
+	let gitRepository: GitRepository;
 
-    let gitRepository: GitRepository;
+	beforeAll(async () => {
+		gitRepository = await gitRepositoryProvider(getTestRepoDir());
+	});
 
-    beforeAll(() => {
-        gitRepository = gitRepositoryProvider(getTestRepoDir());
-    });
+	beforeEach(async () => {
+		await createTestGitRepo();
+	});
 
-    beforeEach(done => {
-        createTestGitRepo()
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	afterEach(async () => {
+		delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
+		await deleteTestGitRepo();
+	});
 
-    afterEach(done => {
-        delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST;
-        deleteTestGitRepo()
-        .subscribe(boilerplateSubscribe(fail, done));
-    });
+	describe("should include addIconfile which", () => {
+		it("should add an icon file", async () => {
+			const iconInfo: Iconfile = {
+				name: "pizza",
+				format: "thin-crust",
+				size: "32cm",
+				content: crypto.randomBytes(1024)
+			};
+			const user = "zazie";
+			await gitRepository.addIconfile(iconInfo, user);
+			const sha1 = await getCurrentCommit();
+			expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length);
+			await assertGitCleanStatus();
+			await assertFileInRepo(iconInfo);
+		});
 
-    describe("should include addIconfile which", () => {
-        it("should add an icon file", done => {
-            const iconInfo: Iconfile = {
-                name: "pizza",
-                format: "thin-crust",
-                size: "32cm",
-                content: crypto.randomBytes(1024)
-            };
-            const user = "zazie";
-            gitRepository.addIconfile(iconInfo, user)
-            .pipe(
-                flatMap(() => getCurrentCommit()),
-                map(sha1 => expect(sha1.length).toEqual("8e9b80b5155dea01e5175bc819bbe364dbc07a66".length)),
-                flatMap(() => assertGitCleanStatus()),
-                flatMap(() => assertFileInRepo(iconInfo))
-            )
-            .subscribe(boilerplateSubscribe(fail, done));
-        });
-
-        it("should throw an error, but preserve the last consistent git repo state, " +
-                "in case adding an icon file failse", done => {
-            const iconInfo: Iconfile = {
-                name: "pizza",
-                format: "thin-crust",
-                size: "32cm",
-                content: crypto.randomBytes(1024)
-            };
-            const iconInfo1: Iconfile = {
-                name: "pizza1",
-                format: "thin-crust1",
-                size: "32cm1",
-                content: crypto.randomBytes(1024)
-            };
-            const user = "zazie";
-            gitRepository.addIconfile(iconInfo, user)
-            .pipe(
-                tap(() => setEnvVar(GIT_COMMIT_FAIL_INTRUSIVE_TEST, "true")),
-                flatMap(() => getCurrentCommit()),
-                flatMap(lastGoodSha1 => gitRepository.addIconfile(iconInfo1, user)
-                    .pipe(
-                        map(() => fail("Expected an error to make exection skip this part")),
-                        catchError(error => getCurrentCommit()),
-                        map(currentSha1 => expect(currentSha1).toEqual(lastGoodSha1))
-                    )),
-                flatMap(() => assertGitCleanStatus())
-            )
-            .subscribe(boilerplateSubscribe(fail, done));
-        });
-    });
+		it("should throw an error, but preserve the last consistent git repo state, " +
+                "in case adding an icon file failse", async () => {
+			const iconInfo: Iconfile = {
+				name: "pizza",
+				format: "thin-crust",
+				size: "32cm",
+				content: crypto.randomBytes(1024)
+			};
+			const iconInfo1: Iconfile = {
+				name: "pizza1",
+				format: "thin-crust1",
+				size: "32cm1",
+				content: crypto.randomBytes(1024)
+			};
+			const user = "zazie";
+			await gitRepository.addIconfile(iconInfo, user);
+			process.env[GIT_COMMIT_FAIL_INTRUSIVE_TEST] = "true";
+			const lastGoodSha1 = await getCurrentCommit();
+			try {
+				await gitRepository.addIconfile(iconInfo1, user);
+				fail("Expected an error to make exection skip this part");
+			} catch (error) {
+				const currentSha1 = await getCurrentCommit();
+				expect(currentSha1).toEqual(lastGoodSha1);
+				await assertGitCleanStatus();
+			}
+		});
+	});
 });
