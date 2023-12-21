@@ -36,7 +36,7 @@ describe("POST /icon/:name/tag", () => {
 		expect(tags.length).toEqual(0);
 		await setAuth(rb, [Permission.ADD_TAG]);
 		await addTag(
-			session.request({ responseValidator: resp => resp.status === 200 }),
+			session.request({ responseValidator: resp => resp.status === 201 }),
 			testIcon.name, tag
 		);
 		iconDescriptor = await describeIcon(rb, testIcon.name);
@@ -77,11 +77,10 @@ describe("DEL /icon/:name/tag/:tag", () => {
 		await createIcon(rb, testIcon.name, testIcon.files[0].content);
 		await addTag(rb, testIcon.name, tag);
 		await setAuth(rb, [Permission.REMOVE_TAG]);
-		const remainingRefCount = await removeTag(
-			session.request({ responseValidator: resp => resp.status === 200 }),
+		await removeTag(
+			session.request({ responseValidator: resp => resp.status === 204 }),
 			testIcon.name, tag
 		);
-		expect(remainingRefCount).toEqual(0);
 		const iconDescriptor = await describeIcon(rb, testIcon.name);
 		expect(iconDescriptor.tags.length).toEqual(0);
 		const tags = await getTags(rb);

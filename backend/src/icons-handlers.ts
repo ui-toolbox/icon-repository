@@ -128,9 +128,8 @@ const removeTag = (req: Request, res: Response, iconService: IconService): void 
 	const asyncFunc = async (): Promise<void> => {
 		const iconName = req.params.name;
 		const tag = req.params.tag;
-		const remainingReferenceCount = await iconService.removeTag(iconName, tag, getUsername(req.session));
-		logger.debug("#removeTag: returning %o", remainingReferenceCount);
-		res.status(200).send({ remainingReferenceCount }).end();
+		await iconService.removeTag(iconName, tag, getUsername(req.session));
+		res.status(204).end();
 	};
 	asyncFunc().then().catch(error => {
 		logger.error("#removeTag: Failed to remove tag %s from %s: %o", tag, iconName, error);
@@ -293,7 +292,7 @@ const iconHandlersProvider = (iconService: IconService) => (iconPathRoot: string
 					req.body.tag,
 					getUsername(req.session)
 				);
-				res.status(200).end();
+				res.status(201).end();
 			};
 			asyncFunc().then().catch(error => {
 				logger.error(format("#addTag: Could not add tag %s to %s: %o", req.params.name, req.body.tag, error));

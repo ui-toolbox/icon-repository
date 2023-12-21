@@ -1,7 +1,3 @@
-# ========================================
-# This project is not currently maintained
-# ========================================
-
 # Icon Repository
 
 A web application for UI/UX designers and frontend developers to manage and expolore a library of icons. A distinctive feature of the application is to provide the ability to attach rich, structured, queryable metainformation to the assets in the library while these assets are also published to a git repository designed to be accessed by (automated) build systems.
@@ -32,18 +28,30 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
             --pg-db-name iconrepo \
             --pg-log-statements
         ```
-1. Install the backend npm dependencies. In the `backend` subdirectory of the local code repository:
 
-    `npm install`
+1. Setup and start the backend
+   
+   1. Install the backend npm dependencies. In the `backend` subdirectory of the local code repository:
 
-1. Import the demo data (optional, but recommended for frontend development)
+        `npm install`
 
-   `npm run dev:import`
+   2. Import the demo data (optional, but recommended for frontend development)
 
-1. Start the backend
+      `npm run dev:import`
 
-    `npm run dev`
+   3. Use a simple authN/authR setup:
+      
+      `export ICONREPO_CONFIG_FILE="${PWD}/configurations/dev.json"`
 
-1. Start the frontend in the `client` subdirectory by executing:
+   4. Start the backend
 
-    `npm install && npm run dev`
+       `npm run dev`
+
+2. Setup and start the front end
+
+    ```
+    git clone git@github.com:pdkovacs/iconrepo-ui.git
+    cd iconrepo-ui
+    npm install && npm run dev
+    ```
+

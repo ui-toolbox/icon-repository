@@ -4,4 +4,4 @@
 /build/
 /docker/dist/
 /log
-
+/tsc.log

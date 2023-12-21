@@ -180,9 +180,8 @@ export const removeTag = async (
 	rb: RequestBuilder,
 	iconName: string,
 	tag: string
-): Promise<number> => {
-	const response = await rb
+): Promise<void> => {
+	await rb
 		.del(`/icon/${iconName}/tag/${tag}`)
 		.send();
-	return response.body.remainingReferenceCount;
 };
