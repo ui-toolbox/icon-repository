@@ -4,7 +4,7 @@ import multer from "multer";
 
 import { type IconHanlders } from "./icons-handlers";
 
-import { type ConfigurationData } from "./configuration";
+import { defaultSettings, type ConfigurationData } from "./configuration";
 import { setupSecurity } from "./security/security-manager";
 import getAppInfoHandlerProvider, { getClientConfigHandlerProvider } from "./app-info-handler";
 import { type AddressInfo } from "net";
@@ -32,11 +32,9 @@ export const createServer = async (
 	securityManager.setupSessionManagement(app);
 
 	const router: express.Router = express.Router();
-	app.use(appConfig.server_url_context, router);
+	app.use(router);
 
 	await securityManager.setupRoutes(router);
-
-	app.use(appConfig.server_url_context, express.static(appConfig.path_to_static_files));
 
 	const iconHandlers = iconHandlersProvider("/icon");
 
@@ -52,15 +50,15 @@ export const createServer = async (
 	router.patch("/icon/:name", iconHandlers.updateIcon);
 	router.delete("/icon/:name", iconHandlers.deleteIcon);
 	router.get("/app-info", getAppInfoHandlerProvider(
-		appConfig.app_description,
-		appConfig.package_root_dir
+		appConfig.app_description ?? "Icon repository",
+		appConfig.package_root_dir ?? defaultSettings.package_root_dir
 	));
 	router.get("/config", getClientConfigHandlerProvider());
 
 	return await new Promise(resolve => {
 		const httpServer = app.listen(
-			appConfig.server_port,
-			appConfig.server_hostname,
+			appConfig.server_port ?? defaultSettings.server_port,
+			appConfig.server_hostname ?? defaultSettings.server_hostname,
 			() => {
 				const addressInfo = httpServer.address() as AddressInfo;
 				logger.error("server is listenening at %o", addressInfo);

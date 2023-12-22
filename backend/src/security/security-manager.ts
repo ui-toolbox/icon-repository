@@ -50,10 +50,17 @@ export const setupSecurity = (configuration: ConfigurationData): {
 	const setupRoutes = async (router: express.Router): Promise<void> => {
 		const logger = createLogger("security-manager#setup-routes");
 		const authType = configuration.authentication_type;
-		logger.debug("Authentication type: %s", authType);
+		logger.info("Authentication type: %s", authType);
 		logger.debug("users_by_roles: %o", configuration.users_by_roles);
 
 		if (authType === "oidc") {
+			if (
+				_.isNil(configuration.oidc_client_secret) ||
+				_.isNil(configuration.oidc_token_issuer) ||
+				_.isNil(configuration.oidc_client_redirect_back_url) ||
+				_.isNil(configuration.oidc_ip_logout_url)) {
+				throw new Error("Incomplete OIDC configuration");
+			}
 			const oidcHandler: OidcHandler = await createOidcHandler({
 				clientSecret: configuration.oidc_client_secret,
 				metaDataUrl: configuration.oidc_token_issuer,
@@ -107,7 +114,7 @@ export const setupSecurity = (configuration: ConfigurationData): {
 
 		router.get("/user", userInfoHandler);
 
-		if (configuration.enable_backdoors) {
+		if (!_.isNil(configuration.enable_backdoors) && configuration.enable_backdoors) {
 			router.use("/backdoor", backdoors);
 		}
 

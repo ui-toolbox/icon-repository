@@ -1,0 +1,41 @@
+version: '3'
+
+vars:
+  targetting_minikube: yes
+
+tasks:
+  set-envs:
+    cmds:
+      - echo "export LOG_LEVEL=debug"
+      - echo "export APP_ENV=development"
+  clean:
+    cmds:
+      - rm dist/*
+  setup-npm:
+    cmds:
+      - npm ci
+  build:
+    cmds:
+      - task: setup-npm
+      - npm run build
+    sources:
+      - src/**/*
+      - package-lock.json
+      - taskfile.yaml
+    generates:
+      - build/src/app.js
+  docker:
+    cmds:
+      # - task: build
+      - |
+        if [[ "{{.targetting_minikube}}" = "yes" ]];
+        then
+          echo "Targeting minikube..."
+          eval $(minikube -p minikube docker-env)
+        fi
+        cp -a build deploy/docker/
+        cp -a package.json package-lock.json deploy/docker/
+        docker build -t iconrepo-nodejs:latest deploy/docker/
+  deploy-to-k8s:
+    cmds:
+      - kubectl apply -f deploy/k8s/backend.yaml

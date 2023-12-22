@@ -10,7 +10,7 @@ import {
 import { query, pgErrorCodes } from "./db";
 import { createLogger } from "../utils/logger";
 import { FatalError } from "../general-errors";
-import { isEmpty } from "lodash";
+import _, { isEmpty } from "lodash";
 import { retryOnError } from "../utils/fs-helpers";
 
 const logger = createLogger("db/create-schema");
@@ -25,9 +25,9 @@ const columnDefinitionToSQL = (columnsDefinition: IColumnsDefinition): string =>
 );
 
 const colConstraintsToSQL = (colConstraints: string[] | undefined): string =>
-	isEmpty(colConstraints)
+	_.isNil(colConstraints) || isEmpty(colConstraints)
 		? ""
-		: ",\n    " + (colConstraints as string[]).join(",\n    ");
+		: ",\n    " + (colConstraints).join(",\n    ");
 
 export const makeCreateTableStatement = (tableDefinition: ITableSpec): string => `CREATE TABLE ${tableDefinition.tableName} (
     ${columnDefinitionToSQL(tableDefinition.columns)}${colConstraintsToSQL(tableDefinition.col_constraints)}

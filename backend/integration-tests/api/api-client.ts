@@ -82,7 +82,7 @@ export const getIconfile = async (
 		.get(getFilePath(iconName, iconfileDesc))
 		.buffer(true)
 		.send();
-	return Buffer.from(response.body, "binary");
+	return Buffer.from(response.body as string, "binary");
 };
 
 export const createIcon = async (

@@ -28,9 +28,7 @@ const ICONREPO_HOME = path.resolve(process.env.HOME, ".ui-toolbox/iconrepo");
 const configurationDataProto = {
 	server_hostname: "",
 	server_port: 0,
-	server_url_context: "",
 	app_description: "",
-	path_to_static_files: "",
 	icon_data_location_git: "",
 	icon_data_create_new: false,
 	authentication_type: "",
@@ -53,17 +51,15 @@ const configurationDataProto = {
 };
 
 export type ConfigurationData = Readonly<
-	typeof configurationDataProto &
-{ users_by_roles: Record<string, string[]> }
+Partial<typeof configurationDataProto> &
+{ users_by_roles?: Record<string, string[]> }
 >;
 
-const defaultSettings = Object.freeze({
+export const defaultSettings = Object.freeze({
 	server_hostname: "localhost",
 	server_port: 8090,
-	server_url_context: "/",
 	authentication_type: "oidc",
 	app_description: "Collection of custom icons designed at Wombat Inc.",
-	path_to_static_files: path.join(__dirname, "..", "..", "..", "client", "dist"),
 	icon_data_location_git: path.resolve(ICONREPO_HOME, "git-repo"),
 	conn_host: "localhost",
 	conn_port: "5432",
@@ -72,7 +68,8 @@ const defaultSettings = Object.freeze({
 	conn_database: "iconrepo",
 	icon_data_create_new: false,
 	enable_backdoors: false,
-	package_root_dir: path.resolve(path.dirname(__filename))
+	package_root_dir: path.resolve(path.dirname(__filename)),
+	users_by_roles: {}
 });
 
 const getEnvVarValue = (proto: any, configPropName: string): string | Record<string, any> => {
@@ -93,7 +90,7 @@ export const updateConfigurationDataWithEnvVarValues = <T extends Record<string,
 	);
 
 export const getDefaultConfiguration: () => ConfigurationData = () => Object.assign(
-	updateConfigurationDataWithEnvVarValues(configurationDataProto as ConfigurationData, clone(defaultSettings) as ConfigurationData)
+	updateConfigurationDataWithEnvVarValues(configurationDataProto as ConfigurationData, clone(defaultSettings))
 );
 
 const logger = createLogger("appConfig");
@@ -147,9 +144,9 @@ export const readConfiguration = async (filePath: string, proto: ConfigurationDa
 	}
 };
 
-const updateState = async (): Promise<ConfigurationData | null> => {
+const updateState = async (): Promise<ConfigurationData> => {
 	const conf = await readConfiguration(configFilePath, configurationDataProto as ConfigurationData, defaultSettings);
-	return conf === null ? null : Object.freeze(conf);
+	return conf === null ? defaultSettings : Object.freeze(conf);
 };
 
 let watcher: FSWatcher | null = null;

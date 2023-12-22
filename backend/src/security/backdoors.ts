@@ -4,6 +4,7 @@ import _ from "lodash";
 import { type GetUserPrivileges, type Credentials, type FindMatchingCredentials } from "./authentication/basic-authn-handler";
 import { type ConfigurationData } from "../configuration";
 import { createLogger } from "../utils/logger";
+import { type Permission } from "./authorization/permissions/groups-permissions";
 
 const logger = createLogger("backdoors");
 
@@ -20,7 +21,7 @@ const getPrivileges: express.RequestHandler = (req, res) => {
 const setAuthentication: express.RequestHandler = (req, res) => {
 	logger.debug("#setAuthentication: called with: %o", req.body);
 	if (!_.isNil(req.body.permissions)) {
-		req.session.authentication = new AuthenticatedUser(req.body.username, req.body.permissions);
+		req.session.authentication = new AuthenticatedUser(req.body.username as string, req.body.permissions as Permission[]);
 	}
 	res.status(200).end();
 };

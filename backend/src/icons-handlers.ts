@@ -10,8 +10,9 @@ import {
 	IconfileAlreadyExists
 } from "./icon";
 import { type IconService, type DescribeAllIcons, type DescribeIcon } from "./icons-service";
-import { getAuthentication } from "./security/authenticated-user";
+import { type SessionData, getAuthentication } from "./security/authenticated-user";
 import _, { isNil } from "lodash";
+import { BadRequestError } from "./utils/error-handling";
 
 const logger = createLogger("icons-handlers");
 
@@ -38,7 +39,7 @@ interface UploadedFileDescriptor {
 	readonly size: number
 }
 
-const getUsername = (session: any): string => getAuthentication(session)?.username ?? "";
+const getUsername = (session: SessionData): string => getAuthentication(session)?.username ?? "";
 
 export const createIconfilePath = (baseUrl: string, iconName: string, iconfileDesc: IconfileDescriptor): string =>
 	`${baseUrl}/${iconName}/format/${iconfileDesc.format}/size/${iconfileDesc.size}`;
@@ -148,7 +149,10 @@ const iconHandlersProvider = (iconService: IconService) => (iconPathRoot: string
 		let iconName: string;
 		const asyncFunc = async (): Promise<void> => {
 			logger.debug("#createIcon: START");
-			const file: UploadedFileDescriptor = req.file as Express.Multer.File;
+			const file: UploadedFileDescriptor | undefined = req.file;
+			if (_.isNil(file)) {
+				throw new BadRequestError("Missing file object");
+			}
 			iconName = req.body.iconName;
 			logger.debug("#createIcon: iconName: %s", iconName);
 			const iconDescEx = await iconService.createIcon(iconName, file.buffer, getUsername(req.session));
@@ -167,14 +171,21 @@ const iconHandlersProvider = (iconService: IconService) => (iconPathRoot: string
 		};
 		asyncFunc().then().catch(error => {
 			logger.error("#createIcon: An error occurred while creating icon %o: %o", iconName, error);
-			res.status(500).send({ error: error.message });
+			if (error instanceof BadRequestError) {
+				res.status(400).send({ error: error.message });
+			} else {
+				res.status(500).send({ error: error.message });
+			}
 		});
 	},
 
 	ingestIconfile: (req: Request, res: Response) => {
 		const asyncFunc = async (): Promise<void> => {
 			logger.debug("#ingestIconfile: START");
-			const file: UploadedFileDescriptor = req.file as Express.Multer.File;
+			const file: UploadedFileDescriptor | undefined = req.file;
+			if (_.isNil(file)) {
+				throw new BadRequestError("Missing file object");
+			}
 			const iconName: string = req.params.name;
 			const iconfileDesc = await iconService.ingestIconfile(iconName, file.buffer, getUsername(req.session));
 			logger.debug("#ingestIconfile: Icon file '%o' for icon '%s' ingested", iconfileDesc, iconName);
@@ -289,7 +300,7 @@ const iconHandlersProvider = (iconService: IconService) => (iconPathRoot: string
 			const asyncFunc = async (): Promise<void> => {
 				await iconService.addTag(
 					req.params.name,
-					req.body.tag,
+					req.body.tag as string,
 					getUsername(req.session)
 				);
 				res.status(201).end();

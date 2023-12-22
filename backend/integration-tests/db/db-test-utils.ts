@@ -14,14 +14,14 @@ import { getDefaultConfiguration } from "../../src/configuration";
 import createSchema from "../../src/db/create-schema";
 import { type GetIconfile } from "../../src/db/icon";
 import { executeDataUpgrade } from "../../src/db/data-upgrade";
-import { isNil } from "lodash";
+import _, { isNil } from "lodash";
 import { createLogger } from "../../src/utils/logger";
 
 const logger = createLogger("db-test-utils");
 
 export const assertIconCount = async (connPool: Pool, expectedCount: number): Promise<void> => {
 	const countResult = await query(connPool, `SELECT count(*) from ${iconTableSpec.tableName}`, []);
-	expect(parseInt(countResult.rows[0].count, 10)).toEqual(expectedCount);
+	expect(parseInt(countResult.rows[0].count as string, 10)).toEqual(expectedCount);
 };
 
 export const getCheckIconfile = async (
@@ -100,7 +100,12 @@ export const manageTestResourcesBeforeAndAfter = (): () => Pool => {
 	afterAll(async () => { await terminateTestPool(); });
 	beforeEach(async () => { await makeSureHasUptodateSchemaWithNoData(pool); });
 	afterEach(() => delete process.env.GIT_COMMIT_FAIL_INTRUSIVE_TEST);
-	return () => pool as Pool;
+	return () => {
+		if (_.isNil(pool)) {
+			throw new Error("No pool available");
+		}
+		return pool;
+	};
 };
 
 export const testData = {

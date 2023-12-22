@@ -2,6 +2,8 @@
 .DS_Store
 /node_modules/
 /build/
-/docker/dist/
+/deploy/docker/build/
+/deploy/docker/package*
 /log
 /tsc.log
+.task

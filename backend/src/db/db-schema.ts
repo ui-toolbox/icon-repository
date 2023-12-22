@@ -9,6 +9,13 @@ export interface ITableSpec {
 type ProjectColumn = (tableSpec: ITableSpec, columnName: string) => string;
 export const projectColumn: ProjectColumn = (tableSpec, columnName) => tableSpec.tableName + "." + columnName;
 
+export interface IconTableRow {
+	readonly id: number
+	readonly name: string
+	readonly modified_by: string
+	readonly modified_at: Date
+}
+
 const iconTableColumns = {
 	id: "serial primary key",
 	name: "text",

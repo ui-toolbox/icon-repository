@@ -17,6 +17,7 @@ import {
 import { tagCollector, type AddTag, addTag, type GetTags, getTags, type RemoveTag, removeTag } from "./tag";
 import { type ExecuteDataUpgrade, executeDataUpgrade } from "./data-upgrade";
 import { isNil } from "lodash";
+import { type IconTableRow } from "./db-schema";
 
 const handleUniqueConstraintViolation = (error: any, iconfile: Iconfile): void => {
 	const toThrow = error.code === pgErrorCodes.unique_constraint_violation
@@ -178,7 +179,7 @@ const deleteIconfileBare: DeleteIconfileBare = async (executeQuery, iconName, ic
 	await executeQuery(deleteFile, [iconId, iconfileDesc.format, iconfileDesc.size]);
 	const countQueryResult = await executeQuery(countIconfilesLeftForIcon, [iconId]);
 	const countOfLeftIconfiles = countQueryResult.rows[0].icon_file_count;
-	if (parseInt(countOfLeftIconfiles, 10) === 0) {
+	if (parseInt(countOfLeftIconfiles as string, 10) === 0) {
 		await executeQuery(deleteIconSQL, [iconId]);
 	}
 };
@@ -272,7 +273,7 @@ export const describeAllIcons = (pool: Pool): DescribeAllIcons =>
 		]);
 		const fileAndTagMapArray = await fileAndTagMapArrayPromise;
 		return iconsResult.rows.reduce<IconDescriptor[]>(
-			(iconDescList, currenIconRow) => {
+			(iconDescList, currenIconRow: IconTableRow) => {
 				iconDescList.push(new IconDescriptor(
 					currenIconRow.name,
 					currenIconRow.modified_by,
@@ -303,7 +304,7 @@ const describeIconBare: DescribeIconBare = async (executeQuery, iconName, forUpd
 
 	const iconId = result.rows[0].id;
 	const modifiedBy = result.rows[0].modified_by;
-	const initialIconInfo = new IconDescriptor(iconName, modifiedBy, [], []);
+	const initialIconInfo = new IconDescriptor(iconName, modifiedBy as string, [], []);
 
 	const iconfileResult = await executeQuery(iconfilesSQL, [iconId]);
 	const iconInfo = iconfileResult.rows.reduce<IconDescriptor>(
@@ -315,7 +316,7 @@ const describeIconBare: DescribeIconBare = async (executeQuery, iconName, forUpd
 	);
 	const tagResult = await executeQuery(tagsSQL, [iconId]);
 	const describedIcon = tagResult.rows.reduce<IconDescriptor>(
-		(icon, row) => icon.addTag(row.text),
+		(icon, row) => icon.addTag(row.text as string),
 		iconInfo
 	);
 	return describedIcon;

@@ -32,7 +32,7 @@ const isUpgradeApplied = async (executeQuery: ExecuteQuery, version: string): Pr
 	await makeSureMetaExists(executeQuery);
 	const sql: string = "SELECT count(*) as upgrade_count FROM meta WHERE version = $1";
 	const result = await executeQuery(sql, [version]);
-	const upgradeCount: number = parseInt(result.rows[0].upgrade_count, 10);
+	const upgradeCount: number = parseInt(result.rows[0].upgrade_count as string, 10);
 	return upgradeCount > 0;
 };
 

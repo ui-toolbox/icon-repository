@@ -27,11 +27,11 @@ const checkDefined: (value: string, name: string) => void = (value, name) => {
 
 export const createConnectionProperties: (config: any) => ConnectionProperties =
 config => {
-	checkDefined(config.conn_user, "conn_user");
-	checkDefined(config.conn_host, "conn_host");
-	checkDefined(config.conn_database, "conn_database");
-	checkDefined(config.conn_password, "conn_password");
-	checkDefined(config.conn_port, "conn_port");
+	checkDefined(config.conn_user as string, "conn_user");
+	checkDefined(config.conn_host as string, "conn_host");
+	checkDefined(config.conn_database as string, "conn_database");
+	checkDefined(config.conn_password as string, "conn_password");
+	checkDefined(config.conn_port as string, "conn_port");
 
 	return {
 		user: config.conn_user,
@@ -42,8 +42,7 @@ config => {
 	};
 };
 
-export const createPoolUsing: (connectionProperties: ConnectionProperties) => Pool =
-connectionProperties => {
+export const createPoolUsing = (connectionProperties: ConnectionProperties): Pool => {
 	const connOptions = {
 		user: connectionProperties.user,
 		password: connectionProperties.password,

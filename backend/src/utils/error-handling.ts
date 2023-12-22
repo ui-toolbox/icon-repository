@@ -6,3 +6,11 @@ export const throwErrorWOStackTrace = (errorMessage: string): void => {
 	delete error.stack;
 	throw error;
 };
+
+export class BadRequestError extends Error {
+	constructor (
+		readonly message: string
+	) {
+		super(message);
+	}
+}

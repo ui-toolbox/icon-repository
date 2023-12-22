@@ -7,7 +7,7 @@ import { createLogger } from "../../src/utils/logger";
 import { createDefaultIconService } from "../../src/app-assembly";
 import { makeSureHasUptodateSchemaWithNoData } from "../db/db-test-utils";
 import { createPool, createConnectionProperties } from "../../src/db/db";
-import { getDefaultConfiguration } from "../../src/configuration";
+import { type ConfigurationData, getDefaultConfiguration } from "../../src/configuration";
 import { type AddressInfo } from "net";
 import _, { isNil } from "lodash";
 import { type Auth, getIconfile, type RequestBuilder, type RequestResult } from "./api-client";
@@ -20,11 +20,9 @@ export const devAuth: Auth = { user: "dev", password: "dev" };
 
 export const defaultAuth: Auth = { user: "ux", password: "ux" };
 
-type StartServer = (customServerConfig: any) => Promise<Server>;
-
 let localServerRef: Server | undefined;
 
-export const startTestServer: StartServer = async customConfig => {
+export const startTestServer = async (customConfig: ConfigurationData): Promise<Server> => {
 	logger.debug("Test server is being started");
 	const testConfiguration = await createTestConfiguration({
 		...customConfig,

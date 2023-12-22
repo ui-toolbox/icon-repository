@@ -28,7 +28,7 @@ export type GetTags = () => Promise<string[]>;
 export const getTags = (pool: Pool): GetTags => async () => {
 	const tagsResult = await query(pool, "SELECT text FROM tag", []);
 	return tagsResult.rows.reduce<string[]>(
-		(tags, tagResultRow) => tags.concat(tagResultRow.text),
+		(tags, tagResultRow) => tags.concat(tagResultRow.text as string),
 		[]
 	);
 };
@@ -57,7 +57,7 @@ const removeTagReferenceFromIcon: RemoveTagReferenceFromIcon = async (executeQue
 
 	await executeQuery(deleteTagRefSQL, [iconName, tag]);
 	const refCountResult = await executeQuery(tagRefCountSQL, [tag]);
-	const tagRefCount = parseInt(refCountResult.rows[0].ref_count, 10);
+	const tagRefCount = parseInt(refCountResult.rows[0].ref_count as string, 10);
 	if (tagRefCount === 0) {
 		await executeQuery(deleteTagSQL, [tag]);
 	}
