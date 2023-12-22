@@ -34,6 +34,11 @@ export const createServer = async (
 	const router: express.Router = express.Router();
 	app.use(router);
 
+	router.get("/app-info", getAppInfoHandlerProvider(
+		appConfig.app_description ?? "Icon repository",
+		appConfig.package_root_dir ?? defaultSettings.package_root_dir
+	));
+
 	await securityManager.setupRoutes(router);
 
 	const iconHandlers = iconHandlersProvider("/icon");
@@ -49,16 +54,12 @@ export const createServer = async (
 	router.post("/icon/:name", upload.single("iconfile"), iconHandlers.ingestIconfile);
 	router.patch("/icon/:name", iconHandlers.updateIcon);
 	router.delete("/icon/:name", iconHandlers.deleteIcon);
-	router.get("/app-info", getAppInfoHandlerProvider(
-		appConfig.app_description ?? "Icon repository",
-		appConfig.package_root_dir ?? defaultSettings.package_root_dir
-	));
 	router.get("/config", getClientConfigHandlerProvider());
 
 	return await new Promise(resolve => {
 		const httpServer = app.listen(
 			appConfig.server_port ?? defaultSettings.server_port,
-			appConfig.server_hostname ?? defaultSettings.server_hostname,
+			appConfig.server_host ?? defaultSettings.server_host,
 			() => {
 				const addressInfo = httpServer.address() as AddressInfo;
 				logger.error("server is listenening at %o", addressInfo);

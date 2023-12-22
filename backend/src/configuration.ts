@@ -26,7 +26,7 @@ if (isNil(process.env.HOME) || process.env.HOME === "") {
 const ICONREPO_HOME = path.resolve(process.env.HOME, ".ui-toolbox/iconrepo");
 
 const configurationDataProto = {
-	server_hostname: "",
+	server_host: "",
 	server_port: 0,
 	app_description: "",
 	icon_data_location_git: "",
@@ -34,12 +34,8 @@ const configurationDataProto = {
 	authentication_type: "",
 	oidc_client_id: "",
 	oidc_client_secret: "",
-	oidc_access_token_url: "",
-	oidc_user_authorization_url: "",
 	oidc_client_redirect_back_url: "",
 	oidc_token_issuer: "",
-	oidc_ip_jwt_public_key_url: "",
-	oidc_ip_jwt_public_key_pem_base64: "",
 	oidc_ip_logout_url: "",
 	conn_host: "",
 	conn_port: "",
@@ -56,7 +52,7 @@ Partial<typeof configurationDataProto> &
 >;
 
 export const defaultSettings = Object.freeze({
-	server_hostname: "localhost",
+	server_host: "localhost",
 	server_port: 8090,
 	authentication_type: "oidc",
 	app_description: "Collection of custom icons designed at Wombat Inc.",
@@ -67,6 +63,7 @@ export const defaultSettings = Object.freeze({
 	conn_password: "iconrepo",
 	conn_database: "iconrepo",
 	icon_data_create_new: false,
+	oidc_client_id: "iconrepo-nodejs",
 	enable_backdoors: false,
 	package_root_dir: path.resolve(path.dirname(__filename)),
 	users_by_roles: {}
@@ -125,27 +122,27 @@ const ignoreJSONSyntaxError = async (error: any): Promise<any> => {
 	}
 };
 
-export const readConfiguration = async (filePath: string, proto: ConfigurationData, defaults: any): Promise<ConfigurationData | null> => {
-	const exists = await fileExists(filePath);
+export const readConfiguration = async (proto: ConfigurationData, defaults: any): Promise<ConfigurationData | null> => {
+	let confFromFile: ConfigurationData = {};
+	const exists = await fileExists(configFilePath);
 	if (exists) {
 		logger.info(strformat("Updating configuration from %s...", configFilePath));
-		const fileContent = await readFile(filePath, "utf-8");
-		let contentAsJSON;
+		const fileContent = await readFile(configFilePath, "utf-8");
 		try {
-			contentAsJSON = JSON.parse(fileContent);
+			confFromFile = JSON.parse(fileContent);
 		} catch (error) {
 			await ignoreJSONSyntaxError(error);
 		}
-		const conf = Object.assign(clone(defaults), contentAsJSON);
-		return updateConfigurationDataWithEnvVarValues(proto, conf);
-	} else {
+	} else if (configFilePath.length > 0) {
 		logger.info(strformat("Configuration file doesn't exist: %s...", configFilePath));
 		return null;
 	}
+	const conf = Object.assign(clone(defaults), confFromFile);
+	return updateConfigurationDataWithEnvVarValues(proto, conf);
 };
 
 const updateState = async (): Promise<ConfigurationData> => {
-	const conf = await readConfiguration(configFilePath, configurationDataProto as ConfigurationData, defaultSettings);
+	const conf = await readConfiguration(configurationDataProto as ConfigurationData, defaultSettings);
 	return conf === null ? defaultSettings : Object.freeze(conf);
 };
 

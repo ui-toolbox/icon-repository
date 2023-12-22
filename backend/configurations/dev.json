@@ -1,5 +1,5 @@
 {
-	"server_hostname": "localhost",
+	"server_host": "localhost",
 	"server_port": 8091,
 	"server_url_context": "",
 	"authentication_type": "basic",

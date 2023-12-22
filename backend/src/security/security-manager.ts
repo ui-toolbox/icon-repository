@@ -51,10 +51,10 @@ export const setupSecurity = (configuration: ConfigurationData): {
 		const logger = createLogger("security-manager#setup-routes");
 		const authType = configuration.authentication_type;
 		logger.info("Authentication type: %s", authType);
-		logger.debug("users_by_roles: %o", configuration.users_by_roles);
 
 		if (authType === "oidc") {
 			if (
+				_.isNil(configuration.oidc_client_id) ||
 				_.isNil(configuration.oidc_client_secret) ||
 				_.isNil(configuration.oidc_token_issuer) ||
 				_.isNil(configuration.oidc_client_redirect_back_url) ||
@@ -62,13 +62,14 @@ export const setupSecurity = (configuration: ConfigurationData): {
 				throw new Error("Incomplete OIDC configuration");
 			}
 			const oidcHandler: OidcHandler = await createOidcHandler({
+				clientId: configuration.oidc_client_id,
 				clientSecret: configuration.oidc_client_secret,
 				metaDataUrl: configuration.oidc_token_issuer,
 				callbackUrl: configuration.oidc_client_redirect_back_url
 			});
 			await setupAuthnRoutes(router, oidcHandler, "/login", configuration.oidc_ip_logout_url);
 		} else if (authType === "basic") {
-			logger.warn("Authentication type is: %s", authType);
+			logger.debug("users_by_roles: %o", configuration.users_by_roles);
 			const handler = basicAuthenticationHandler(
 				builtInCredentialMatcher,
 				builtInGetUserPrivileges(configuration)

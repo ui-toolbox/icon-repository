@@ -1,5 +1,5 @@
 {
-	"server_hostname": "localhost",
+	"server_host": "localhost",
 	"server_port": 49160,
 	"server_url_context": "/icon",
 	"authentication_type": "oidc",

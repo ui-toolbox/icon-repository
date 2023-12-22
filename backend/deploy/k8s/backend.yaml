@@ -1,4 +1,28 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: iconrepo-nodejs-pv
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 5Gi
+  hostPath:
+    path: /data/iconrepo-nodejs/
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: iconrepo-nodejs-pv-claim
+spec:
+  storageClassName: ""
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: iconrepo-nodejs
@@ -34,20 +58,45 @@ spec:
       labels:
         app: iconrepo-nodejs
     spec:
+      initContainers:
+      - name: volume-permission
+        image: busybox
+        command: ["sh", "-c", "chown -R 1101:1101 /data"]
+        volumeMounts:
+          - mountPath: /data
+            name: iconrepo-nodejs
       containers:
       - image: iconrepo-nodejs:latest
         imagePullPolicy: Never
         name: iconrepo-nodejs
         env:
-        - name: LOG_LEVEL
+        - name: ICONREPO_DEFAULT_LOG_LEVEL
           value: debug
         - name: ICONREPO_CONFIG_FILE
-          value: /etc/config/config.json
+          value: ""
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: CONN_HOST
+          value: postgres
+        - name: AUTHENTICATION_TYPE
+          value: oidc
+        - name: OIDC_CLIENT_ID
+          value: iconrepo-nodejs
+        - name: OIDC_CLIENT_REDIRECT_BACK_URL
+          value: http://iconrepo-nodejs.local.com/oidc-callback
+        - name: OIDC_TOKEN_ISSUER
+          value: http://keycloak:8080/realms/my-realm
+        - name: OIDC_IP_LOGOUT_URL
+          value: http://keycloak:8080/realms/my-realm/protocol/openid-connect/logout
         - name: OIDC_CLIENT_SECRET
           valueFrom:
            secretKeyRef:
              name: iconrepo-nodejs
              key: OIDC_CLIENT_SECRET
+        - name: ICON_DATA_LOCATION_GIT
+          value: /data/git-repo
         - name: GITLAB_ACCESS_TOKEN
           valueFrom:
            secretKeyRef:
@@ -86,16 +135,16 @@ spec:
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
-        - name: config-volume
-          mountPath: /etc/config
+        - name: iconrepo-nodejs
+          mountPath: /data
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
       terminationGracePeriodSeconds: 30
       volumes:
-        - name: config-volume
-          configMap:
-            name: iconrepo-nodejs
         - name: secrets-volume
+        - name: iconrepo-nodejs
+          persistentVolumeClaim:
+            claimName: iconrepo-nodejs-pv-claim
           

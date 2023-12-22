@@ -9,6 +9,7 @@ const getLogger = (loggerName: string): winston.Logger => createLogger(loggerNam
 
 interface OidcHandlerParams {
 	readonly metaDataUrl: string
+	readonly clientId: string
 	readonly clientSecret: string
 	readonly callbackUrl: string
 }
@@ -21,11 +22,11 @@ export interface OidcHandler {
 }
 
 export const createOidcHandler = async (params: OidcHandlerParams): Promise<OidcHandler> => {
-	const { metaDataUrl, clientSecret, callbackUrl } = params;
+	const { metaDataUrl, clientId, clientSecret, callbackUrl } = params;
 	const issuer = await Issuer.discover(metaDataUrl);
 
 	const client = new issuer.Client({
-		client_id: "node-skeleton",
+		client_id: clientId,
 		client_secret: clientSecret,
 		redirect_uris: [callbackUrl],
 		response_types: ["code"]

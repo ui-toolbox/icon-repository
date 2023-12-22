@@ -1,13 +1,12 @@
 version: '3'
 
-vars:
-  targetting_minikube: yes
+env:
+  TARGETING_MINIKUBE: '{{.TARGETING_MINIKUBE | default "yes"}}'
+  IMAGE_REPO: iconrepo-nodejs
+  KEYCLOAK_ADDRESS: '{{.KEYCLOAK_ADDRESS | default "keycloak"}}'
+  NETWORK_NAME: '{{.NETWORK_NAME | default "bridge"}}'
 
 tasks:
-  set-envs:
-    cmds:
-      - echo "export LOG_LEVEL=debug"
-      - echo "export APP_ENV=development"
   clean:
     cmds:
       - rm dist/*
@@ -26,16 +25,43 @@ tasks:
       - build/src/app.js
   docker:
     cmds:
-      # - task: build
+      - task: build
       - |
-        if [[ "{{.targetting_minikube}}" = "yes" ]];
+        if [[ "{{.TARGETING_MINIKUBE}}" = "yes" ]];
         then
           echo "Targeting minikube..."
           eval $(minikube -p minikube docker-env)
         fi
         cp -a build deploy/docker/
         cp -a package.json package-lock.json deploy/docker/
-        docker build -t iconrepo-nodejs:latest deploy/docker/
-  deploy-to-k8s:
+        docker build -t {{.IMAGE_REPO}}:latest deploy/docker/
+  apply-keycloak-config:
+    cmds:
+    - cd ./deploy/dev/keycloak/ && ./tf.sh apply
+  destroy-keycloak-config:
+    cmds:
+    - cd ./deploy/dev/keycloak/ && ./tf.sh destroy
+  deploy-to-docker:
+    cmds:
+      - |
+        container_id=$(scripts/docker-run.sh $IMAGE_REPO)
+        docker container inspect -f "{{ `{{.NetworkSettings.Networks.$NETWORK_NAME.IPAddress}}` }}" $container_id
+  k8s-secrets:
+    cmds:
+      - |
+        . ~/.iconrepo-nodejs.secrets
+        kubectl delete secret iconrepo-nodejs 2>/dev/null || echo "Error while deleting secret 'iconrepo-nodejs', probably didn't exist yet. Creating it..."
+        kubectl create secret generic iconrepo-nodejs \
+          --from-literal=OIDC_CLIENT_SECRET=$ICONREPO_NODEJS_CLIENT_SECRET \
+          --from-literal=GITLAB_ACCESS_TOKEN=$GITLAB_ACCESS_TOKEN \
+          --from-literal=AWS_ACCESS_KEY_ID="kalap" \
+          --from-literal=AWS_SECRET_ACCESS_KEY="kabat"
+        kubectl delete pod $(kubectl get pod -l app=iconrepo-nodejs -o jsonpath='{.items[0].metadata.name}')
+  k8s-deploy:
     cmds:
       - kubectl apply -f deploy/k8s/backend.yaml
+      - kubectl apply -f deploy/k8s/contour-httpproxy.yaml
+  k8s-undeploy:
+    cmds:
+      - kubectl apply -f deploy/k8s/contour-httpproxy.yaml
+      - kubectl delete -f deploy/k8s/backend.yaml
