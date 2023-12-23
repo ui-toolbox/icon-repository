@@ -31,7 +31,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
 1. Setup and start the backend
    
-   1. Install the backend npm dependencies. In the `backend` subdirectory of the local code repository:
+   1. Install the backend npm dependencies:
 
         `npm install`
 

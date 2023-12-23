@@ -1,4 +1,12 @@
 .vscode
-/deploy/dist/
+.DS_Store
+.terraform*
+terraform.tfstate*
+/node_modules/
+/build/
+/deploy/docker/build/
+/deploy/docker/package*
 /log
-/output
+/tsc.log
+.task
+.tasks.uptodate
