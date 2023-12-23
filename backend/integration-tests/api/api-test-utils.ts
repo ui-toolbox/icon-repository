@@ -2,12 +2,12 @@ import type * as http from "http";
 import iconHandlersProvider from "../../src/icons-handlers";
 import { getTestRepoDir, deleteTestGitRepo } from "../git/git-test-utils";
 import { type Iconfile } from "../../src/icon";
-import { createTestConfiguration } from "../service/service-test-utils";
+import { createTestServerConfiguration } from "../service/service-test-utils";
 import { createLogger } from "../../src/utils/logger";
 import { createDefaultIconService } from "../../src/app-assembly";
-import { makeSureHasUptodateSchemaWithNoData } from "../db/db-test-utils";
+import { createTestConfiguration, makeSureHasUptodateSchemaWithNoData } from "../db/db-test-utils";
 import { createPool, createConnectionProperties } from "../../src/db/db";
-import { type ConfigurationData, getDefaultConfiguration } from "../../src/configuration";
+import { type ConfigurationData } from "../../src/configuration";
 import { type AddressInfo } from "net";
 import _, { isNil } from "lodash";
 import { type Auth, getIconfile, type RequestBuilder, type RequestResult } from "./api-client";
@@ -24,10 +24,9 @@ let localServerRef: Server | undefined;
 
 export const startTestServer = async (customConfig: ConfigurationData): Promise<Server> => {
 	logger.debug("Test server is being started");
-	const testConfiguration = await createTestConfiguration({
+	const testConfiguration = await createTestServerConfiguration({
 		...customConfig,
-		icon_data_location_git: getTestRepoDir(),
-		icon_data_create_new: true
+		icon_data_location_git: getTestRepoDir()
 	});
 	const iconService = await createDefaultIconService(testConfiguration);
 	const server = await createServer(testConfiguration, iconHandlersProvider(iconService));
@@ -229,7 +228,7 @@ export const manageTestResourcesBeforeAndAfter = (): () => Session => {
 	beforeEach(async () => {
 		try {
 			logger.debug("#manageTestResourcesBeforeAndAfter: creating temporary pool...");
-			const pool = await createPool(createConnectionProperties(getDefaultConfiguration()));
+			const pool = await createPool(createConnectionProperties(createTestConfiguration()));
 			try {
 				logger.debug("#manageTestResourcesBeforeAndAfter: getting schema ready...");
 				await makeSureHasUptodateSchemaWithNoData(pool);

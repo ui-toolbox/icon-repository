@@ -29,7 +29,7 @@ const getAppInfoHandlerProvider = (appDescription: string, packageRootDir: strin
 	}
 };
 
-export const getClientConfigHandlerProvider = (idpLogoutUrl = null): Handler => async (_, res) => {
+export const getClientConfigHandlerProvider = (idpLogoutUrl: string | undefined = "/"): Handler => async (_, res) => {
 	const clientConfig = {
 		idpLogoutUrl
 	};

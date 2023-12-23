@@ -8,7 +8,6 @@ import {
 	type IconAttributes,
 	IconDescriptor
 } from "../icon";
-import createSchema, { type CreateSchema } from "./create-schema";
 import {
 	type MultiValuedPropertyElementRowProcessor,
 	type MultiValuedPropertyElementCollector,
@@ -202,7 +201,6 @@ export const deleteIconfile = (pool: Pool): DeleteIconfile =>
 	};
 
 export interface IconRepository {
-	readonly createSchema: CreateSchema
 	readonly upgradeData: ExecuteDataUpgrade
 	readonly describeIcon: DescribeIcon
 	readonly createIcon: CreateIcon
@@ -224,7 +222,6 @@ const iconRepositoryProvider = (connectionProperties: ConnectionProperties): Ico
 	const pool = createPoolUsing(connectionProperties);
 	localPoolRef = pool;
 	return {
-		createSchema: createSchema(pool),
 		upgradeData: executeDataUpgrade(pool),
 		describeIcon: describeIcon(pool),
 		updateIcon: updateIcon(pool),

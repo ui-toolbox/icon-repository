@@ -9,3 +9,4 @@ terraform.tfstate*
 /log
 /tsc.log
 .task
+.tasks.uptodate

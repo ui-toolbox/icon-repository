@@ -54,7 +54,7 @@ export const createServer = async (
 	router.post("/icon/:name", upload.single("iconfile"), iconHandlers.ingestIconfile);
 	router.patch("/icon/:name", iconHandlers.updateIcon);
 	router.delete("/icon/:name", iconHandlers.deleteIcon);
-	router.get("/config", getClientConfigHandlerProvider());
+	router.get("/config", getClientConfigHandlerProvider(appConfig.oidc_ip_logout_url));
 
 	return await new Promise(resolve => {
 		const httpServer = app.listen(

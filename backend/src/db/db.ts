@@ -2,6 +2,7 @@ import { Pool, type QueryResult } from "pg";
 
 import { createLogger } from "../utils/logger";
 import _, { isNil } from "lodash";
+import { type ConfigurationData } from "../configuration";
 
 export const pgErrorCodes = {
 	connection_refused: "ECONNREFUSED",
@@ -19,26 +20,26 @@ export interface ConnectionProperties {
 	readonly port: string
 }
 
-const checkDefined: (value: string, name: string) => void = (value, name) => {
+const checkDefined: (value: string | undefined, name: string) => void = (value, name) => {
 	if (typeof value === "undefined") {
 		throw new Error(`Connection property ${name} is undefined`);
 	}
 };
 
-export const createConnectionProperties: (config: any) => ConnectionProperties =
+export const createConnectionProperties: (config: ConfigurationData) => ConnectionProperties =
 config => {
-	checkDefined(config.conn_user as string, "conn_user");
-	checkDefined(config.conn_host as string, "conn_host");
-	checkDefined(config.conn_database as string, "conn_database");
-	checkDefined(config.conn_password as string, "conn_password");
-	checkDefined(config.conn_port as string, "conn_port");
+	checkDefined(config.conn_user, "conn_user");
+	checkDefined(config.conn_host, "conn_host");
+	checkDefined(config.conn_database, "conn_database");
+	checkDefined(config.conn_password, "conn_password");
+	checkDefined(config.conn_port, "conn_port");
 
 	return {
-		user: config.conn_user,
-		host: config.conn_host,
-		database: config.conn_database,
-		password: config.conn_password,
-		port: config.conn_port
+		user: config.conn_user ?? "",
+		host: config.conn_host ?? "",
+		database: config.conn_database ?? "",
+		password: config.conn_password ?? "",
+		port: config.conn_port ?? ""
 	};
 };
 

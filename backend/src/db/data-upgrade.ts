@@ -2,15 +2,24 @@ import { type QueryResult, type Pool } from "pg";
 import { getPooledConnection, type ExecuteQuery } from "./db";
 import { createLogger } from "../utils/logger";
 import { sortBy } from "lodash";
+import { iconTableSpec, iconfileTableSpec, makeCreateTableStatement } from "./db-schema";
 
 const logger = createLogger("data-upgrade");
 
 interface UpgradeScript {
 	readonly version: string
+
 	readonly sqls: string[]
 }
 
 const scripts: UpgradeScript[] = [
+	{
+		version: "2018-12-30/0 - base schema",
+		sqls: [
+			makeCreateTableStatement(iconTableSpec),
+			makeCreateTableStatement(iconfileTableSpec)
+		]
+	},
 	{
 		version: "2018-12-30/1 - tag support",
 		sqls: [
@@ -58,12 +67,15 @@ export const executeDataUpgrade = (pool: Pool): ExecuteDataUpgrade => {
 			for (const step of sorted) {
 				const applied = await isUpgradeApplied(connection.executeQuery, step.version);
 				if (applied) {
-					logger.info("Version already applied: %s", step.version);
+					logger.info("Version already applied: \"%s\"", step.version);
 				} else {
 					logger.info("Applying upgrade: \"%s\" ...", step.version);
-					await applyUpgrade(connection.executeQuery, step); return;
+					await applyUpgrade(connection.executeQuery, step);
 				}
 			}
+		} catch (err) {
+			logger.error(err);
+			throw err;
 		} finally {
 			connection.release();
 		}

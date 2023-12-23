@@ -4,18 +4,18 @@ import {
 	query,
 	createConnectionProperties,
 	getPooledConnection,
-	tableExists,
 	type ExecuteQuery
 } from "../../src/db/db";
 import { type Pool } from "pg";
 import { iconTableSpec } from "../../src/db/db-schema";
 import { type Iconfile, type IconDescriptor } from "../../src/icon";
-import { getDefaultConfiguration } from "../../src/configuration";
-import createSchema from "../../src/db/create-schema";
+import { type ConfigurationData, getDefaultConfiguration } from "../../src/configuration";
 import { type GetIconfile } from "../../src/db/icon";
 import { executeDataUpgrade } from "../../src/db/data-upgrade";
 import _, { isNil } from "lodash";
 import { createLogger } from "../../src/utils/logger";
+
+export const testDatabase: string = "iconrepo_test";
 
 const logger = createLogger("db-test-utils");
 
@@ -34,8 +34,15 @@ export const getCheckIconfile = async (
 	return diff === 0;
 };
 
+export const createTestConfiguration = (): ConfigurationData => {
+	return {
+		...getDefaultConfiguration(),
+		conn_database: testDatabase
+	};
+};
+
 export const createTestPool = async (setPool: (p: Pool) => void): Promise<void> => {
-	const pool = await createPool(createConnectionProperties(getDefaultConfiguration()));
+	const pool = await createPool(createConnectionProperties(createTestConfiguration()));
 	setPool(pool);
 };
 
@@ -65,21 +72,16 @@ export const makeSureHasUptodateSchemaWithNoData = async (localPool: Pool | unde
 	try {
 		const executeQuery: ExecuteQuery = connection.executeQuery;
 		try {
-			logger.debug("#makeSureHasUptodateSchemaWithNoData: checking 'icon' table's availability...");
-			const exists = await tableExists(executeQuery, "icon");
-			logger.debug("#makeSureHasUptodateSchemaWithNoData: \"'icon' table exists\": %o", exists);
-			if (exists) {
-				return;
-			} else {
-				logger.debug("#makeSureHasUptodateSchemaWithNoData: creating schema...");
-				await createSchema(localPool)();
-			}
 			logger.debug("#makeSureHasUptodateSchemaWithNoData: executing schema upgrade...");
-			await executeDataUpgrade(localPool)();
+			const upgrade = executeDataUpgrade(localPool);
+			await upgrade();
 			logger.debug("#makeSureHasUptodateSchemaWithNoData: deleting data from schema...");
 		} finally {
 			await deleteData(executeQuery)();
 		}
+	} catch (err) {
+		logger.error(err);
+		throw err;
 	} finally {
 		connection.release();
 	}

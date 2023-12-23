@@ -1,3 +1,5 @@
+import { isEmpty, isNil } from "lodash";
+
 export type IColumnsDefinition = Readonly<Record<string, string>>;
 
 export interface ITableSpec {
@@ -65,3 +67,21 @@ export const iconToTagsTableSpec: ITableSpec = {
 		tag_id: "int REFERENCES tag(id) ON DELETE CASCADE"
 	}
 };
+
+const colDefToSQL = (columnsDefinition: IColumnsDefinition, columnName: string): string =>
+	`${columnName} ${columnsDefinition[columnName]}`;
+
+const columnDefinitionToSQL = (columnsDefinition: IColumnsDefinition): string => Object.keys(columnsDefinition).reduce(
+	(resultColsDef, columnName) =>
+		(isEmpty(resultColsDef) ? "" : (resultColsDef + ",\n    ")) + colDefToSQL(columnsDefinition, columnName),
+	""
+);
+
+const colConstraintsToSQL = (colConstraints: string[] | undefined): string =>
+	isNil(colConstraints) || isEmpty(colConstraints)
+		? ""
+		: ",\n    " + (colConstraints).join(",\n    ");
+
+export const makeCreateTableStatement = (tableDefinition: ITableSpec): string => `CREATE TABLE ${tableDefinition.tableName} (
+    ${columnDefinitionToSQL(tableDefinition.columns)}${colConstraintsToSQL(tableDefinition.col_constraints)}
+)`;

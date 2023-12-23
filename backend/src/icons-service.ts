@@ -52,19 +52,11 @@ export interface IconService {
 	readonly release: () => Promise<void>
 }
 
-export interface IconRepoSettings {
-	readonly resetData: boolean
-}
-
 export const createIconService = async (
-	iconRepoSettings: IconRepoSettings,
 	iconRepository: IconRepository,
 	gitRepository: GitRepository
 ): Promise<IconService> => {
-	if (iconRepoSettings.resetData) {
-		await iconRepository.createSchema();
-		await iconRepository.upgradeData();
-	}
+	await iconRepository.upgradeData();
 
 	const describeAllIcons: DescribeAllIcons = async () => await iconRepository.describeAllIcons();
 

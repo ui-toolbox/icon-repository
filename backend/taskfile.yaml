@@ -12,7 +12,13 @@ tasks:
       - rm dist/*
   setup-npm:
     cmds:
+      - mkdir -p .tasks.uptodate
       - npm ci
+      - date > .tasks.uptodate/npmci
+    sources:
+      - package-lock.json
+    generates:
+      - .tasks.uptodate/npmci
   build:
     cmds:
       - task: setup-npm
@@ -61,6 +67,7 @@ tasks:
     cmds:
       - kubectl apply -f deploy/k8s/backend.yaml
       - kubectl apply -f deploy/k8s/contour-httpproxy.yaml
+      - kubectl delete pod $(kubectl get pod -l app=iconrepo-nodejs -o jsonpath={.items[0].metadata.name})
   k8s-undeploy:
     cmds:
       - kubectl apply -f deploy/k8s/contour-httpproxy.yaml

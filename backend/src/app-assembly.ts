@@ -8,9 +8,6 @@ export const createDefaultIconService = async (configuration: ConfigurationData)
 	const iconRepository = iconRepositoryProvider(createConnectionProperties(configuration));
 
 	return await createIconService(
-		{
-			resetData: configuration.icon_data_create_new ?? false
-		},
 		iconRepository,
 		await gitRepositoryProvider(configuration.icon_data_location_git ?? defaultSettings.icon_data_location_git)
 	);

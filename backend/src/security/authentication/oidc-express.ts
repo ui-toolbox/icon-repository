@@ -63,15 +63,9 @@ export const setupAuthnRoutes = async (
 	await setupCallbackRoute(router, loginUrl, oidcHandler);
 
 	router.post("/logout", (req, res) => {
-		const logger = getLogger("route:///logout");
-		try {
-			delete req.session.authentication;
-			if (!_.isNil(logoutUrl)) {
-				res.setHeader("HX-Redirect", logoutUrl).end();
-			}
-		} catch (error) {
-			logger.error("failed to logout: %o", error);
-			res.sendStatus(400);
+		delete req.session.authentication;
+		if (!_.isNil(logoutUrl)) {
+			res.redirect(logoutUrl);
 		}
 	});
 };
