@@ -28,7 +28,7 @@ export class AuthenticatedUser {
 	public readonly username: string;
 	public readonly permissions: Permission[];
 
-	constructor (userName: string, permissions: Permission[]) {
+	constructor(userName: string, permissions: Permission[]) {
 		if (_.isEmpty(userName)) {
 			throw new Error(`Invalid username/login: ${userName}`);
 		}
