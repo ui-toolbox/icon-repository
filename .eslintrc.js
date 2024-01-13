@@ -5,6 +5,7 @@ module.exports = {
 	},
 	extends: [
 		"standard-with-typescript",
+		"plugin:@stylistic/disable-legacy"
 	],
 	overrides: [
 		{
@@ -26,18 +27,13 @@ module.exports = {
 		project: "./tsconfig.json"
 	},
 	plugins: [
-		"node"
+		"node",
+		"@stylistic"
 	],
 	rules: {
-		quotes: ["error", "double"],
-		semi: ["error", "always"],
-		"no-tabs": 0,
-		indent: ["error", "tab", { "SwitchCase": 1 }],
-		"@typescript-eslint/quotes": ["error", "double"],
-		"@typescript-eslint/semi": ["error", "always"],
-		"@typescript-eslint/indent": ["error", "tab"],
-		"space-before-function-paren": "off",
-		"@typescript-eslint/space-before-function-paren": "error"
+		"@stylistic/quotes": ["error", "double"],
+		"@stylistic/semi": ["error", "always"],
+		"@stylistic/indent": ["error", "tab"]
 	},
 	settings: {
 		node: {
