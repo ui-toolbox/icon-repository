@@ -1,6 +1,6 @@
 import { format } from "util";
 import { type Request, type Response } from "express";
-import { createLogger } from "./utils/logger";
+import { createLogger } from "./utils/logger.js";
 
 import {
 	type IconDescriptor,
@@ -8,35 +8,35 @@ import {
 	type IconAttributes,
 	IconNotFound,
 	IconfileAlreadyExists
-} from "./icon";
-import { type IconService, type DescribeAllIcons, type DescribeIcon } from "./icons-service";
-import { type SessionData, getAuthentication } from "./security/authenticated-user";
+} from "./icon.js";
+import { type IconService, type DescribeAllIcons, type DescribeIcon } from "./icons-service.js";
+import { type SessionData, getAuthentication } from "./security/authenticated-user.js";
 import _, { isNil } from "lodash";
-import { BadRequestError } from "./utils/error-handling";
+import { BadRequestError } from "./utils/error-handling.js";
 
 const logger = createLogger("icons-handlers");
 
 export interface IconHanlders {
-	readonly describeAllIcons: (req: Request, res: Response) => void
-	readonly describeIcon: (req: Request, res: Response) => void
-	readonly createIcon: (req: Request, res: Response) => void
-	readonly ingestIconfile: (req: Request, res: Response) => void
-	readonly updateIcon: (req: Request, res: Response) => void
-	readonly deleteIcon: (req: Request, res: Response) => void
-	readonly getIconfile: (req: Request, res: Response) => void
-	readonly deleteIconfile: (req: Request, res: Response) => void
-	readonly addTag: (req: Request, res: Response) => void
-	readonly getTags: (req: Request, res: Response) => void
-	readonly removeTag: (req: Request, res: Response) => void
-	readonly release: () => Promise<void>
+	readonly describeAllIcons: (req: Request, res: Response) => void;
+	readonly describeIcon: (req: Request, res: Response) => void;
+	readonly createIcon: (req: Request, res: Response) => void;
+	readonly ingestIconfile: (req: Request, res: Response) => void;
+	readonly updateIcon: (req: Request, res: Response) => void;
+	readonly deleteIcon: (req: Request, res: Response) => void;
+	readonly getIconfile: (req: Request, res: Response) => void;
+	readonly deleteIconfile: (req: Request, res: Response) => void;
+	readonly addTag: (req: Request, res: Response) => void;
+	readonly getTags: (req: Request, res: Response) => void;
+	readonly removeTag: (req: Request, res: Response) => void;
+	readonly release: () => Promise<void>;
 }
 
 interface UploadedFileDescriptor {
-	readonly originalname: string
-	readonly mimetype: string
-	readonly encoding: string
-	readonly buffer: Buffer
-	readonly size: number
+	readonly originalname: string;
+	readonly mimetype: string;
+	readonly encoding: string;
+	readonly buffer: Buffer;
+	readonly size: number;
 }
 
 const getUsername = (session: SessionData): string => getAuthentication(session)?.username ?? "";
@@ -57,20 +57,20 @@ const createIconfilePaths: CreateIconfilePaths =
 		);
 
 export interface IconPath extends IconfileDescriptor {
-	readonly path: string
+	readonly path: string;
 }
 
 // TODO: have this extend IconfileDescriptorEx instead of IconfileDescriptor
 export interface IngestedIconfileDTO extends IconfileDescriptor {
-	iconName: string
-	path: string
+	iconName: string;
+	path: string;
 }
 
 export interface IconDTO {
-	readonly name: string
-	readonly modifiedBy: string
-	readonly paths: IconPath[]
-	readonly tags: string[]
+	readonly name: string;
+	readonly modifiedBy: string;
+	readonly paths: IconPath[];
+	readonly tags: string[];
 }
 
 export const createIconDTO = (iconPathRoot: string, iconDesc: IconDescriptor): IconDTO => ({

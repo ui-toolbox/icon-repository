@@ -1,15 +1,15 @@
 import { type QueryResult, type Pool } from "pg";
-import { getPooledConnection, type ExecuteQuery } from "./db";
-import { createLogger } from "../utils/logger";
+import { getPooledConnection, type ExecuteQuery } from "./db.js";
+import { createLogger } from "../utils/logger.js";
 import { sortBy } from "lodash";
-import { iconTableSpec, iconfileTableSpec, makeCreateTableStatement } from "./db-schema";
+import { iconTableSpec, iconfileTableSpec, makeCreateTableStatement } from "./db-schema.js";
 
 const logger = createLogger("data-upgrade");
 
 interface UpgradeScript {
-	readonly version: string
+	readonly version: string;
 
-	readonly sqls: string[]
+	readonly sqls: string[];
 }
 
 const scripts: UpgradeScript[] = [

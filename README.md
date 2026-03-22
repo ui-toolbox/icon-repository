@@ -4,7 +4,7 @@ A web application for UI/UX designers and frontend developers to manage and expo
 
 Enabling consumer-developers (users of the applicatioin) to give effective feed-back on the content is also on the roadmap.
 
-# Setting up the DEV environment
+## Setting up the DEV environment
 
 1. Setup and start the database
 
@@ -15,7 +15,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
         - replace `id -u` and `id -g` in the `docker run` command below with the dedicated user's id and group id respectively
 
     1. Start the database by executing:
-        ```
+        ```bash
         sudo docker run \
             --name pg-iconrepo \
             -d \
@@ -49,7 +49,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
 2. Setup and start the front end
 
-    ```
+    ```bash
     git clone git@github.com:pdkovacs/iconrepo-ui.git
     cd iconrepo-ui
     npm install && npm run dev

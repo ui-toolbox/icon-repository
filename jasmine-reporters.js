@@ -1,17 +1,17 @@
 class InstantJasmineReporter {
 
-    constructor() {}
+	constructor() {}
 
-    suiteStarted(result) {
-        console.log("########################", result.id, result.description, "########################");
-    };
+	suiteStarted(result) {
+		console.log("########################", result.id, result.description, "########################");
+	};
 
-    specStarted(result) {
-        console.log("##########", result.id, result.description, "##########");
-    };
+	specStarted(result) {
+		console.log("##########", result.id, result.description, "##########");
+	};
 
 }
 
 module.exports = {
-    InstantJasmineReporter
-}
+	InstantJasmineReporter
+};

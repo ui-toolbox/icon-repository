@@ -1,7 +1,7 @@
 import "jasmine";
 
-import { type IconDTO, createIconDTO } from "./icons-handlers";
-import { type IconfileDescriptor, IconDescriptor } from "./icon";
+import { type IconDTO, createIconDTO } from "./icons-handlers.js";
+import { type IconfileDescriptor, IconDescriptor } from "./icon.js";
 
 describe("getAllIcons", () => {
 	it("should return the list of icons with proper paths", () => {

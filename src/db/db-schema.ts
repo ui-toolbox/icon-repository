@@ -3,19 +3,19 @@ import { isEmpty, isNil } from "lodash";
 export type IColumnsDefinition = Readonly<Record<string, string>>;
 
 export interface ITableSpec {
-	readonly tableName: string
-	readonly columns: IColumnsDefinition
-	readonly col_constraints?: string[]
+	readonly tableName: string;
+	readonly columns: IColumnsDefinition;
+	readonly col_constraints?: string[];
 }
 
 type ProjectColumn = (tableSpec: ITableSpec, columnName: string) => string;
 export const projectColumn: ProjectColumn = (tableSpec, columnName) => tableSpec.tableName + "." + columnName;
 
 export interface IconTableRow {
-	readonly id: number
-	readonly name: string
-	readonly modified_by: string
-	readonly modified_at: Date
+	readonly id: number;
+	readonly name: string;
+	readonly modified_by: string;
+	readonly modified_at: Date;
 }
 
 const iconTableColumns = {

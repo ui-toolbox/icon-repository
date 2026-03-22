@@ -1,10 +1,10 @@
 import * as express from "express";
-import { AuthenticatedUser, aggregatePrivileges, getAuthentication } from "./authenticated-user";
+import { AuthenticatedUser, aggregatePrivileges, getAuthentication } from "./authenticated-user.js";
 import _ from "lodash";
-import { type GetUserPrivileges, type Credentials, type FindMatchingCredentials } from "./authentication/basic-authn-handler";
-import { type ConfigurationData } from "../configuration";
-import { createLogger } from "../utils/logger";
-import { type Permission } from "./authorization/permissions/groups-permissions";
+import { type GetUserPrivileges, type Credentials, type FindMatchingCredentials } from "./authentication/basic-authn-handler.js";
+import { type ConfigurationData } from "../configuration.js";
+import { createLogger } from "../utils/logger.js";
+import { type Permission } from "./authorization/permissions/groups-permissions.js";
 
 const logger = createLogger("backdoors");
 
@@ -47,7 +47,7 @@ const builtInUserRoles: Record<string, string[]> = {
 
 export const builtInCredentialMatcher: FindMatchingCredentials =
 	async currentCredentials => !_.isNil(builtInCredentials.find(creds => _.isEqual(creds, currentCredentials)));
-export const builtInGetUserPrivileges = (configuration: ConfigurationData): GetUserPrivileges => async (username: string) => {
+export const builtInGetUserPrivileges = (_configuration: ConfigurationData): GetUserPrivileges => async (username: string) => {
 	return await aggregatePrivileges(builtInUserRoles[username]);
 };
 export default router;

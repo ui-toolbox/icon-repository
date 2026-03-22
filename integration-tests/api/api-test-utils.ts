@@ -65,21 +65,21 @@ const tearDownGitRepoAndServer = async (): Promise<void> => {
 type UploadField = Record<string, string>;
 
 interface FileAttachment {
-	readonly name: string
-	readonly value: Buffer
-	readonly filename: string
+	readonly name: string;
+	readonly value: Buffer;
+	readonly filename: string;
 }
 
 interface RequestData {
-	readonly baseUrl?: string
-	readonly method?: "GET" | "PATCH" | "POST" | "PUT" | "DELETE"
-	readonly path?: string
-	readonly auth?: Auth
-	readonly responseValidator?: (response: Response) => boolean
-	readonly field?: UploadField
-	readonly fileAttachment?: FileAttachment
-	readonly respBodyAsBuffer?: boolean
-	readonly cookies?: string
+	readonly baseUrl?: string;
+	readonly method?: "GET" | "PATCH" | "POST" | "PUT" | "DELETE";
+	readonly path?: string;
+	readonly auth?: Auth;
+	readonly responseValidator?: (response: Response) => boolean;
+	readonly field?: UploadField;
+	readonly fileAttachment?: FileAttachment;
+	readonly respBodyAsBuffer?: boolean;
+	readonly cookies?: string;
 }
 
 class RequestBuilderImpl implements RequestBuilder {

@@ -1,5 +1,5 @@
 import type express from "express";
-import { createLogger } from "../../utils/logger";
+import { createLogger } from "../../utils/logger.js";
 import _ from "lodash";
 import { type OidcHandler } from "./oidc.js";
 import { createAuthenticatedUser, storeAuthentication } from "../authenticated-user.js";

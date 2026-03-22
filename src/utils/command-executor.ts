@@ -1,5 +1,5 @@
 import { type SpawnOptions, spawn } from "child_process";
-import { createLogger } from "./logger";
+import { createLogger } from "./logger.js";
 import { isNil } from "lodash";
 
 export type CommandExecutor = (

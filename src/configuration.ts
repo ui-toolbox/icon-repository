@@ -1,8 +1,8 @@
 import { format as strformat } from "node:util";
 import * as path from "node:path";
 
-import { createLogger } from "./utils/logger";
-import clone from "./utils/clone";
+import { createLogger } from "./utils/logger.js";
+import clone from "./utils/clone.js";
 import { isNil } from "lodash";
 import { access, readFile } from "node:fs/promises";
 import { watch, type FSWatcher } from "node:fs";

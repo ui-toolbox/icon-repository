@@ -1,15 +1,15 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { createLogger } from "../../utils/logger";
-import { AuthenticatedUser } from "../authenticated-user";
-import { type Permission } from "../authorization/permissions/groups-permissions";
+import { createLogger } from "../../utils/logger.js";
+import { AuthenticatedUser } from "../authenticated-user.js";
+import { type Permission } from "../authorization/permissions/groups-permissions.js";
 
 const logger = createLogger("basicAuthentHandlerProvider");
 
 const getAuthorizationHeader: (req: Request) => string = req => req.headers.authorization ?? "";
 
 export interface Credentials {
-	readonly username: string
-	readonly password: string
+	readonly username: string;
+	readonly password: string;
 }
 
 const getCredentials = (req: Request): Credentials => {

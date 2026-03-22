@@ -1,16 +1,16 @@
 import { type Handler } from "express";
 import * as path from "path";
-import { createLogger } from "./utils/logger";
+import { createLogger } from "./utils/logger.js";
 import { readFile } from "fs/promises";
 
 interface VersionInfo {
-	version: string
-	commit: string
+	version: string;
+	commit: string;
 }
 
 interface AppInfo {
-	versionInfo: VersionInfo
-	appDescription: string
+	versionInfo: VersionInfo;
+	appDescription: string;
 }
 
 const getAppInfoHandlerProvider = (appDescription: string, packageRootDir: string): Handler => async (_, res) => {

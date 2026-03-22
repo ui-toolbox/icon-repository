@@ -1,5 +1,4 @@
-// @ts-expect-error TODO
-import probe = require("probe-image-size");
+import probe from "probe-image-size";
 
 import { Readable } from "stream";
 
@@ -12,12 +11,12 @@ const bufferToStream = (buffer: Buffer): Readable => {
 };
 
 export interface ImageMetadata {
-	width: number
-	height: number
-	type: string
-	mime: string
-	wUnits: string
-	hUnits: string
+	width: number;
+	height: number;
+	type: string;
+	mime: string;
+	wUnits: string;
+	hUnits: string;
 }
 
 const probeImageSize: (fileStream: Readable) => Promise<ImageMetadata> = probe;

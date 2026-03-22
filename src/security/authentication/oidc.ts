@@ -1,24 +1,24 @@
 import { type IncomingMessage } from "http";
 import { Issuer, type TokenSet, generators } from "openid-client";
 
-import { createLogger } from "../../utils/logger";
+import { createLogger } from "../../utils/logger.js";
 import { randomBytes } from "crypto";
 import type winston from "winston";
 
 const getLogger = (loggerName: string): winston.Logger => createLogger(loggerName);
 
 interface OidcHandlerParams {
-	readonly metaDataUrl: string
-	readonly clientId: string
-	readonly clientSecret: string
-	readonly callbackUrl: string
+	readonly metaDataUrl: string;
+	readonly clientId: string;
+	readonly clientSecret: string;
+	readonly callbackUrl: string;
 }
 
 export interface OidcHandler {
-	readonly getAuthorizationUrl: (req: Express.Request) => string
-	readonly getTokenSet: (req: IncomingMessage, codeVerifier: string) => Promise<TokenSet>
-	readonly getUserInfo: (accessToken: string) => Promise<any>
-	readonly refreshToken: (refreshToken: TokenSet) => Promise<TokenSet>
+	readonly getAuthorizationUrl: (req: Express.Request) => string;
+	readonly getTokenSet: (req: IncomingMessage, codeVerifier: string) => Promise<TokenSet>;
+	readonly getUserInfo: (accessToken: string) => Promise<any>;
+	readonly refreshToken: (refreshToken: TokenSet) => Promise<TokenSet>;
 }
 
 export const createOidcHandler = async (params: OidcHandlerParams): Promise<OidcHandler> => {

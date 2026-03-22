@@ -25,10 +25,10 @@ delete process.env.ICON_DATA_LOCATION_GIT;
 const logger = createLogger("importer");
 
 interface SourceFileDescriptor {
-	name: string
-	format: string
-	size: string
-	filePath: string
+	name: string;
+	format: string;
+	size: string;
+	filePath: string;
 }
 
 const stripExtension = (fileName: string): string => fileName.replace(/(.*)\.[^.]*$/, "$1");

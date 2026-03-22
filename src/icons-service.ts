@@ -1,7 +1,7 @@
-import { type Iconfile, IconDescriptor, type IconfileDescriptor, type IconAttributes } from "./icon";
-import { type GitRepository } from "./git";
-import { probeMetadata } from "./iconfile-service";
-import { type IconRepository } from "./db/icon";
+import { type Iconfile, IconDescriptor, type IconfileDescriptor, type IconAttributes } from "./icon.js";
+import { type GitRepository } from "./git.js";
+import { probeMetadata } from "./iconfile-service.js";
+import { type IconRepository } from "./db/icon.js";
 
 export type DescribeAllIcons = () => Promise<IconDescriptor[]>;
 export type DescribeIcon = (iconName: string) => Promise<IconDescriptor>;
@@ -37,19 +37,19 @@ type RemoveTag = (
 	modifiedBy: string) => Promise<number>;
 
 export interface IconService {
-	readonly describeAllIcons: DescribeAllIcons
-	readonly describeIcon: DescribeIcon
-	readonly getIconfile: GetIconfile
-	readonly createIcon: CreateIcon
-	readonly ingestIconfile: IngestIconfile
-	readonly updateIcon: UpdateIcon
-	readonly deleteIcon: DeleteIcon
-	readonly addIconfile: AddIconfile
-	readonly deleteIconfile: DeleteIconfile
-	readonly getTags: GetTags
-	readonly addTag: AddTag
-	readonly removeTag: RemoveTag
-	readonly release: () => Promise<void>
+	readonly describeAllIcons: DescribeAllIcons;
+	readonly describeIcon: DescribeIcon;
+	readonly getIconfile: GetIconfile;
+	readonly createIcon: CreateIcon;
+	readonly ingestIconfile: IngestIconfile;
+	readonly updateIcon: UpdateIcon;
+	readonly deleteIcon: DeleteIcon;
+	readonly addIconfile: AddIconfile;
+	readonly deleteIconfile: DeleteIconfile;
+	readonly getTags: GetTags;
+	readonly addTag: AddTag;
+	readonly removeTag: RemoveTag;
+	readonly release: () => Promise<void>;
 }
 
 export const createIconService = async (
@@ -134,8 +134,8 @@ export const createIconService = async (
 
 	const getTags: GetTags = async () => await iconRepository.getTags();
 
-	const addTag: AddTag = async (iconName, tag, modifiedBy) => { await iconRepository.addTag(iconName, tag); };
-	const removeTag: RemoveTag = async (iconName, tag, modifiedBy) => await iconRepository.removeTag(iconName, tag);
+	const addTag: AddTag = async (iconName, tag, _modifiedBy) => { await iconRepository.addTag(iconName, tag); };
+	const removeTag: RemoveTag = async (iconName, tag, _modifiedBy) => await iconRepository.removeTag(iconName, tag);
 
 	return {
 		describeIcon,

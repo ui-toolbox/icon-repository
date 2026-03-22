@@ -1,13 +1,13 @@
 import * as path from "path";
 import {
 	getSerializer, gitSerializer
-} from "./utils/serializer";
-import { type Iconfile, type IconfileDescriptor, type IconDescriptor, type IconAttributes, IconNotFound } from "./icon";
-import { commandExecutor } from "./utils/command-executor";
+} from "./utils/serializer.js";
+import { type Iconfile, type IconfileDescriptor, type IconDescriptor, type IconAttributes, IconNotFound } from "./icon.js";
+import { commandExecutor } from "./utils/command-executor.js";
 import { format as strformat } from "util";
-import { createLogger } from "./utils/logger";
+import { createLogger } from "./utils/logger.js";
 import { appendFile } from "fs/promises";
-import { deleteFile, hasSubDirectory, mkdirMaybe, renameFile } from "./utils/fs-helpers";
+import { deleteFile, hasSubDirectory, mkdirMaybe, renameFile } from "./utils/fs-helpers.js";
 
 type GitCommandExecutor = (spawnArgs: string[]) => Promise<string>;
 
@@ -34,13 +34,13 @@ export const createNewGitRepo = (location: string): CreateNewGitRepo => async ()
 };
 
 const getFileName: (iconName: string, format: string, size: string) => string =
-  (iconName, format, size) => `${iconName}@${size}.${format}`;
+	(iconName, format, size) => `${iconName}@${size}.${format}`;
 
 interface IconfilePathComponents {
-	pathToFormatDir: string
-	pathToSizeDir: string
-	pathToIconfile: string
-	pathToIconfileInRepo: string
+	pathToFormatDir: string;
+	pathToSizeDir: string;
+	pathToIconfile: string;
+	pathToIconfileInRepo: string;
 }
 
 type GetPathComponents = (
@@ -72,7 +72,7 @@ const getPathComponents1 = (pathToIconRepository: string, iconfileInfo: Iconfile
 	);
 
 export const getPathToIconfile: (pathToRepo: string, iconName: string, format: string, size: string) => string =
-  (pathToRepo, iconName, format, size) => getPathComponents(pathToRepo, iconName, format, size).pathToIconfile;
+	(pathToRepo, iconName, format, size) => getPathComponents(pathToRepo, iconName, format, size).pathToIconfile;
 
 const createIconfile = async (pathToIconRepository: string, iconfileInfo: Iconfile): Promise<string[]> => {
 	const pathCompos = getPathComponents1(pathToIconRepository, iconfileInfo);
@@ -140,8 +140,8 @@ const rollback: () => string[][] = () => [
 ];
 
 interface IconfileJobTextProviders {
-	logContext: string
-	getCommitMessage: (filesChanged: string[]) => string
+	logContext: string;
+	getCommitMessage: (filesChanged: string[]) => string;
 }
 
 type CreateIconfileJob = (
@@ -198,13 +198,13 @@ type DeleteIcon = (
 ) => Promise<void>;
 
 export interface GitRepository {
-	readonly getRepoLocation: () => string
-	readonly isRepoInitialized: IsRepoInitialized
-	readonly createNewGitRepo: CreateNewGitRepo
-	readonly addIconfile: AddIconfile
-	readonly deleteIconfile: DeleteIconfile
-	readonly updateIcon: UpdateIcon
-	readonly deleteIcon: DeleteIcon
+	readonly getRepoLocation: () => string;
+	readonly isRepoInitialized: IsRepoInitialized;
+	readonly createNewGitRepo: CreateNewGitRepo;
+	readonly addIconfile: AddIconfile;
+	readonly deleteIconfile: DeleteIconfile;
+	readonly updateIcon: UpdateIcon;
+	readonly deleteIcon: DeleteIcon;
 }
 
 type GitRepositoryProvider = (localIconRepositoryLocation: string) => Promise<GitRepository>;

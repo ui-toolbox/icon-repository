@@ -1,8 +1,8 @@
-import { createConnectionProperties } from "./db/db";
-import gitRepositoryProvider from "./git";
-import { type IconService, createIconService } from "./icons-service";
-import iconRepositoryProvider from "./db/icon";
-import { defaultSettings, type ConfigurationData } from "./configuration";
+import { createConnectionProperties } from "./db/db.js";
+import gitRepositoryProvider from "./git.js";
+import { type IconService, createIconService } from "./icons-service.js";
+import iconRepositoryProvider from "./db/icon.js";
+import { defaultSettings, type ConfigurationData } from "./configuration.js";
 
 export const createDefaultIconService = async (configuration: ConfigurationData): Promise<IconService> => {
 	const iconRepository = iconRepositoryProvider(createConnectionProperties(configuration));
