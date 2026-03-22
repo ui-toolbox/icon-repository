@@ -2,9 +2,9 @@ import _ from "lodash";
 import { type Permission, permissionsByGroup } from "./authorization/permissions/groups-permissions.js";
 
 export interface SessionData {
-	codeVerifier: string
-	authentication?: AuthenticatedUser
-	lastDenied?: string
+	codeVerifier: string;
+	authentication?: AuthenticatedUser;
+	lastDenied?: string;
 };
 
 export const aggregatePrivileges = async (roles: string[]): Promise<Permission[]> => {

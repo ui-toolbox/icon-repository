@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { mkdir, rm, stat, unlink } from "fs/promises";
 import { isNil } from "lodash";
-import { createLogger } from "./logger";
+import { createLogger } from "./logger.js";
 
 const logger = createLogger("fs-helpers");
 

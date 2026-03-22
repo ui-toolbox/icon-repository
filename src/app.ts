@@ -1,12 +1,12 @@
-import updateConfiguration from "./configuration";
-import { type Server, createServer } from "./server";
+import updateConfiguration from "./configuration.js";
+import { type Server, createServer } from "./server.js";
 
-import iconHandlersProvider from "./icons-handlers";
+import iconHandlersProvider from "./icons-handlers.js";
 import { type Logger } from "winston";
-import { FatalError } from "./general-errors";
-import { createDefaultIconService } from "./app-assembly";
+import { FatalError } from "./general-errors.js";
+import { createDefaultIconService } from "./app-assembly.js";
 import { isNil } from "lodash";
-import { createLogger } from "./utils/logger";
+import { createLogger } from "./utils/logger.js";
 
 let logger: Logger;
 

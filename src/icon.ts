@@ -1,16 +1,16 @@
 import { isEqual } from "lodash";
 
 export interface IconfileDescriptor {
-	readonly format: string
-	readonly size: string
+	readonly format: string;
+	readonly size: string;
 }
 
 export interface IconfileData extends IconfileDescriptor {
-	readonly content: Buffer
+	readonly content: Buffer;
 }
 
 export interface IconAttributes {
-	readonly name: string
+	readonly name: string;
 }
 
 export interface IconfileDescriptorEx extends IconfileDescriptor, IconAttributes {}

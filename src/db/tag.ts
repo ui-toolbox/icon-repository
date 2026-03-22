@@ -1,6 +1,6 @@
 import { type Pool } from "pg";
-import { query, type ExecuteQuery, tx } from "./db";
-import { type MultiValuedPropertyElementRowProcessor, type MultiValuedPropertyElementCollector } from "./entity-management";
+import { query, type ExecuteQuery, tx } from "./db.js";
+import { type MultiValuedPropertyElementRowProcessor, type MultiValuedPropertyElementCollector } from "./entity-management.js";
 
 type CreateTag = (executeQuery: ExecuteQuery, tag: string) => Promise<number>;
 const createTag: CreateTag = async (executeQuery, tag) => {

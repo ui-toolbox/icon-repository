@@ -2,23 +2,23 @@ import type * as express from "express";
 
 import session from "express-session";
 
-import { type ConfigurationData } from "./../configuration";
+import { type ConfigurationData } from "./../configuration.js";
 
-import { hasRequiredPrivileges } from "./authorization/permissions/permission-enforcement";
-import { createLogger } from "./../utils/logger";
+import { hasRequiredPrivileges } from "./authorization/permissions/permission-enforcement.js";
+import { createLogger } from "./../utils/logger.js";
 
-import backdoors, { builtInCredentialMatcher, builtInGetUserPrivileges } from "./backdoors";
+import backdoors, { builtInCredentialMatcher, builtInGetUserPrivileges } from "./backdoors.js";
 import _ from "lodash";
-import { type AuthenticatedUser, getAuthentication } from "./authenticated-user";
-import { type OidcHandler, createOidcHandler } from "./authentication/oidc";
-import { setupAuthnRoutes } from "./authentication/oidc-express";
-import { basicAuthenticationHandler } from "./authentication/basic-authn-handler";
+import { type AuthenticatedUser, getAuthentication } from "./authenticated-user.js";
+import { type OidcHandler, createOidcHandler } from "./authentication/oidc.js";
+import { setupAuthnRoutes } from "./authentication/oidc-express.js";
+import { basicAuthenticationHandler } from "./authentication/basic-authn-handler.js";
 
 declare module "express-session" {
 	export interface Session {
-		codeVerifier: string
-		authentication?: AuthenticatedUser
-		lastDenied?: string
+		codeVerifier: string;
+		authentication?: AuthenticatedUser;
+		lastDenied?: string;
 	}
 }
 
@@ -36,8 +36,8 @@ const userInfoHandler = (req: express.Request, res: express.Response): void => {
 };
 
 export const setupSecurity = (configuration: ConfigurationData): {
-	setupSessionManagement: (app: express.Express) => void
-	setupRoutes: (router: express.Router) => Promise<void>
+	setupSessionManagement: (app: express.Express) => void;
+	setupRoutes: (router: express.Router) => Promise<void>;
 } => {
 	const setupSessionManagement = (app: express.Express): void => {
 		app.use(session({

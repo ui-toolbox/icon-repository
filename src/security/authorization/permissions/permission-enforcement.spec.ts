@@ -2,8 +2,8 @@ import {
 	getRequiredPrivilegesProvider,
 	createPrivEndPointToRegExpMap,
 	type RequiredPrivilegesByEndPoints
-} from "./permission-enforcement";
-import { Permission } from "./groups-permissions";
+} from "./permission-enforcement.js";
+import { Permission } from "./groups-permissions.js";
 
 describe("getRequiredPrivilegesProvider", () => {
 	it("should return the permissions configured for the given url and method", async () => {

@@ -2,20 +2,20 @@ import express from "express";
 import helmet from "helmet";
 import multer from "multer";
 
-import { type IconHanlders } from "./icons-handlers";
+import { type IconHanlders } from "./icons-handlers.js";
 
-import { defaultSettings, type ConfigurationData } from "./configuration";
-import { setupSecurity } from "./security/security-manager";
-import getAppInfoHandlerProvider, { getClientConfigHandlerProvider } from "./app-info-handler";
+import { defaultSettings, type ConfigurationData } from "./configuration.js";
+import { setupSecurity } from "./security/security-manager.js";
+import getAppInfoHandlerProvider, { getClientConfigHandlerProvider } from "./app-info-handler.js";
 import { type AddressInfo } from "net";
-import { createLogger } from "./utils/logger";
+import { createLogger } from "./utils/logger.js";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 export interface Server {
-	readonly address: () => { address: string, port: number }
-	readonly shutdown: () => Promise<void>
+	readonly address: () => { address: string; port: number };
+	readonly shutdown: () => Promise<void>;
 }
 
 export const createServer = async (

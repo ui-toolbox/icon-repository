@@ -9,9 +9,9 @@ import { readFile } from "fs/promises";
 import { isNil } from "lodash";
 
 export interface Icon {
-	readonly name: string
-	readonly modifiedBy: string
-	readonly files: IconfileData[]
+	readonly name: string;
+	readonly modifiedBy: string;
+	readonly files: IconfileData[];
 }
 
 export const getDemoIconfileContent = async (iconName: string, iconfileDesc: IconfileDescriptor): Promise<Buffer> => {
@@ -26,9 +26,9 @@ export const getDemoIconfileContentSync = (iconName: string, iconfileDesc: Iconf
 	);
 
 interface TestIconDescriptor {
-	name: string
-	modifiedBy: string
-	files: IconfileDescriptor[]
+	name: string;
+	modifiedBy: string;
+	files: IconfileDescriptor[];
 }
 
 const testIconInputDataDescriptor = [

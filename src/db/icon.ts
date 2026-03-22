@@ -1,4 +1,4 @@
-import { pgErrorCodes, query, type ExecuteQuery, tx, type ConnectionProperties, createPoolUsing } from "./db";
+import { pgErrorCodes, query, type ExecuteQuery, tx, type ConnectionProperties, createPoolUsing } from "./db.js";
 import { type Pool } from "pg";
 import {
 	IconNotFound,
@@ -7,16 +7,16 @@ import {
 	IconfileAlreadyExists,
 	type IconAttributes,
 	IconDescriptor
-} from "../icon";
+} from "../icon.js";
 import {
 	type MultiValuedPropertyElementRowProcessor,
 	type MultiValuedPropertyElementCollector,
 	collectMultiValuedProperty
-} from "./entity-management";
-import { tagCollector, type AddTag, addTag, type GetTags, getTags, type RemoveTag, removeTag } from "./tag";
-import { type ExecuteDataUpgrade, executeDataUpgrade } from "./data-upgrade";
+} from "./entity-management.js";
+import { tagCollector, type AddTag, addTag, type GetTags, getTags, type RemoveTag, removeTag } from "./tag.js";
+import { type ExecuteDataUpgrade, executeDataUpgrade } from "./data-upgrade.js";
 import { isNil } from "lodash";
-import { type IconTableRow } from "./db-schema";
+import { type IconTableRow } from "./db-schema.js";
 
 const handleUniqueConstraintViolation = (error: any, iconfile: Iconfile): void => {
 	const toThrow = error.code === pgErrorCodes.unique_constraint_violation
@@ -33,7 +33,7 @@ type InsertIconfileIntoTable = (
 
 const insertIconfileIntoTable: InsertIconfileIntoTable = async (executeQuery, iconfileInfo) => {
 	const addIconfile: string = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
-                                "SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
+		"SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id";
 	try {
 		const result = await executeQuery(addIconfile, [
 			iconfileInfo.name,
@@ -56,7 +56,7 @@ type CreateIcon = (
 type CreateIconProvider = (pool: Pool) => CreateIcon;
 export const createIcon: CreateIconProvider = pool => async (iconfile, modifiedBy, createSideEffect) => {
 	const insertIconSQL: string = "INSERT INTO icon(name, modified_by) " +
-                                "VALUES($1, $2) RETURNING id";
+		"VALUES($1, $2) RETURNING id";
 	const insertIconParams = [iconfile.name, modifiedBy];
 	return await tx<number>(
 		pool,
@@ -127,10 +127,10 @@ export type GetIconfile = (
 	iconSize: string) => Promise<Buffer>;
 export const getIconfile = (pool: Pool): GetIconfile => async (iconName, format, iconSize) => {
 	const getIconfileSQL = "SELECT content FROM icon, icon_file " +
-                            "WHERE icon_id = icon.id AND " +
-                                "file_format = $2 AND " +
-                                "icon_size = $3 AND " +
-                                "icon.name = $1";
+		"WHERE icon_id = icon.id AND " +
+		"file_format = $2 AND " +
+		"icon_size = $3 AND " +
+		"icon.name = $1";
 	const result = await query(pool, getIconfileSQL, [iconName, format, iconSize]);
 	if (!isNil(result.rows[0])) {
 		return result.rows[0].content;
@@ -162,7 +162,7 @@ type DeleteIconfileBare = (
 	modifiedBy: string
 ) => Promise<void>;
 
-const deleteIconfileBare: DeleteIconfileBare = async (executeQuery, iconName, iconfileDesc, modifiedBy) => {
+const deleteIconfileBare: DeleteIconfileBare = async (executeQuery, iconName, iconfileDesc, _modifiedBy) => {
 	const getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE";
 	const deleteFile = "DELETE FROM icon_file WHERE icon_id = $1 and file_format = $2 and icon_size = $3";
 	const countIconfilesLeftForIcon = "SELECT count(*) as icon_file_count FROM icon_file WHERE icon_id = $1";
@@ -201,19 +201,19 @@ export const deleteIconfile = (pool: Pool): DeleteIconfile =>
 	};
 
 export interface IconRepository {
-	readonly upgradeData: ExecuteDataUpgrade
-	readonly describeIcon: DescribeIcon
-	readonly createIcon: CreateIcon
-	readonly updateIcon: UpdateIcon
-	readonly deleteIcon: DeleteIcon
-	readonly getIconfile: GetIconfile
-	readonly addIconfileToIcon: AddIconfile
-	readonly deleteIconfile: DeleteIconfile
-	readonly describeAllIcons: DescribeAllIcons
-	readonly getTags: GetTags
-	readonly addTag: AddTag
-	readonly removeTag: RemoveTag
-	readonly release: () => Promise<void>
+	readonly upgradeData: ExecuteDataUpgrade;
+	readonly describeIcon: DescribeIcon;
+	readonly createIcon: CreateIcon;
+	readonly updateIcon: UpdateIcon;
+	readonly deleteIcon: DeleteIcon;
+	readonly getIconfile: GetIconfile;
+	readonly addIconfileToIcon: AddIconfile;
+	readonly deleteIconfile: DeleteIconfile;
+	readonly describeAllIcons: DescribeAllIcons;
+	readonly getTags: GetTags;
+	readonly addTag: AddTag;
+	readonly removeTag: RemoveTag;
+	readonly release: () => Promise<void>;
 }
 
 let localPoolRef: Pool | undefined;
@@ -244,13 +244,13 @@ const iconRepositoryProvider = (connectionProperties: ConnectionProperties): Ico
 };
 
 const iconfileDescriptorRowProcessor: MultiValuedPropertyElementRowProcessor<IconfileDescriptor> =
-propElementRow => ({
-	entityId: propElementRow.icon_id,
-	propertyElement: {
-		format: propElementRow.file_format,
-		size: propElementRow.icon_size
-	}
-});
+	propElementRow => ({
+		entityId: propElementRow.icon_id,
+		propertyElement: {
+			format: propElementRow.file_format,
+			size: propElementRow.icon_size
+		}
+	});
 
 const iconfileDescriptorCollector = (sqlParams: any[]): MultiValuedPropertyElementCollector<IconfileDescriptor> =>
 	({
@@ -287,13 +287,13 @@ type DescribeIconBare = (executeQuery: ExecuteQuery, iconName: string, forUpdate
 const describeIconBare: DescribeIconBare = async (executeQuery, iconName, forUpdate = false) => {
 	const iconSQL = "SELECT id, modified_by FROM icon WHERE name = $1" + (forUpdate ? " FOR UPDATE" : "");
 	const iconfilesSQL = "SELECT file_format, icon_size FROM icon_file " +
-                            "WHERE icon_id = $1 " +
-                            "ORDER BY file_format, icon_size" +
-                        (forUpdate ? " FOR UPDATE" : "");
+		"WHERE icon_id = $1 " +
+		"ORDER BY file_format, icon_size" +
+		(forUpdate ? " FOR UPDATE" : "");
 	const tagsSQL = "SELECT text FROM tag, icon_to_tags " +
-                        "WHERE icon_to_tags.icon_id = $1 " +
-                            "AND icon_to_tags.tag_id = tag.id" +
-                    (forUpdate ? " FOR UPDATE" : "");
+		"WHERE icon_to_tags.icon_id = $1 " +
+		"AND icon_to_tags.tag_id = tag.id" +
+		(forUpdate ? " FOR UPDATE" : "");
 	const result = await executeQuery(iconSQL, [iconName]);
 	if (result.rowCount === 0) {
 		throw new IconNotFound(iconName);

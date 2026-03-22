@@ -5,31 +5,31 @@ import { createLogger } from "../../src/utils/logger";
 export const authenticationBackdoorPath = "/backdoor/authentication";
 
 export interface RequestBuilder {
-	readonly get: (path: string) => RequestBuilder
-	readonly patch: (path: string) => RequestBuilder
-	readonly post: (path: string) => RequestBuilder
-	readonly put: (path: string) => RequestBuilder
-	readonly del: (path: string) => RequestBuilder
-	readonly baseUrl: (url: string) => RequestBuilder
-	readonly auth: (username: string, password: string) => RequestBuilder
-	readonly ok: (responseValidator: (resp: Response) => boolean) => RequestBuilder
-	readonly field: (fieldSpec: Record<string, string>) => RequestBuilder
-	readonly attach: (name: string, value: Buffer, filename: string) => RequestBuilder
-	readonly buffer: (on: boolean) => RequestBuilder
-	readonly send: (json?: any) => Promise<RequestResult>
+	readonly get: (path: string) => RequestBuilder;
+	readonly patch: (path: string) => RequestBuilder;
+	readonly post: (path: string) => RequestBuilder;
+	readonly put: (path: string) => RequestBuilder;
+	readonly del: (path: string) => RequestBuilder;
+	readonly baseUrl: (url: string) => RequestBuilder;
+	readonly auth: (username: string, password: string) => RequestBuilder;
+	readonly ok: (responseValidator: (resp: Response) => boolean) => RequestBuilder;
+	readonly field: (fieldSpec: Record<string, string>) => RequestBuilder;
+	readonly attach: (name: string, value: Buffer, filename: string) => RequestBuilder;
+	readonly buffer: (on: boolean) => RequestBuilder;
+	readonly send: (json?: any) => Promise<RequestResult>;
 }
 
 export interface RequestResult {
-	readonly body: any
-	readonly status: number
-	readonly error: any
+	readonly body: any;
+	readonly status: number;
+	readonly error: any;
 }
 
 interface IconfileInfo {
-	iconName: string
-	format: string
-	size: string
-	path: string
+	iconName: string;
+	format: string;
+	size: string;
+	path: string;
 }
 
 export const getFilePath = (iconName: string, fileDescriptor: IconfileDescriptor): string =>
@@ -55,8 +55,8 @@ export const describeAllIcons = async (reqBuilder: RequestBuilder): Promise<Icon
 };
 
 export interface Auth {
-	readonly user: string
-	readonly password: string
+	readonly user: string;
+	readonly password: string;
 }
 
 export const describeIcon = async (reqBuilder: RequestBuilder, iconName: string): Promise<IconDTO> => {

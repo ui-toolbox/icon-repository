@@ -1,19 +1,19 @@
 import { type Pool } from "pg";
-import { query } from "./db";
+import { query } from "./db.js";
 import { isNil } from "lodash";
 
 interface MultiValuedPropertyElementMapInput<R> {
-	entityId: number
-	propertyElement: R
+	entityId: number;
+	propertyElement: R;
 }
 
 export type MultiValuedPropertyElementRowProcessor<R> =
-    (propertyElementRow: any) => MultiValuedPropertyElementMapInput<R>;
+	(propertyElementRow: any) => MultiValuedPropertyElementMapInput<R>;
 
 export interface MultiValuedPropertyElementCollector<R> {
-	sql: string
-	sqlParams: any[]
-	rowProcessor: MultiValuedPropertyElementRowProcessor<R>
+	sql: string;
+	sqlParams: any[];
+	rowProcessor: MultiValuedPropertyElementRowProcessor<R>;
 }
 
 export const collectMultiValuedProperty = async <R>(

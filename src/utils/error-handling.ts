@@ -1,4 +1,4 @@
-import { createLogger } from "./logger";
+import { createLogger } from "./logger.js";
 
 export const throwErrorWOStackTrace = (errorMessage: string): void => {
 	const error = new Error(errorMessage);

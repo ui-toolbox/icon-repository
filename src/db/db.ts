@@ -1,8 +1,8 @@
 import { Pool, type QueryResult } from "pg";
 
-import { createLogger } from "../utils/logger";
+import { createLogger } from "../utils/logger.js";
 import _, { isNil } from "lodash";
-import { type ConfigurationData } from "../configuration";
+import { type ConfigurationData } from "../configuration.js";
 
 export const pgErrorCodes = {
 	connection_refused: "ECONNREFUSED",
@@ -13,11 +13,11 @@ export const pgErrorCodes = {
 const logger = createLogger("db");
 
 export interface ConnectionProperties {
-	readonly user: string
-	readonly host: string
-	readonly database: string
-	readonly password: string
-	readonly port: string
+	readonly user: string;
+	readonly host: string;
+	readonly database: string;
+	readonly password: string;
+	readonly port: string;
 }
 
 const checkDefined: (value: string | undefined, name: string) => void = (value, name) => {
@@ -27,21 +27,21 @@ const checkDefined: (value: string | undefined, name: string) => void = (value, 
 };
 
 export const createConnectionProperties: (config: ConfigurationData) => ConnectionProperties =
-config => {
-	checkDefined(config.conn_user, "conn_user");
-	checkDefined(config.conn_host, "conn_host");
-	checkDefined(config.conn_database, "conn_database");
-	checkDefined(config.conn_password, "conn_password");
-	checkDefined(config.conn_port, "conn_port");
+	config => {
+		checkDefined(config.conn_user, "conn_user");
+		checkDefined(config.conn_host, "conn_host");
+		checkDefined(config.conn_database, "conn_database");
+		checkDefined(config.conn_password, "conn_password");
+		checkDefined(config.conn_port, "conn_port");
 
-	return {
-		user: config.conn_user ?? "",
-		host: config.conn_host ?? "",
-		database: config.conn_database ?? "",
-		password: config.conn_password ?? "",
-		port: config.conn_port ?? ""
+		return {
+			user: config.conn_user ?? "",
+			host: config.conn_host ?? "",
+			database: config.conn_database ?? "",
+			password: config.conn_password ?? "",
+			port: config.conn_port ?? ""
+		};
 	};
-};
 
 export const createPoolUsing = (connectionProperties: ConnectionProperties): Pool => {
 	const connOptions = {
@@ -69,8 +69,8 @@ export const query = async (pool: Pool, statement: string, parameters: any[]): P
 export type ExecuteQuery = (queryText: string, values?: any[]) => Promise<QueryResult>;
 
 export interface Connection {
-	readonly executeQuery: ExecuteQuery
-	readonly release: () => void
+	readonly executeQuery: ExecuteQuery;
+	readonly release: () => void;
 }
 
 export const getPooledConnection = async (pool: Pool): Promise<Connection> => await new Promise((resolve, reject) => {
