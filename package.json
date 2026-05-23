@@ -18,7 +18,7 @@
 		"p-limit": "^7.3.0",
 		"pg": "^8.20.0",
 		"probe-image-size": "^7.2.3",
-		"qs": "^6.15.0",
+		"qs": "^6.15.2",
 		"source-map-support": "^0.5.21",
 		"underscore.string": "^3.3.6",
 		"winston": "^3.19.0"
