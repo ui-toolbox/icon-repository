@@ -3,7 +3,6 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 import tseslintPlugin from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
-import pluginReact from "eslint-plugin-react";
 import json from "@eslint/json";
 import markdown from "@eslint/markdown";
 import css from "@eslint/css";
@@ -34,10 +33,6 @@ export default [
 		...config,
 		files: ["**/*.{ts,tsx,mts,cts}"]
 	})),
-	{
-		files: ["**/*.{jsx,tsx}"],
-		...pluginReact.configs.flat.recommended
-	},
 	{
 		...json.configs.recommended,
 		files: ["**/*.json"],

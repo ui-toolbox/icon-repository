@@ -97,7 +97,7 @@ const getConfigFilePathByProfile: (configProfile: string) => string = configProf
 };
 
 export const getConfigFilePath: () => string = () => {
-	let result = null;
+	let result: string;
 	if (!isNil(process.env.ICONREPO_CONFIG_FILE)) {
 		result = process.env.ICONREPO_CONFIG_FILE;
 	} else if (!isNil(process.env.ICON_REPO_CONFIG_PROFILE)) {

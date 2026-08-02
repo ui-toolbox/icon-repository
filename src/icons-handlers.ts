@@ -127,8 +127,8 @@ const getTags = (req: Request, res: Response, iconService: IconService): void =>
 const removeTag = (req: Request, res: Response, iconService: IconService): void => {
 	let iconName: string, tag: string;
 	const asyncFunc = async (): Promise<void> => {
-		const iconName = req.params.name;
-		const tag = req.params.tag;
+		iconName = req.params.name;
+		tag = req.params.tag;
 		await iconService.removeTag(iconName, tag, getUsername(req.session));
 		res.status(204).end();
 	};
